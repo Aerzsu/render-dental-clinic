@@ -157,19 +157,6 @@
                             <dd class="mt-1 text-sm text-gray-900">{{ upcoming_appointments.count|default:0 }}</dd>
                         </div>
                         <div>
-                            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Account Status</dt>
-                            <dd class="mt-1">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                                    {% if patient.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
-                                    <svg class="-ml-0.5 mr-1.5 h-2 w-2 
-                                        {% if patient.is_active %}text-green-400{% else %}text-red-400{% endif %}" fill="currentColor" viewBox="0 0 8 8">
-                                        <circle cx="4" cy="4" r="3"></circle>
-                                    </svg>
-                                    {% if patient.is_active %}Active{% else %}Inactive{% endif %}
-                                </span>
-                            </dd>
-                        </div>
-                        <div>
                             <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Last Updated</dt>
                             <dd class="mt-1 text-sm text-gray-900">
                                 {{ patient.updated_at|date:"M j, Y \a\t g:i A" }}

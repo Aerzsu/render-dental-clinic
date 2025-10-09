@@ -1,4 +1,5 @@
 # core/signals.py
+import sys
 from django.db.models.signals import post_save, pre_save, post_delete
 from django.dispatch import receiver
 from django.contrib.auth.signals import user_logged_in, user_logged_out, user_login_failed
@@ -30,6 +31,24 @@ def store_original_instance(sender, instance, **kwargs):
 @receiver(post_save)
 def log_model_save(sender, instance, created, **kwargs):
     """Automatically log create and update actions"""
+    
+    # CRITICAL: Skip during migrations and tests
+    if 'migrate' in sys.argv or 'test' in sys.argv:
+        return
+    
+    # Skip if explicitly disabled
+    if hasattr(instance, '_skip_audit_log') and instance._skip_audit_log:
+        return
+    
+    # Skip for certain models that shouldn't be logged
+    from django.contrib.contenttypes.models import ContentType
+    from django.contrib.sessions.models import Session
+    if isinstance(instance, (ContentType, Session)):
+        return
+    
+    # Import here to avoid circular imports
+    from .models import AuditLog
+
     # Skip these models
     skip_models = ['AuditLog', 'Session', 'LogEntry', 'ContentType', 'Permission']
     if sender.__name__ in skip_models:
@@ -113,6 +132,15 @@ def log_model_save(sender, instance, created, **kwargs):
 @receiver(post_delete)
 def log_model_delete(sender, instance, **kwargs):
     """Automatically log delete actions"""
+
+    # CRITICAL: Skip during migrations and tests
+    if 'migrate' in sys.argv or 'test' in sys.argv:
+        return
+    
+    # Skip if explicitly disabled
+    if hasattr(instance, '_skip_audit_log') and instance._skip_audit_log:
+        return
+    
     # Skip these models
     skip_models = ['AuditLog', 'Session', 'LogEntry', 'ContentType', 'Permission']
     if sender.__name__ in skip_models:

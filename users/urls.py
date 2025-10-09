@@ -20,6 +20,7 @@ urlpatterns = [
     path('<int:pk>/', views.UserDetailView.as_view(), name='user_detail'),
     path('<int:pk>/edit/', views.UserUpdateView.as_view(), name='user_update'),
     path('<int:pk>/toggle-active/', views.toggle_user_active, name='toggle_user_active'),
+    path('<int:pk>/reset-password/', views.reset_user_password, name='reset_user_password'),
 
     # Role management
     path('roles/', views.RoleListView.as_view(), name='role_list'),

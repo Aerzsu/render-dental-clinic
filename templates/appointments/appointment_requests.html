@@ -10,11 +10,9 @@
             <h1 class="text-2xl font-bold text-gray-900">Appointment Requests</h1>
             <p class="mt-2 text-sm text-gray-700">
                 Manage pending appointment requests from patients
-                {% if pending_count %}
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 ml-2">
-                        {{ pending_count }} pending
-                    </span>
-                {% endif %}
+                <span id="pending-badge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 ml-2">
+                    {{ pending_count }} pending
+                </span>
             </p>
         </div>
         <div class="mt-4 sm:mt-0 flex space-x-3">
@@ -32,7 +30,7 @@
     <!-- Filters -->
     <div class="bg-white shadow rounded-lg">
         <div class="px-6 py-4 border-b border-gray-200">
-            <form method="get" class="space-y-4 sm:space-y-0 sm:flex sm:items-center sm:space-x-4">
+            <form method="get" id="filter-form" class="space-y-4 sm:space-y-0 sm:flex sm:items-center sm:space-x-4">
                 <div class="flex-1 min-w-0">
                     <input type="text" name="search" value="{{ filters.search }}" 
                            placeholder="Search by patient name, email, or phone..." 
@@ -70,144 +68,79 @@
             </form>
         </div>
 
-        <!-- Appointment Requests List -->
-        <div class="overflow-hidden">
-            {% if appointments %}
-                <ul class="divide-y divide-gray-200">
-                    {% for appointment in appointments %}
-                        <li class="px-6 py-4 hover:bg-gray-50">
-                            <div class="flex items-center justify-between">
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex items-center space-x-3">
-                                        <div class="flex-shrink-0">
-                                            {% if appointment.patient_type == 'new' %}
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                    New Patient
-                                                </span>
-                                            {% else %}
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                    Returning
-                                                </span>
-                                            {% endif %}
-                                        </div>
-                                        <div class="flex-1 min-w-0">
-                                            <p class="text-sm font-medium text-gray-900 truncate">
-                                                {{ appointment.patient_name }}
-                                            </p>
-                                            <p class="text-sm text-gray-500 truncate">
-                                                {{ appointment.patient_email|default:appointment.patient_phone|default:"No contact provided" }}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div class="mt-2">
-                                        <div class="flex items-center text-sm text-gray-500 space-x-4">
-                                            <div class="flex items-center">
-                                                <span class="mr-1">📅</span>
-                                                {{ appointment.appointment_date|date:"M d, Y" }} - {{ appointment.get_period_display }}
-                                                <span class="text-xs text-gray-400 ml-1">
-                                                    ({% if appointment.period == 'AM' %}8:00 AM - 12:00 PM{% else %}1:00 PM - 6:00 PM{% endif %})
-                                                </span>
-                                            </div>
-                                            <div class="flex items-center">
-                                                <span class="mr-1">🦷</span>
-                                                {{ appointment.service.name }}
-                                            </div>
-                                            {% if appointment.assigned_dentist %}
-                                            <div class="flex items-center">
-                                                <span class="mr-1">👨‍⚕️</span>
-                                                Dr. {{ appointment.assigned_dentist.first_name }} {{ appointment.assigned_dentist.last_name }}
-                                            </div>
-                                            {% else %}
-                                            <div class="flex items-center">
-                                                <span class="mr-1">👨‍⚕️</span>
-                                                <span class="italic text-gray-400">Unassigned</span>
-                                            </div>
-                                            {% endif %}
-                                        </div>
-                                        {% if appointment.reason %}
-                                            <p class="mt-2 text-sm text-gray-600">
-                                                <strong>Reason:</strong> {{ appointment.reason }}
-                                            </p>
-                                        {% endif %}
-                                        <p class="mt-1 text-xs text-gray-400">
-                                            Requested on {{ appointment.requested_at|date:"M d, Y g:i A" }}
-                                        </p>
-                                    </div>
-                                </div>
-                                <div class="flex-shrink-0 flex space-x-2">
-                                    <a href="{% url 'appointments:appointment_detail' appointment.pk %}" 
-                                       class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50">
-                                        View
-                                    </a>
-                                    <a href="{% url 'appointments:approve_appointment' appointment.pk %}" 
-                                       class="inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700"
-                                       onclick="return confirm('Approve this appointment?')">
-                                        Approve
-                                    </a>
-                                    <a href="{% url 'appointments:reject_appointment' appointment.pk %}" 
-                                       class="inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700"
-                                       onclick="return confirm('Reject this appointment?')">
-                                        Reject
-                                    </a>
-                                </div>
-                            </div>
-                        </li>
-                    {% endfor %}
-                </ul>
-            {% else %}
-                <div class="text-center py-12">
-                    <div class="text-4xl mb-4">📋</div>
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">No pending requests</h3>
-                    <p class="text-gray-500">All appointment requests have been processed.</p>
-                </div>
-            {% endif %}
+        <!-- HTMX-Enhanced Request List Container -->
+        <div id="request-list-container"
+             hx-get="{% url 'appointments:appointment_requests_partial' %}?{{ request.GET.urlencode }}"
+             hx-trigger="every 45s, appointmentApproved from:body, appointmentRejected from:body"
+             hx-swap="innerHTML"
+             hx-indicator="#loading-indicator">
+            
+            <!-- Initial content (will be replaced by HTMX) -->
+            {% include 'appointments/partials/_request_list.html' %}
         </div>
 
-        <!-- Pagination -->
-        {% if is_paginated %}
-            <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
-                <div class="flex-1 flex justify-between sm:hidden">
-                    {% if page_obj.has_previous %}
-                        <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
-                           class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Previous</a>
-                    {% endif %}
-                    {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
-                           class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Next</a>
-                    {% endif %}
-                </div>
-                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                    <div>
-                        <p class="text-sm text-gray-700">
-                            Showing <span class="font-medium">{{ page_obj.start_index }}</span> to <span class="font-medium">{{ page_obj.end_index }}</span> of 
-                            <span class="font-medium">{{ page_obj.paginator.count }}</span> results
-                        </p>
-                    </div>
-                    <div>
-                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                            {% if page_obj.has_previous %}
-                                <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
-                                   class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">Previous</a>
-                            {% endif %}
-                            
-                            {% for num in page_obj.paginator.page_range %}
-                                {% if page_obj.number == num %}
-                                    <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-primary-50 text-sm font-medium text-primary-600">{{ num }}</span>
-                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                                    <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
-                                       class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">{{ num }}</a>
-                                {% endif %}
-                            {% endfor %}
-                            
-                            {% if page_obj.has_next %}
-                                <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
-                                   class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">Next</a>
-                            {% endif %}
-                        </nav>
-                    </div>
-                </div>
+        <!-- Loading Indicator -->
+        <div id="loading-indicator" class="htmx-indicator px-6 py-2 bg-blue-50 border-t border-blue-200">
+            <div class="flex items-center text-sm text-blue-700">
+                <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Checking for new requests...
             </div>
-        {% endif %}
+        </div>
     </div>
 </div>
+
+<style>
+    /* Hide loading indicator by default */
+    .htmx-indicator {
+        display: none;
+    }
+    /* Show when HTMX is loading */
+    .htmx-request .htmx-indicator {
+        display: block;
+    }
+</style>
+
+<script>
+    // Auto-submit form when filters change
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('filter-form');
+        const selects = form.querySelectorAll('select');
+        const dateInputs = form.querySelectorAll('input[type="date"]');
+        
+        // Auto-submit on select change
+        selects.forEach(select => {
+            select.addEventListener('change', () => form.submit());
+        });
+        
+        // Auto-submit on date change
+        dateInputs.forEach(input => {
+            input.addEventListener('change', () => form.submit());
+        });
+        
+        // Update HTMX URL when filters change
+        const updateHtmxUrl = () => {
+            const container = document.getElementById('request-list-container');
+            const params = new URLSearchParams(new FormData(form)).toString();
+            container.setAttribute('hx-get', 
+                '{% url "appointments:appointment_requests_partial" %}?' + params
+            );
+        };
+        
+        form.addEventListener('change', updateHtmxUrl);
+    });
+    
+    // Update badge count on HTMX events
+    document.body.addEventListener('htmx:afterSwap', function(event) {
+        if (event.detail.target.id === 'request-list-container') {
+            const countElement = event.detail.target.querySelector('[data-pending-count]');
+            if (countElement) {
+                const count = countElement.dataset.pendingCount;
+                document.getElementById('pending-badge').textContent = count + ' pending';
+            }
+        }
+    });
+</script>
 {% endblock %}

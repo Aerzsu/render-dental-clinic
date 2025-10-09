@@ -1,0 +1,16 @@
+asgiref==3.9.1
+brevo-python==1.2.0
+certifi==2025.10.5
+charset-normalizer==3.4.2
+crispy-tailwind==1.0.3
+Django==4.2
+django-crispy-forms==2.4
+pillow==11.3.0
+python-dateutil==2.9.0.post0
+python-decouple==3.8
+pytz==2025.2
+reportlab==4.4.3
+six==1.17.0
+sqlparse==0.5.3
+tzdata==2025.2
+urllib3==2.5.0

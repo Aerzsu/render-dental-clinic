@@ -252,25 +252,6 @@ class DiscountDetailView(LoginRequiredMixin, DetailView):
             messages.error(request, 'You do not have permission to access this page.')
             return redirect('core:dashboard')
         return super().dispatch(request, *args, **kwargs)
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        
-        # Add example amounts for calculation
-        example_amounts = [1000, 2500, 5000]
-        examples = []
-        
-        for amount in example_amounts:
-            discount_amount = self.object.calculate_discount(amount)
-            final_amount = amount - discount_amount
-            examples.append({
-                'original': amount,
-                'discount_amount': discount_amount,
-                'final_amount': final_amount,
-            })
-        
-        context['examples'] = examples
-        return context
 
 class DiscountCreateView(LoginRequiredMixin, CreateView):
     """Create new discount"""

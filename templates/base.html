@@ -6,6 +6,8 @@
     <title>{% block title %}KingJoy Dental Appointment System{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
     <script>
         tailwind.config = {
             theme: {
@@ -377,5 +379,11 @@
     <!-- Scripts -->
     {% block scripts %}
     {% endblock %}
+
+    <script>
+    document.body.addEventListener('htmx:configRequest', (event) => {
+        event.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
+    });
+    </script>
 </body>
 </html>

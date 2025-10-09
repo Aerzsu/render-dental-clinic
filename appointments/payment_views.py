@@ -218,8 +218,8 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
             discounts_data.append({
                 'id': discount.id,
                 'name': discount.name,
-                'discount_type': 'percentage' if discount.is_percentage else 'fixed',
-                'value': float(discount.amount),
+                'is_percentage': discount.is_percentage,  # Boolean field
+                'value': float(discount.amount),  # Using 'amount' field from model
             })
         
         context['services_json'] = json.dumps(services_data)
@@ -268,12 +268,11 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
                 discount_application = form.cleaned_data.get('discount_application')
                 if discount_application == 'total' and form.cleaned_data.get('total_discount'):
                     total_discount = form.cleaned_data['total_discount']
-                    # Apply discount to total (this would need additional model field or logic)
-                    # For now, we'll add it as a negative payment item
-                    if total_discount.discount_type == 'percentage':
-                        discount_amount = total_amount * (total_discount.value / 100)
+                    # FIX: Use is_percentage instead of discount_type, and amount instead of value
+                    if total_discount.is_percentage:
+                        discount_amount = total_amount * (total_discount.amount / 100)
                     else:
-                        discount_amount = min(total_discount.value, total_amount)
+                        discount_amount = min(total_discount.amount, total_amount)
                     
                     if discount_amount > 0:
                         PaymentItem.objects.create(

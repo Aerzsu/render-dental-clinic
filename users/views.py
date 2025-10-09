@@ -1,12 +1,15 @@
 #users/views.py
+import secrets
+import string
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.db.models import Q
 from .models import User, Role
+from core.models import AuditLog
 from .forms import UserForm, RoleForm  # Import forms from forms.py
 
 class UserListView(LoginRequiredMixin, ListView):
@@ -233,6 +236,55 @@ def toggle_role_archive(request, pk):
     messages.success(request, status_message)
     
     return redirect('users:role_detail', pk=pk)
+
+@login_required
+def reset_user_password(request, pk):
+    """Reset a user's password to a random temporary password"""
+    if not request.user.has_permission('maintenance'):
+        messages.error(request, 'You do not have permission to perform this action.')
+        return redirect('core:dashboard')
+    
+    user_to_reset = get_object_or_404(User, pk=pk)
+    
+    # Don't let users reset their own password this way
+    if user_to_reset == request.user:
+        messages.error(request, 'You cannot reset your own password. Please use the Change Password feature.')
+        return redirect('users:user_detail', pk=pk)
+    
+    # Only process POST requests (from the confirmation)
+    if request.method != 'POST':
+        messages.error(request, 'Invalid request method.')
+        return redirect('users:user_update', pk=pk)
+    
+    # Generate a random 12-character password
+    # Mix of uppercase, lowercase, digits, and a few safe special characters
+    alphabet = string.ascii_letters + string.digits + '!@#$%'
+    temp_password = ''.join(secrets.choice(alphabet) for _ in range(12))
+    
+    # Set the new password
+    user_to_reset.set_password(temp_password)
+    user_to_reset.save()
+    
+    # Log the action in AuditLog
+    AuditLog.objects.create(
+        user=request.user,
+        action='password_reset',
+        model_name='User',
+        object_id=str(user_to_reset.pk),
+        details=f'Password reset for user: {user_to_reset.username}'
+    )
+    
+    # Store the temporary password in session to display once
+    request.session['temp_password'] = temp_password
+    request.session['temp_password_username'] = user_to_reset.username
+    
+    messages.success(
+        request, 
+        f'Password has been reset for {user_to_reset.get_full_name() or user_to_reset.username}. '
+        'The temporary password is displayed below and will only be shown once.'
+    )
+    
+    return redirect('users:user_update', pk=pk)
 
 # Role Views
 class RoleListView(LoginRequiredMixin, ListView):

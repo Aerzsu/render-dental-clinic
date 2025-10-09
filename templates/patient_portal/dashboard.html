@@ -1,0 +1,151 @@
+{% extends 'base_public.html' %}
+
+{% block title %}Patient Portal - Dashboard{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-200 mb-6">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Patient Portal</h1>
+                <p class="text-gray-600">Welcome, {{ patient.full_name }}</p>
+            </div>
+            <a href="{% url 'patient_portal:logout' %}" class="text-red-600 hover:text-red-700 text-sm">
+                Logout
+            </a>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <!-- Navigation -->
+        <div class="mb-6 flex space-x-4 border-b border-gray-200">
+            <a href="{% url 'patient_portal:dashboard' %}" class="px-4 py-2 border-b-2 border-blue-600 text-blue-600 font-medium">
+                Dashboard
+            </a>
+            <a href="{% url 'patient_portal:appointments' %}" class="px-4 py-2 text-gray-600 hover:text-gray-900">
+                All Appointments
+            </a>
+            <a href="{% url 'patient_portal:billing' %}" class="px-4 py-2 text-gray-600 hover:text-gray-900">
+                Billing
+            </a>
+        </div>
+
+        {% if messages %}
+        <div class="mb-6">
+            {% for message in messages %}
+            <div class="{% if message.tags == 'error' %}bg-red-50 border-l-4 border-red-500 text-red-700{% elif message.tags == 'success' %}bg-green-50 border-l-4 border-green-500 text-green-700{% else %}bg-blue-50 border-l-4 border-blue-500 text-blue-700{% endif %} p-4 rounded">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Billing Summary Card -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-gray-500 text-sm font-medium mb-2">Outstanding Balance</h3>
+                <p class="text-3xl font-bold {% if billing_summary.outstanding > 0 %}text-red-600{% else %}text-green-600{% endif %}">
+                    ₱{{ billing_summary.outstanding|floatformat:2 }}
+                </p>
+            </div>
+
+            <!-- Pending Appointments Card -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-gray-500 text-sm font-medium mb-2">Pending Requests</h3>
+                <p class="text-3xl font-bold text-yellow-600">{{ pending_count }}</p>
+            </div>
+
+            <!-- Total Paid Card -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="text-gray-500 text-sm font-medium mb-2">Total Paid</h3>
+                <p class="text-3xl font-bold text-gray-900">₱{{ billing_summary.total_paid|floatformat:2 }}</p>
+            </div>
+        </div>
+
+        <!-- Upcoming Appointments -->
+        <div class="bg-white rounded-lg shadow mb-6">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-bold text-gray-900">Upcoming Appointments</h2>
+            </div>
+            <div class="p-6">
+                {% if upcoming_appointments %}
+                <div class="space-y-4">
+                    {% for appointment in upcoming_appointments %}
+                    <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-2 mb-2">
+                                    <span class="text-lg font-semibold text-gray-900">
+                                        {{ appointment.appointment_date|date:"F d, Y" }}
+                                    </span>
+                                    <span class="px-2 py-1 text-xs rounded {% if appointment.period == 'AM' %}bg-blue-100 text-blue-800{% else %}bg-purple-100 text-purple-800{% endif %}">
+                                        {{ appointment.get_period_display }}
+                                    </span>
+                                    <span class="px-2 py-1 text-xs rounded {% if appointment.status == 'confirmed' %}bg-green-100 text-green-800{% elif appointment.status == 'pending' %}bg-yellow-100 text-yellow-800{% endif %}">
+                                        {{ appointment.get_status_display }}
+                                    </span>
+                                </div>
+                                <p class="text-gray-700">{{ appointment.service.name }}</p>
+                                {% if appointment.assigned_dentist %}
+                                <p class="text-sm text-gray-500">Dentist: Dr. {{ appointment.assigned_dentist.get_full_name }}</p>
+                                {% endif %}
+                            </div>
+                            {% if appointment.can_be_cancelled and appointment.status in 'pending,confirmed' %}
+                            <form method="post" action="{% url 'patient_portal:cancel_appointment' appointment.id %}" onsubmit="return confirm('Are you sure you want to cancel this appointment?');">
+                                {% csrf_token %}
+                                <button type="submit" class="text-red-600 hover:text-red-700 text-sm">
+                                    Cancel
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">No upcoming appointments</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Appointments -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h2 class="text-xl font-bold text-gray-900">Recent Appointments</h2>
+            </div>
+            <div class="p-6">
+                {% if recent_appointments %}
+                <div class="space-y-4">
+                    {% for appointment in recent_appointments %}
+                    <div class="border border-gray-200 rounded-lg p-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="flex items-center space-x-2 mb-2">
+                                    <span class="text-lg font-semibold text-gray-900">
+                                        {{ appointment.appointment_date|date:"F d, Y" }}
+                                    </span>
+                                    <span class="px-2 py-1 text-xs rounded {% if appointment.period == 'AM' %}bg-blue-100 text-blue-800{% else %}bg-purple-100 text-purple-800{% endif %}">
+                                        {{ appointment.get_period_display }}
+                                    </span>
+                                </div>
+                                <p class="text-gray-700">{{ appointment.service.name }}</p>
+                                {% if appointment.assigned_dentist %}
+                                <p class="text-sm text-gray-500">Dentist: Dr. {{ appointment.assigned_dentist.get_full_name }}</p>
+                                {% endif %}
+                            </div>
+                            <span class="px-2 py-1 text-xs rounded {% if appointment.status == 'completed' %}bg-green-100 text-green-800{% elif appointment.status == 'cancelled' %}bg-red-100 text-red-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ appointment.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-gray-500 text-center py-8">No recent appointments</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

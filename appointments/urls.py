@@ -9,6 +9,7 @@ urlpatterns = [
     path('', views.AppointmentListView.as_view(), name='appointment_list'),
     path('calendar/', views.AppointmentCalendarView.as_view(), name='appointment_calendar'),
     path('requests/', views.AppointmentRequestsView.as_view(), name='appointment_requests'),
+    path('requests/partial/', views.appointment_requests_partial, name='appointment_requests_partial'),
     
     # Appointment CRUD (BACKEND)
     path('create/', views.AppointmentCreateView.as_view(), name='appointment_create'),

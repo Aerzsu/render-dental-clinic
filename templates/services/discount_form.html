@@ -176,16 +176,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const currencySymbol = document.getElementById('currency-symbol');
     const amountHelp = document.getElementById('amount-help');
     
-    function updateUI(isPercentage) {
-        // Update hidden field
-        hiddenField.checked = isPercentage;
+    function updateUI(isPercentage, clearAmount = true) {
+        // Update hidden field value (it's a hidden input with value, not a checkbox)
+        hiddenField.value = isPercentage ? 'True' : 'False';
         
         // Update label and symbol
         if (isPercentage) {
             amountLabel.textContent = 'Discount Percentage (%)';
             currencySymbol.textContent = '%';
             amountInput.setAttribute('max', '100');
-            amountInput.removeAttribute('min');
             amountInput.setAttribute('min', '0.01');
             amountHelp.textContent = 'Enter percentage (1-100) to discount from the total';
         } else {
@@ -196,21 +195,42 @@ document.addEventListener('DOMContentLoaded', function() {
             amountHelp.textContent = 'Enter the fixed amount to subtract from the total';
         }
         
-        // Clear current value when switching types
-        amountInput.value = '';
-        amountInput.focus();
+        // Clear current value only when user switches types
+        if (clearAmount) {
+            amountInput.value = '';
+            amountInput.focus();
+        }
     }
     
-    // Event listeners
+    // Initialize UI on page load based on hidden field value
+    function initializeUI() {
+        // Read the hidden field value (it's "True" or "False" as string, or empty)
+        const hiddenValue = hiddenField.value;
+        const isPercentage = hiddenValue === 'True' || hiddenValue === 'true';
+        
+        // Update radio buttons to match hidden field
+        if (isPercentage) {
+            percentageRadio.checked = true;
+            fixedRadio.checked = false;
+        } else {
+            fixedRadio.checked = true;
+            percentageRadio.checked = false;
+        }
+        
+        // Update UI without clearing the amount field
+        updateUI(isPercentage, false);
+    }
+    
+    // Event listeners for radio button changes
     fixedRadio.addEventListener('change', function() {
         if (this.checked) {
-            updateUI(false);
+            updateUI(false, true);
         }
     });
     
     percentageRadio.addEventListener('change', function() {
         if (this.checked) {
-            updateUI(true);
+            updateUI(true, true);
         }
     });
     
@@ -234,13 +254,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Set initial state
-    const initialIsPercentage = hiddenField.checked;
-    if (initialIsPercentage) {
-        percentageRadio.checked = true;
-    } else {
-        fixedRadio.checked = true;
-    }
+    // Initialize the UI on page load
+    initializeUI();
 });
 </script>
 {% endblock %}

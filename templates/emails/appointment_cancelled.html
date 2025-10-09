@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointment Cancelled</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            background-color: #f59e0b;
+            color: white;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            margin: -30px -30px 30px -30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .appointment-details {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .appointment-details p {
+            margin: 8px 0;
+        }
+        .appointment-details strong {
+            color: #f59e0b;
+            min-width: 120px;
+            display: inline-block;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 14px;
+            color: #6b7280;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Appointment Cancelled</h1>
+        </div>
+        
+        <div class="content">
+            <p>Dear {{ patient_name }},</p>
+            
+            {% if cancelled_by_patient %}
+            <p>This email confirms that your appointment has been successfully cancelled as requested.</p>
+            {% else %}
+            <p>We regret to inform you that your appointment has been cancelled.</p>
+            {% endif %}
+            
+            <div class="appointment-details">
+                <p><strong>Date:</strong> {{ appointment_date }}</p>
+                <p><strong>Time:</strong> {{ period }}</p>
+                <p><strong>Service:</strong> {{ service }}</p>
+            </div>
+            
+            {% if cancelled_by_patient %}
+            <p>If you would like to reschedule, you can book a new appointment through our website or contact us directly.</p>
+            {% else %}
+            <p>We apologize for any inconvenience this may cause. If you would like to reschedule, please visit our website to book a new appointment or contact us directly for assistance.</p>
+            {% endif %}
+            
+            <p>Thank you for your understanding.</p>
+        </div>
+        
+        <div class="footer">
+            <p>{{ clinic_name }}</p>
+            <p>This is an automated message. Please do not reply to this email.</p>
+        </div>
+    </div>
+</body>
+</html>

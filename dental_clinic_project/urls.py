@@ -11,6 +11,7 @@ urlpatterns = [
     path('patients/', include('patients.urls', namespace='patients')),
     path('appointments/', include('appointments.urls', namespace='appointments')),
     path('services/', include('services.urls', namespace='services')),
+    path('portal/', include('patient_portal.urls', namespace='patient_portal')),
 ]
 
 if settings.DEBUG:

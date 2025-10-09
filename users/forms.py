@@ -67,7 +67,7 @@ class UserForm(forms.ModelForm):
             }),
         }
         labels = {
-            'is_active_dentist': 'Can accept appointments',
+            'is_active_dentist': 'Allow to accept appointment requests',
             'is_active': 'Account is active',
         }
     

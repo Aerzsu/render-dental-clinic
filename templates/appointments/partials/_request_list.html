@@ -1,0 +1,114 @@
+<!-- templates/appointments/partials/_request_list.html -->
+<div data-pending-count="{{ pending_count }}">
+    {% if appointments %}
+        <ul class="divide-y divide-gray-200">
+            {% for appointment in appointments %}
+                <li class="px-6 py-4 hover:bg-gray-50" id="appointment-{{ appointment.id }}">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center space-x-3">
+                                <div class="flex-shrink-0">
+                                    {% if appointment.patient_type == 'new' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            New Patient
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                            Returning
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-medium text-gray-900 truncate">
+                                        {{ appointment.patient_name }}
+                                    </p>
+                                    <p class="text-sm text-gray-500 truncate">
+                                        {{ appointment.patient_email|default:appointment.patient_phone|default:"No contact provided" }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <div class="flex items-center text-sm text-gray-500 space-x-4">
+                                    <div class="flex items-center">
+                                        <span class="mr-1">📅</span>
+                                        {{ appointment.appointment_date|date:"M d, Y" }} - {{ appointment.get_period_display }}
+                                        <span class="text-xs text-gray-400 ml-1">
+                                            ({% if appointment.period == 'AM' %}8:00 AM - 12:00 PM{% else %}1:00 PM - 6:00 PM{% endif %})
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="mr-1">🦷</span>
+                                        {{ appointment.service.name }}
+                                    </div>
+                                    {% if appointment.assigned_dentist %}
+                                    <div class="flex items-center">
+                                        <span class="mr-1">👨‍⚕️</span>
+                                        Dr. {{ appointment.assigned_dentist.first_name }} {{ appointment.assigned_dentist.last_name }}
+                                    </div>
+                                    {% else %}
+                                    <div class="flex items-center">
+                                        <span class="mr-1">👨‍⚕️</span>
+                                        <span class="italic text-gray-400">Unassigned</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% if appointment.reason %}
+                                    <p class="mt-2 text-sm text-gray-600">
+                                        <strong>Reason:</strong> {{ appointment.reason }}
+                                    </p>
+                                {% endif %}
+                                <p class="mt-1 text-xs text-gray-400">
+                                    Requested on {{ appointment.requested_at|date:"M d, Y g:i A" }}
+                                </p>
+                            </div>
+                        </div>
+                        <div class="flex-shrink-0 flex space-x-2">
+                            <a href="{% url 'appointments:appointment_detail' appointment.pk %}" 
+                               class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50">
+                                View
+                            </a>
+                            
+                            <!-- HTMX Approve Button-->
+                            <button x-data="{ loading: false }"
+                                    hx-post="{% url 'appointments:approve_appointment' appointment.pk %}"
+                                    hx-target="#appointment-{{ appointment.id }}"
+                                    hx-swap="outerHTML swap:1s"
+                                    hx-confirm="Approve this appointment for {{ appointment.patient_name }}?"
+                                    @htmx:before-request="loading = true"
+                                    class="inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
+                                    :disabled="loading">
+                                <svg x-show="loading" class="animate-spin h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span x-text="loading ? 'Processing...' : 'Approve'"></span>
+                            </button>
+
+                            <!-- HTMX Reject Button with Alpine.js -->
+                            <button x-data="{ loading: false }"
+                                    hx-post="{% url 'appointments:reject_appointment' appointment.pk %}"
+                                    hx-target="#appointment-{{ appointment.id }}"
+                                    hx-swap="outerHTML swap:1s"
+                                    hx-confirm="Reject this appointment for {{ appointment.patient_name }}?"
+                                    @htmx:before-request="loading = true"
+                                    class="inline-flex items-center px-3 py-1.5 border border-transparent shadow-sm text-xs font-medium rounded text-white bg-red-600 hover:bg-red-700 disabled:opacity-50"
+                                    :disabled="loading">
+                                <svg x-show="loading" class="animate-spin h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span x-text="loading ? 'Processing...' : 'Reject'"></span>
+                            </button>
+                        </div>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <div class="text-center py-12">
+            <div class="text-4xl mb-4">📋</div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No pending requests</h3>
+            <p class="text-gray-500">All appointment requests have been processed.</p>
+        </div>
+    {% endif %}
+</div>

@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 import os
 from pathlib import Path
 from decouple import config
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -26,6 +27,8 @@ ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(','
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 ALLOWED_HOSTS = []
+
+load_dotenv()
 
 # Application definition
 INSTALLED_APPS = [
@@ -46,6 +49,7 @@ INSTALLED_APPS = [
     'patients',
     'appointments',
     'services',
+    'patient_portal',
 ]
 
 MIDDLEWARE = [
@@ -142,6 +146,23 @@ LOGOUT_REDIRECT_URL = '/'
 # Session settings
 SESSION_COOKIE_AGE = 8 * 60 * 60  # 8 hours
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# Email Configuration (using Brevo/Sendinblue)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp-relay.brevo.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', default='')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', default='')  # Brevo SMTP key
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', default='noreply@kingjoydental.site')
+DEFAULT_FROM_NAME = os.getenv('DEFAULT_FROM_NAME', default='KingJoy Dental Clinic')
+
+# Email settings
+EMAIL_TIMEOUT = 10  # seconds
+EMAIL_SUBJECT_PREFIX = 'kingjoy dental clinic'
+
+# For development/testing - logs emails to console instead of sending
+# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 LOGGING = {
     'version': 1,

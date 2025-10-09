@@ -3,7 +3,7 @@
 import json
 from datetime import datetime, date, timedelta
 
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -13,6 +13,7 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.urls import reverse_lazy
 from django.utils import timezone
+from django.http import HttpResponse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView
 
 from .models import Appointment, DailySlots
@@ -20,6 +21,7 @@ from .forms import AppointmentForm, DailySlotsForm, AppointmentNoteFieldForm
 from patients.models import Patient
 from users.models import User
 from core.models import AuditLog
+from core.email_service import EmailService
 from django.views.decorators.http import require_POST
 
 
@@ -270,6 +272,76 @@ class AppointmentRequestsView(LoginRequiredMixin, ListView):
         })
         return context
 
+from django.views.decorators.http import require_http_methods
+
+@login_required
+@require_http_methods(["GET"])
+def appointment_requests_partial(request):
+    """HTMX PARTIAL: Return just the request list for polling"""
+    if not request.user.has_permission('appointments'):
+        return HttpResponse('Unauthorized', status=403)
+    
+    if not request.user.is_active_dentist:
+        return HttpResponse('Unauthorized', status=403)
+    
+    # Same filtering logic as main view
+    queryset = Appointment.objects.filter(
+        status='pending'
+    ).select_related('patient', 'assigned_dentist', 'service').order_by('-requested_at')
+    
+    # Apply filters from GET params
+    patient_type = request.GET.get('patient_type')
+    if patient_type:
+        queryset = queryset.filter(patient_type=patient_type)
+    
+    assigned_dentist = request.GET.get('assigned_dentist')
+    if assigned_dentist:
+        queryset = queryset.filter(assigned_dentist_id=assigned_dentist)
+    
+    date_from = request.GET.get('date_from')
+    if date_from:
+        try:
+            date_from = datetime.strptime(date_from, '%Y-%m-%d').date()
+            queryset = queryset.filter(appointment_date__gte=date_from)
+        except ValueError:
+            pass
+    
+    date_to = request.GET.get('date_to')
+    if date_to:
+        try:
+            date_to = datetime.strptime(date_to, '%Y-%m-%d').date()
+            queryset = queryset.filter(appointment_date__lte=date_to)
+        except ValueError:
+            pass
+    
+    period = request.GET.get('period')
+    if period and period in ['AM', 'PM']:
+        queryset = queryset.filter(period=period)
+    
+    search = request.GET.get('search')
+    if search:
+        search_conditions = Q()
+        search_conditions |= (
+            Q(patient__first_name__icontains=search) |
+            Q(patient__last_name__icontains=search) |
+            Q(patient__email__icontains=search) |
+            Q(patient__contact_number__icontains=search)
+        )
+        search_conditions |= (
+            Q(temp_first_name__icontains=search) |
+            Q(temp_last_name__icontains=search) |
+            Q(temp_email__icontains=search) |
+            Q(temp_contact_number__icontains=search)
+        )
+        queryset = queryset.filter(search_conditions)
+    
+    # Limit to first 50 for performance
+    appointments = queryset[:50]
+    
+    return render(request, 'appointments/partials/_request_list.html', {
+        'appointments': appointments,
+        'pending_count': queryset.count()
+    })
 
 class AppointmentListView(LoginRequiredMixin, ListView):
     """BACKEND VIEW: List all appointments with comprehensive filtering"""
@@ -361,6 +433,46 @@ class AppointmentCreateView(LoginRequiredMixin, CreateView):
             return redirect('core:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
+    def get_initial(self):
+        """Pre-fill patient if provided via query parameter"""
+        initial = super().get_initial()
+        patient_id = self.request.GET.get('patient')
+        
+        if patient_id:
+            try:
+                patient = Patient.objects.get(pk=patient_id, is_active=True)
+                initial['patient'] = patient
+            except Patient.DoesNotExist:
+                messages.warning(
+                    self.request,
+                    'The selected patient could not be found. Please select a patient below.'
+                )
+            except ValueError:
+                # Invalid patient ID format
+                pass
+        
+        return initial
+    
+    def get_context_data(self, **kwargs):
+        """Add pre-selected patient info to context"""
+        context = super().get_context_data(**kwargs)
+        patient_id = self.request.GET.get('patient')
+        
+        if patient_id:
+            try:
+                patient = Patient.objects.get(pk=patient_id, is_active=True)
+                context['preselected_patient'] = {
+                    'id': patient.id,
+                    'name': patient.full_name,
+                    'email': patient.email or 'No email',
+                    'phone': patient.contact_number or 'No phone'
+                }
+            except (Patient.DoesNotExist, ValueError):
+                # Already handled in get_initial
+                pass
+        
+        return context
+    
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['user'] = self.request.user
@@ -407,7 +519,6 @@ class AppointmentCreateView(LoginRequiredMixin, CreateView):
     
     def get_success_url(self):
         return reverse_lazy('appointments:appointment_list')
-
 
 class AppointmentDetailView(LoginRequiredMixin, DetailView):
     """BACKEND VIEW: View detailed appointment information"""
@@ -837,11 +948,14 @@ def find_patient_api(request):
         return JsonResponse({'found': False})
 
 
-# ACTION VIEWS
+# UPDATED approve_appointment function
 @login_required
 def approve_appointment(request, pk):
-    """ACTION VIEW: Approve pending appointment and create/update patient record"""
+    """ACTION VIEW: Approve pending appointment - HTMX compatible"""
     if not request.user.has_permission('appointments'):
+        # HTMX check
+        if request.headers.get('HX-Request'):
+            return HttpResponse('<div class="text-red-600">Permission denied</div>', status=403)
         messages.error(request, 'You do not have permission to perform this action.')
         return redirect('core:dashboard')
     
@@ -850,10 +964,12 @@ def approve_appointment(request, pk):
             appointment = get_object_or_404(Appointment.objects.select_for_update(), pk=pk)
             
             if appointment.status != 'pending':
+                # HTMX check
+                if request.headers.get('HX-Request'):
+                    return HttpResponse('<div class="text-yellow-600">Already processed</div>')
                 messages.error(request, 'Only pending appointments can be approved.')
                 return redirect('appointments:appointment_detail', pk=pk)
             
-            # Check slot availability
             can_book, message = Appointment.can_book_appointment(
                 appointment_date=appointment.appointment_date,
                 period=appointment.period,
@@ -861,10 +977,12 @@ def approve_appointment(request, pk):
             )
             
             if not can_book:
+                # HTMX check
+                if request.headers.get('HX-Request'):
+                    return HttpResponse(f'<div class="text-red-600">{message}</div>')
                 messages.error(request, f'Cannot approve: {message}')
                 return redirect('appointments:appointment_detail', pk=pk)
             
-            # Get dentist to assign
             assigned_dentist_id = request.POST.get('assigned_dentist')
             if assigned_dentist_id:
                 try:
@@ -874,14 +992,12 @@ def approve_appointment(request, pk):
             else:
                 assigned_dentist = User.objects.filter(is_active_dentist=True).first()
             
-            # Store info for logging before approval changes it
             patient_name = appointment.patient_name
+            patient_email = appointment.patient_email
             was_new_patient = appointment.patient_type == 'new'
             
-            # Approve appointment (automatic logging is disabled inside this method)
             appointment.approve(request.user, assigned_dentist)
             
-            # Create a single comprehensive audit log entry
             changes = {
                 'status': {'old': 'pending', 'new': 'confirmed', 'label': 'Status'},
                 'assigned_dentist': {
@@ -913,18 +1029,45 @@ def approve_appointment(request, pk):
                 request=request
             )
             
-            messages.success(request, f'Appointment for {patient_name} has been approved.')
+            email_sent = EmailService.send_appointment_approved_email(appointment)
+            
+            # HTMX Response
+            if request.headers.get('HX-Request'):
+                success_html = f'''
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4 text-sm">
+                    <div class="flex items-center">
+                        <span class="text-green-600 mr-2">✓</span>
+                        <span class="text-green-800">Approved appointment for {patient_name}</span>
+                    </div>
+                </div>
+                '''
+                response = HttpResponse(success_html)
+                response['HX-Trigger'] = 'appointmentApproved'  # Trigger list refresh
+                return response
+            
+            if email_sent:
+                messages.success(request, f'Appointment for {patient_name} has been approved and confirmation email sent.')
+            else:
+                messages.success(request, f'Appointment for {patient_name} has been approved.')
+                messages.warning(request, 'Failed to send confirmation email. Please contact the patient manually.')
             
     except Exception as e:
+        # HTMX check
+        if request.headers.get('HX-Request'):
+            return HttpResponse(f'<div class="text-red-600">Error: {str(e)}</div>', status=500)
         messages.error(request, f'Error approving appointment: {str(e)}')
     
     return redirect('appointments:appointment_detail', pk=pk)
 
 
+# UPDATED reject_appointment function
 @login_required  
 def reject_appointment(request, pk):
-    """ACTION VIEW: Reject pending appointment"""
+    """ACTION VIEW: Reject pending appointment - HTMX compatible"""
     if not request.user.has_permission('appointments'):
+        # HTMX check
+        if request.headers.get('HX-Request'):
+            return HttpResponse('<div class="text-red-600">Permission denied</div>', status=403)
         messages.error(request, 'You do not have permission to perform this action.')
         return redirect('core:dashboard')
     
@@ -933,18 +1076,18 @@ def reject_appointment(request, pk):
             appointment = get_object_or_404(Appointment.objects.select_for_update(), pk=pk)
             
             if appointment.status != 'pending':
+                # HTMX check
+                if request.headers.get('HX-Request'):
+                    return HttpResponse('<div class="text-yellow-600">Already processed</div>')
                 messages.error(request, 'Only pending appointments can be rejected.')
                 return redirect('appointments:appointment_detail', pk=pk)
             
-            # Store info before rejection
             patient_name = appointment.patient_name
             old_status = appointment.status
             
-            # Disable automatic logging
             appointment._skip_audit_log = True
             appointment.reject()
             
-            # Create single audit log entry
             AuditLog.log_action(
                 user=request.user,
                 action='reject',
@@ -956,13 +1099,38 @@ def reject_appointment(request, pk):
                 request=request
             )
             
-            messages.success(request, f'Appointment for {patient_name} has been rejected.')
+            email_sent = EmailService.send_appointment_rejected_email(appointment)
+            
+            # HTMX Response
+            if request.headers.get('HX-Request'):
+                success_html = f'''
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-sm">
+                    <div class="flex items-center">
+                        <span class="text-red-600 mr-2">✗</span>
+                        <span class="text-red-800">Rejected appointment for {patient_name}</span>
+                    </div>
+                </div>
+                '''
+                response = HttpResponse(success_html)
+                response['HX-Trigger'] = 'appointmentRejected'  # Trigger list refresh
+                return response
+            
+            if email_sent:
+                messages.success(request, f'Appointment for {patient_name} has been rejected and notification email sent.')
+            else:
+                messages.success(request, f'Appointment for {patient_name} has been rejected.')
+                messages.warning(request, 'Failed to send notification email.')
             
     except Exception as e:
+        # HTMX check
+        if request.headers.get('HX-Request'):
+            return HttpResponse(f'<div class="text-red-600">Error: {str(e)}</div>', status=500)
         messages.error(request, f'Error rejecting appointment: {str(e)}')
     
     return redirect('appointments:appointment_requests')
 
+
+# UPDATED update_appointment_status function
 @login_required
 @require_POST
 def update_appointment_status(request, pk):
@@ -979,9 +1147,9 @@ def update_appointment_status(request, pk):
             # Status validation rules
             valid_transitions = {
                 'confirmed': ['cancelled', 'completed', 'did_not_arrive'],
-                'cancelled': ['confirmed'],  # Allow reactivation if needed
-                'completed': [],  # Final status
-                'did_not_arrive': ['confirmed'],  # Allow reactivation if patient shows up later
+                'cancelled': ['confirmed'],
+                'completed': [],
+                'did_not_arrive': ['confirmed'],
             }
             
             current_status = appointment.status
@@ -999,9 +1167,10 @@ def update_appointment_status(request, pk):
                 messages.error(request, 'This appointment cannot be cancelled.')
                 return redirect('appointments:appointment_detail', pk=pk)
             
-            # Store old status and patient name for logging
+            # Store old status and patient info for logging and email
             old_status = appointment.status
             patient_name = appointment.patient_name
+            patient_email = appointment.patient_email
             
             # Update status
             appointment.status = new_status
@@ -1019,12 +1188,28 @@ def update_appointment_status(request, pk):
                 request=request
             )
             
+            # Send email notification for cancellation
+            email_sent = False
+            if new_status == 'cancelled':
+                email_sent = EmailService.send_appointment_cancelled_email(
+                    appointment, 
+                    cancelled_by_patient=False
+                )
+            
             # Success message
             status_display = appointment.get_status_display()
-            messages.success(
-                request, 
-                f'Appointment for {patient_name} has been marked as {status_display.lower()}.'
-            )
+            if email_sent:
+                messages.success(
+                    request, 
+                    f'Appointment for {patient_name} has been marked as {status_display.lower()} and notification email sent.'
+                )
+            else:
+                messages.success(
+                    request, 
+                    f'Appointment for {patient_name} has been marked as {status_display.lower()}.'
+                )
+                if new_status == 'cancelled' and patient_email:
+                    messages.warning(request, 'Failed to send cancellation email.')
             
     except Exception as e:
         messages.error(request, f'Error updating appointment status: {str(e)}')

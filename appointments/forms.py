@@ -612,12 +612,6 @@ class PaymentForm(forms.ModelForm):
             }
             self.fields['service_items_data'].initial = json.dumps([initial_service_data])
     
-    def clean_next_due_date(self):
-        next_due_date = self.cleaned_data.get('next_due_date')
-        if next_due_date and next_due_date <= date.today():
-            raise ValidationError('Next due date must be in the future.')
-        return next_due_date
-    
     def clean_service_items_data(self):
         service_items_json = self.cleaned_data.get('service_items_data')
         
