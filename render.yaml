@@ -1,40 +1,32 @@
-services:
-  # Web Service
-  - type: web
-    name: kingjoy-dental-clinic
-    env: python
-    region: singapore  # Closest to Philippines
+databases:
+  - name: dental_clinic_db
     plan: free
-    branch: main
-    buildCommand: "./build.sh"
-    startCommand: "gunicorn dental_clinic_project.wsgi:application"
+    databaseName: dental_clinic
+    user: dental_clinic
+
+services:
+  - type: web
+    plan: free
+    name: kingjoy-dental-clinic
+    runtime: python
+    buildCommand: './build.sh'
+    startCommand: 'gunicorn dental_clinic_project.wsgi:application'
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.13.0
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dental_clinic_db
+          property: connectionString
       - key: SECRET_KEY
         generateValue: true
       - key: DEBUG
-        value: False
+        value: 'False'
       - key: ALLOWED_HOSTS
-        sync: false  # You'll set this manually with your domain
-      - key: DATABASE_URL
-        fromDatabase:
-          name: kingjoy-dental-db
-          property: connectionString
+        value: 'kingjoy-dental-clinic.onrender.com'
       - key: EMAIL_HOST_USER
-        sync: false  # Set this manually
+        value: '987f0e001@smtp-brevo.com'
       - key: EMAIL_HOST_PASSWORD
-        sync: false  # Set this manually
+        generateValue: false
       - key: DEFAULT_FROM_EMAIL
-        sync: false  # Set this manually
+        value: 'noreply@kingjoydental.site'
       - key: DEFAULT_FROM_NAME
-        value: KingJoy Dental Clinic
-
-  # PostgreSQL Database
-  - type: pgsql
-    name: kingjoy-dental-db
-    region: singapore
-    plan: free
-    databaseName: dental_clinic_db
-    databaseUser: dental_clinic_user
-    ipAllowList: []  # Allow all connections (required for free tier)
+        value: 'KingJoy Dental Clinic'
