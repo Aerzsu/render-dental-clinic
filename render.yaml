@@ -1,0 +1,40 @@
+services:
+  # Web Service
+  - type: web
+    name: kingjoy-dental-clinic
+    env: python
+    region: singapore  # Closest to Philippines
+    plan: free
+    branch: main
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn dental_clinic_project.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.0
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: False
+      - key: ALLOWED_HOSTS
+        sync: false  # You'll set this manually with your domain
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kingjoy-dental-db
+          property: connectionString
+      - key: EMAIL_HOST_USER
+        sync: false  # Set this manually
+      - key: EMAIL_HOST_PASSWORD
+        sync: false  # Set this manually
+      - key: DEFAULT_FROM_EMAIL
+        sync: false  # Set this manually
+      - key: DEFAULT_FROM_NAME
+        value: KingJoy Dental Clinic
+
+  # PostgreSQL Database
+  - type: pgsql
+    name: kingjoy-dental-db
+    region: singapore
+    plan: free
+    databaseName: dental_clinic_db
+    databaseUser: dental_clinic_user
+    ipAllowList: []  # Allow all connections (required for free tier)

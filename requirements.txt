@@ -1,42 +1,69 @@
-arabic-reshaper==3.0.0
-asgiref==3.9.1
-asn1crypto==1.5.1
-brevo-python==1.2.0
-certifi==2025.10.5
-cffi==2.0.0
-charset-normalizer==3.4.2
-crispy-tailwind==1.0.3
-cryptography==46.0.2
-cssselect2==0.8.0
+# Core Django
 Django==4.2
+sqlparse==0.5.3
+asgiref==3.9.1
+tzdata==2025.2
+
+# Database
+psycopg2-binary==2.9.10
+dj-database-url==2.2.0
+
+# Static files
+whitenoise==6.8.2
+
+# Forms
 django-crispy-forms==2.4
-freetype-py==2.5.1
-html5lib==1.1
-idna==3.10
-lxml==6.0.2
-oscrypto==1.3.0
-pillow==11.3.0
-pycairo==1.28.0
-pycparser==2.23
-pyHanko==0.31.0
-pyhanko-certvalidator==0.29.0
-pypdf==6.1.1
-python-bidi==0.6.6
-python-dateutil==2.9.0.post0
+crispy-tailwind==1.0.3
+
+# Environment variables
 python-decouple==3.8
 python-dotenv==1.1.1
-pytz==2025.2
-PyYAML==6.0.3
+
+# Email
+brevo-python==1.2.0
+
+# PDF Generation
 reportlab==4.4.3
-requests==2.32.5
-rlPyCairo==0.4.0
-six==1.17.0
-sqlparse==0.5.3
-svglib==1.6.0
-tinycss2==1.4.0
-tzdata==2025.2
-tzlocal==5.3.1
-uritools==5.0.0
-urllib3==2.5.0
-webencodings==0.5.1
 xhtml2pdf==0.2.17
+pypdf==6.1.1
+svglib==1.6.0
+arabic-reshaper==3.0.0
+python-bidi==0.6.6
+
+# PDF Dependencies
+pillow==11.3.0
+html5lib==1.1
+lxml==6.0.2
+tinycss2==1.4.0
+webencodings==0.5.1
+cssselect2==0.8.0
+freetype-py==2.5.1
+pycairo==1.28.0
+rlPyCairo==0.4.0
+
+# Crypto/Security
+pyHanko==0.31.0
+pyhanko-certvalidator==0.29.0
+cryptography==46.0.2
+cffi==2.0.0
+pycparser==2.23
+oscrypto==1.3.0
+asn1crypto==1.5.1
+
+# HTTP & API
+requests==2.32.5
+urllib3==2.5.0
+certifi==2025.10.5
+idna==3.10
+charset-normalizer==3.4.2
+
+# Utilities
+python-dateutil==2.9.0.post0
+pytz==2025.2
+tzlocal==5.3.1
+six==1.17.0
+PyYAML==6.0.3
+uritools==5.0.0
+
+# Production server
+gunicorn==23.0.0
