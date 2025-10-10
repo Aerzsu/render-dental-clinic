@@ -3,13 +3,14 @@
 {% block title %}Daily Slots Management - Dental Clinic{% endblock %}
 
 {% block content %}
-<style> 
+<style>
     input,
     select,
     textarea {
-    padding: 0.5rem 0.75rem;
-}
+        padding: 0.5rem 0.75rem;
+    }
 </style>
+
 <div class="container mx-auto px-4 py-6">
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
@@ -18,16 +19,25 @@
             <p class="text-gray-600">Manage AM/PM appointment slot allocations for each date</p>
         </div>
         <div class="flex space-x-3">
-            <a href="{% url 'appointments:daily_slots_create' %}" 
-               class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+            <a href="{% url 'appointments:daily_slots_create' %}"
+               class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
                 Add Slots for Date
             </a>
-            <button type="button" onclick="openBulkCreateModal()" 
-                    class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+            <button type="button" onclick="openBulkCreateModal()"
+                    class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
                 Bulk Create Slots
             </button>
         </div>
     </div>
+
+    <!-- Info Message -->
+    {% if default_range_info %}
+    <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-3">
+        <p class="text-sm text-blue-800">
+            ℹ️ {{ default_range_info }}. Use filters to view slots outside this range.
+        </p>
+    </div>
+    {% endif %}
 
     <!-- Filters -->
     <div class="bg-white shadow rounded-lg mb-6">
@@ -43,12 +53,12 @@
                     <input type="date" id="date_to" name="date_to" value="{{ filters.date_to }}"
                            class="rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
                 </div>
-                <button type="submit" 
-                        class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                <button type="submit"
+                        class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700">
                     Filter
                 </button>
-                <a href="{% url 'appointments:daily_slots_list' %}" 
-                   class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                <a href="{% url 'appointments:daily_slots_list' %}"
+                   class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                     Clear
                 </a>
             </form>
@@ -78,12 +88,6 @@
                                 Total Slots
                             </th>
                             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Usage
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Notes
-                            </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Actions
                             </th>
                         </tr>
@@ -101,11 +105,11 @@
                                 <div class="flex items-center">
                                     <span class="font-medium">{{ slot.am_slots }}</span>
                                     <span class="ml-2 text-xs {% if slot.admin_am_available > 0 %}text-green-600{% else %}text-red-600{% endif %}">
-                                        ({{ slot.admin_am_available }} available slots)
+                                        ({{ slot.admin_am_available }} available)
                                     </span>
                                     {% if slot.am_pending > 0 %}
                                         <span class="ml-1 text-xs text-yellow-600">
-                                            with {{ slot.am_pending }} pending
+                                            {{ slot.am_pending }} pending
                                         </span>
                                     {% endif %}
                                 </div>
@@ -114,11 +118,11 @@
                                 <div class="flex items-center">
                                     <span class="font-medium">{{ slot.pm_slots }}</span>
                                     <span class="ml-2 text-xs {% if slot.admin_pm_available > 0 %}text-green-600{% else %}text-red-600{% endif %}">
-                                        ({{ slot.admin_pm_available }} confirmed available)
+                                        ({{ slot.admin_pm_available }} available)
                                     </span>
                                     {% if slot.pm_pending > 0 %}
                                         <span class="ml-1 text-xs text-yellow-600">
-                                            with {{ slot.pm_pending }} pending
+                                            {{ slot.pm_pending }} pending
                                         </span>
                                     {% endif %}
                                 </div>
@@ -126,72 +130,9 @@
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 {{ slot.total_slots }}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                {% with total_confirmed_available=slot.admin_am_available|add:slot.admin_pm_available %}
-                                    {% with confirmed_used=slot.total_slots|add:total_confirmed_available|add:'-'|add:total_confirmed_available %}
-                                        <div class="flex items-center">
-                                            <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
-                                                {% if slot.total_slots > 0 %}
-                                                    {% widthratio confirmed_used slot.total_slots 100 as usage_percent %}
-                                                    <div class="bg-primary-600 h-2 rounded-full" style="width: {{ usage_percent }}%"></div>
-                                                {% else %}
-                                                    <div class="bg-primary-600 h-2 rounded-full" style="width: 0%"></div>
-                                                {% endif %}
-                                            </div>
-                                            <span class="text-xs text-gray-500">
-                                                {{ confirmed_used }}/{{ slot.total_slots }} confirmed
-                                            </span>
-                                            {% with total_pending=slot.am_pending|add:slot.pm_pending %}
-                                                {% if total_pending > 0 %}
-                                                    <span class="text-xs text-yellow-600 ml-1">
-                                                        (with {{ total_pending }} pending)
-                                                    </span>
-                                                {% endif %}
-                                            {% endwith %}
-                                        </div>
-                                    {% endwith %}
-                                {% endwith %}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ slot.total_slots }}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                {% with available_am=slot.get_available_am_slots available_pm=slot.get_available_pm_slots %}
-                                    {% with total_available=available_am|add:available_pm %}
-                                        {% with used_slots=slot.total_slots|add:total_available|add:'-'|add:total_available %}
-                                            <div class="flex items-center">
-                                                <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
-                                                    {% if slot.total_slots > 0 %}
-                                                        {% widthratio used_slots slot.total_slots 100 as usage_percent %}
-                                                        <div class="bg-primary-600 h-2 rounded-full" style="width: {{ usage_percent }}%"></div>
-                                                    {% else %}
-                                                        <div class="bg-primary-600 h-2 rounded-full" style="width: 0%"></div>
-                                                    {% endif %}
-                                                </div>
-                                                <span class="text-xs text-gray-500">
-                                                    {% with used_count=slot.total_slots|add:total_available|add:'-'|add:total_available %}
-                                                        {{ used_count }}/{{ slot.total_slots }}
-                                                    {% endwith %}
-                                                </span>
-                                            </div>
-                                        {% endwith %}
-                                    {% endwith %}
-                                {% endwith %}
-                            </td>
-                            <td class="px-6 py-4 text-sm text-gray-500">
-                                {% if slot.notes %}
-                                    <span class="truncate block max-w-32" title="{{ slot.notes }}">
-                                        {{ slot.notes|truncatechars:30 }}
-                                    </span>
-                                {% else %}
-                                    <span class="text-gray-400">-</span>
-                                {% endif %}
-                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <div class="flex items-center space-x-2">
-                                    <a href="{% url 'appointments:daily_slots_update' slot.pk %}" 
-                                       class="text-primary-600 hover:text-primary-900">Edit</a>
-                                </div>
+                                <a href="{% url 'appointments:daily_slots_update' slot.pk %}"
+                                   class="text-primary-600 hover:text-primary-900">Edit</a>
                             </td>
                         </tr>
                         {% endfor %}
@@ -204,13 +145,13 @@
             <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
                 <div class="flex-1 flex justify-between sm:hidden">
                     {% if page_obj.has_previous %}
-                        <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                        <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
                            class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                             Previous
                         </a>
                     {% endif %}
                     {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                        <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
                            class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                             Next
                         </a>
@@ -225,7 +166,7 @@
                     <div>
                         <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
                             {% if page_obj.has_previous %}
-                                <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                                <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
                                    class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
                                     <span class="sr-only">Previous</span>
                                     ←
@@ -237,14 +178,14 @@
                                         {{ num }}
                                     </span>
                                 {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                                    <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                                    <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
                                        class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
                                         {{ num }}
                                     </a>
                                 {% endif %}
                             {% endfor %}
                             {% if page_obj.has_next %}
-                                <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+                                <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
                                    class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
                                     <span class="sr-only">Next</span>
                                     →
@@ -261,7 +202,7 @@
                 <div class="text-4xl mb-4">📅</div>
                 <h3 class="text-lg font-medium text-gray-900 mb-2">No daily slots found</h3>
                 <p class="text-gray-500 mb-6">Get started by creating slot allocations for upcoming dates.</p>
-                <a href="{% url 'appointments:daily_slots_create' %}" 
+                <a href="{% url 'appointments:daily_slots_create' %}"
                    class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
                     Add First Daily Slots
                 </a>
@@ -271,72 +212,254 @@
 </div>
 
 <!-- Bulk Create Modal -->
-<div id="bulkCreateModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h3 class="text-lg font-medium text-gray-900">Bulk Create Daily Slots</h3>
+<div id="bulkCreateModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] flex flex-col">
+        <!-- Step 1: Form -->
+        <div id="bulkStep1" class="flex flex-col flex-1">
+            <div class="px-6 py-4 border-b border-gray-200 flex-shrink-0">
+                <h3 class="text-lg font-medium text-gray-900">Bulk Create Daily Slots</h3>
+            </div>
+            <form id="bulkCreateForm" onsubmit="handleBulkPreview(event)" class="flex flex-col flex-1">
+                {% csrf_token %}
+                <div class="px-6 py-4 space-y-4 overflow-y-auto flex-1">
+                    <div>
+                        <label for="bulk_start_date" class="block text-sm font-medium text-gray-700">Start Date *</label>
+                        <input type="date" id="bulk_start_date" name="start_date" required
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label for="bulk_end_date" class="block text-sm font-medium text-gray-700">End Date *</label>
+                        <input type="date" id="bulk_end_date" name="end_date" required
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label for="bulk_am_slots" class="block text-sm font-medium text-gray-700">AM Slots per Day *</label>
+                        <input type="number" id="bulk_am_slots" name="am_slots" value="6" min="0" max="20" required
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                    </div>
+                    <div>
+                        <label for="bulk_pm_slots" class="block text-sm font-medium text-gray-700">PM Slots per Day *</label>
+                        <input type="number" id="bulk_pm_slots" name="pm_slots" value="8" min="0" max="20" required
+                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                    </div>
+                    <div class="text-sm text-gray-500 bg-gray-50 p-3 rounded">
+                        <p class="mb-1">Sundays will be skipped automatically</p>
+                        <p>Existing dates will be skipped</p>
+                    </div>
+                </div>
+                <div class="px-6 py-4 bg-gray-50 flex justify-end space-x-3 border-t border-gray-200 flex-shrink-0">
+                    <button type="button" onclick="closeBulkCreateModal()"
+                            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit" id="previewBtn"
+                            class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                        Preview
+                    </button>
+                </div>
+            </form>
         </div>
-        <form action="{% url 'appointments:bulk_create_daily_slots' %}" method="post">
-            {% csrf_token %}
-            <div class="px-6 py-4 space-y-4">
-                <div>
-                    <label for="bulk_start_date" class="block text-sm font-medium text-gray-700">Start Date</label>
-                    <input type="date" id="bulk_start_date" name="start_date" required
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                </div>
-                <div>
-                    <label for="bulk_end_date" class="block text-sm font-medium text-gray-700">End Date</label>
-                    <input type="date" id="bulk_end_date" name="end_date" required
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                </div>
-                <div>
-                    <label for="bulk_am_slots" class="block text-sm font-medium text-gray-700">AM Slots per Day</label>
-                    <input type="number" id="bulk_am_slots" name="am_slots" value="6" min="0" max="20" required
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                </div>
-                <div>
-                    <label for="bulk_pm_slots" class="block text-sm font-medium text-gray-700">PM Slots per Day</label>
-                    <input type="number" id="bulk_pm_slots" name="pm_slots" value="8" min="0" max="20" required
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                </div>
-                <div class="text-sm text-gray-500">
-                    <p>• Sundays will be skipped automatically</p>
-                    <p>• Existing dates will be skipped</p>
-                </div>
+
+        <!-- Step 2: Preview -->
+        <div id="bulkStep2" class="hidden flex flex-col flex-1">
+            <div class="px-6 py-4 border-b border-gray-200 flex-shrink-0">
+                <h3 class="text-lg font-medium text-gray-900">Review Plan</h3>
             </div>
-            <div class="px-6 py-4 bg-gray-50 flex justify-end space-x-3">
-                <button type="button" onclick="closeBulkCreateModal()" 
+            <div id="previewContent" class="px-6 py-4 space-y-4 overflow-y-auto flex-1">
+                <!-- Populated by JavaScript -->
+            </div>
+            <div class="px-6 py-4 bg-gray-50 flex justify-end space-x-3 border-t border-gray-200 flex-shrink-0">
+                <button type="button" onclick="backToForm()"
                         class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                    Cancel
+                    Back
                 </button>
-                <button type="submit" 
-                        class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                    Create Slots
+                <button type="button" onclick="confirmBulkCreate()"
+                        class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+                    Confirm & Create
                 </button>
             </div>
-        </form>
+        </div>
     </div>
 </div>
 
 <script>
+    let bulkCreateData = null;
+
     function openBulkCreateModal() {
         document.getElementById('bulkCreateModal').classList.remove('hidden');
-        
+        resetBulkForm();
+
         // Set default dates
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         const twoMonthsLater = new Date();
         twoMonthsLater.setDate(twoMonthsLater.getDate() + 60);
-        
+
         document.getElementById('bulk_start_date').value = tomorrow.toISOString().split('T')[0];
         document.getElementById('bulk_end_date').value = twoMonthsLater.toISOString().split('T')[0];
     }
-    
+
     function closeBulkCreateModal() {
         document.getElementById('bulkCreateModal').classList.add('hidden');
+        resetBulkForm();
     }
-    
-    // Close modal when clicking outside
+
+    function resetBulkForm() {
+        document.getElementById('bulkCreateForm').reset();
+        document.getElementById('bulkStep1').classList.remove('hidden');
+        document.getElementById('bulkStep2').classList.add('hidden');
+        bulkCreateData = null;
+    }
+
+    function backToForm() {
+        document.getElementById('bulkStep1').classList.remove('hidden');
+        document.getElementById('bulkStep2').classList.add('hidden');
+    }
+
+    async function handleBulkPreview(event) {
+        event.preventDefault();
+
+        const formData = new FormData(document.getElementById('bulkCreateForm'));
+        const previewBtn = document.getElementById('previewBtn');
+        previewBtn.disabled = true;
+        previewBtn.textContent = 'Generating preview...';
+
+        try {
+            const response = await fetch('{% url "appointments:bulk_create_preview" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                alert('Error: ' + data.error);
+                return;
+            }
+
+            bulkCreateData = data;
+            displayPreview(data);
+            document.getElementById('bulkStep1').classList.add('hidden');
+            document.getElementById('bulkStep2').classList.remove('hidden');
+
+        } catch (error) {
+            alert('Failed to generate preview: ' + error.message);
+        } finally {
+            previewBtn.disabled = false;
+            previewBtn.textContent = 'Preview';
+        }
+    }
+
+    function displayPreview(data) {
+        const previewContent = document.getElementById('previewContent');
+        const summary = data.summary;
+
+        let html = `
+            <div class="space-y-4">
+                <!-- Summary -->
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-gray-900 mb-3">Summary</h4>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Period:</span>
+                            <span class="font-medium">${data.start_date} → ${data.end_date}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Total days (skipped sunday):</span>
+                            <span class="font-medium">${summary.total_days_in_range}</span>
+                        </div>
+                        <div class="flex justify-between pt-2 border-t border-blue-100">
+                            <span class="text-green-700 font-semibold">Days with slots to create:</span>
+                            <span class="text-green-700 font-bold text-lg">${summary.will_create}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-yellow-700 font-semibold">Existing to skip:</span>
+                            <span class="text-yellow-700 font-bold text-lg">${summary.will_skip}</span>
+                        </div>
+                    </div>
+                </div>
+        `;
+
+        // Will Create section
+        if (summary.will_create > 0 && data.to_create.length > 0) {
+            const first = data.to_create[0];
+            const last = data.to_create[data.to_create.length - 1];
+            
+            html += `
+                <div class="bg-green-50 border border-green-200 rounded-lg p-2">
+                    <h4 class="font-semibold text-green-900 mb-2">Create Slots</h4>
+                    <div class="text-sm text-green-800">
+                        <p class="inline-block"><strong>${first.date}</strong> (${first.day_name})</p>
+                        <p class="inline-block text-center text-gray-500">→</p>
+                        <p class="inline-block"><strong>${last.date}</strong> (${last.day_name})</p>
+                        <p class="text-xs text-green-700 mt-4">
+                            ${data.to_create[0].am_slots} AM + ${data.to_create[0].pm_slots} PM = ${data.to_create[0].total} slots/day
+                        </p>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Will Skip section
+        if (summary.will_skip > 0 && data.to_skip.length > 0) {
+            const first = data.to_skip[0];
+            const last = data.to_skip[data.to_skip.length - 1];
+            
+            html += `
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-2">
+                    <h4 class="font-semibold text-yellow-900 mb-2">Skip Existing Slots</h4>
+                    <div class="text-sm text-yellow-800">
+                        <p class="inline-block"><strong>${first.date}</strong> (${first.day_name})</p>
+                        <p class="inline-block text-center text-gray-500">→</p>
+                        <p class="inline-block"><strong>${last.date}</strong> (${last.day_name})</p>
+                        <p class="text-xs text-yellow-700 mt-4">${data.to_skip.length} existing records</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        html += `</div>`;
+        previewContent.innerHTML = html;
+    }
+
+    async function confirmBulkCreate() {
+        if (!bulkCreateData) return;
+
+        const confirmBtn = event.target;
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Creating...';
+
+        try {
+            const formData = new FormData();
+            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+            formData.append('start_date', document.getElementById('bulk_start_date').value);
+            formData.append('end_date', document.getElementById('bulk_end_date').value);
+            formData.append('am_slots', document.getElementById('bulk_am_slots').value);
+            formData.append('pm_slots', document.getElementById('bulk_pm_slots').value);
+
+            const response = await fetch('{% url "appointments:bulk_create_confirm" %}', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                closeBulkCreateModal();
+                window.location.reload();
+            } else {
+                alert('Error creating slots. Please try again.');
+            }
+
+        } catch (error) {
+            alert('Failed to create slots: ' + error.message);
+        } finally {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'Confirm & Create';
+        }
+    }
+
     document.getElementById('bulkCreateModal').addEventListener('click', function(e) {
         if (e.target === this) {
             closeBulkCreateModal();

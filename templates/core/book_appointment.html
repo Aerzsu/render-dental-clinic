@@ -105,10 +105,6 @@
                     Please keep this reference number for your records.
                 </p>
             </div>
-            <button type="button" @click="resetForm()" 
-                    class="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500">
-                Book Another Appointment
-            </button>
         </div>
     </div>
 
@@ -124,7 +120,7 @@
                     <label class="text-base font-medium text-gray-900 block mb-3">Are you a new or existing patient? *</label>
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <label class="relative">
-                            <input type="radio" x-model="form.patient_type" value="new" class="sr-only" @change="clearErrors()">
+                            <input type="radio" x-model="form.patient_type" value="new" class="sr-only" @change="handlePatientTypeChange()">
                             <div class="p-4 border rounded-lg cursor-pointer transition-all" 
                                  :class="form.patient_type === 'new' ? 'border-primary-600 bg-primary-50 ring-2 ring-primary-600' : 'border-gray-300 hover:border-gray-400'">
                                 <div class="flex items-center">
@@ -137,7 +133,7 @@
                             </div>
                         </label>
                         <label class="relative">
-                            <input type="radio" x-model="form.patient_type" value="existing" class="sr-only" @change="clearErrors()">
+                            <input type="radio" x-model="form.patient_type" value="existing" class="sr-only" @change="handlePatientTypeChange()">
                             <div class="p-4 border rounded-lg cursor-pointer transition-all" 
                                  :class="form.patient_type === 'existing' ? 'border-primary-600 bg-primary-50 ring-2 ring-primary-600' : 'border-gray-300 hover:border-gray-400'">
                                 <div class="flex items-center">
@@ -153,18 +149,91 @@
                     <p x-show="errors.patient_type" class="mt-2 text-sm text-red-600" x-text="errors.patient_type"></p>
                 </div>
 
-                <!-- Existing Patient Form -->
+                <!-- Existing Patient OTP Flow -->
                 <div x-show="form.patient_type === 'existing'" class="space-y-6">
+                    <!-- Email Input with Send Code Button -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Email Address or Contact Number *</label>
-                        <input type="text" x-model="form.patient_identifier" 
-                               :class="['w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500', errors.patient_identifier ? 'border-red-300' : 'border-gray-300']"
-                               placeholder="patient@example.com or +639123456789"
-                               @input="clearErrors('patient_identifier'); searchPatient()">
-                        <p class="mt-1 text-sm text-gray-500">Enter your email or phone number to find your record</p>
-                        <p x-show="errors.patient_identifier" class="mt-1 text-sm text-red-600" x-text="errors.patient_identifier"></p>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
+                        <div class="flex gap-2">
+                            <input type="email" x-model="otp.email" 
+                                   :disabled="otp.codeSent && !otp.verified"
+                                   :class="['flex-1 px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500', 
+                                            errors.otp_email ? 'border-red-300' : 'border-gray-300',
+                                            (otp.codeSent && !otp.verified) ? 'bg-gray-50' : '']"
+                                   placeholder="your@email.com"
+                                   @input="clearErrors('otp_email')">
+                            <button type="button" @click="sendOTPCode()" 
+                                    :disabled="otp.sending || (otp.codeSent && !otp.canResend)"
+                                    class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">
+                                <span x-show="!otp.sending" x-text="otp.codeSent ? 'Resend Code' : 'Send Code'"></span>
+                                <span x-show="otp.sending">Sending...</span>
+                            </button>
+                        </div>
+                        <p x-show="errors.otp_email" class="mt-1 text-sm text-red-600" x-text="errors.otp_email"></p>
+                        <p x-show="otp.remainingAttempts !== null && otp.remainingAttempts < 3" 
+                           class="mt-1 text-sm text-yellow-600">
+                            <span x-text="otp.remainingAttempts"></span> verification request(s) remaining this hour
+                        </p>
                     </div>
-                    <div x-show="patientFound" class="p-4 bg-green-50 border border-green-200 rounded-md">
+
+                    <!-- OTP Code Input (shown after code is sent) -->
+                    <div x-show="otp.codeSent && !otp.verified">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Verification Code *</label>
+                        <div class="flex gap-2">
+                            <input type="text" x-model="otp.code" maxlength="6"
+                                   :class="['flex-1 px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500', 
+                                            errors.otp_code ? 'border-red-300' : 'border-gray-300']"
+                                   placeholder="Enter 6-digit code"
+                                   @input="clearErrors('otp_code')">
+                            <button type="button" @click="verifyOTPCode()" 
+                                    :disabled="otp.verifying"
+                                    class="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span x-show="!otp.verifying">Verify</span>
+                                <span x-show="otp.verifying">Verifying...</span>
+                            </button>
+                        </div>
+                        <p x-show="errors.otp_code" class="mt-1 text-sm text-red-600" x-text="errors.otp_code"></p>
+                        <p class="mt-1 text-sm text-gray-500">Check your email for the 6-digit verification code (expires in 15 minutes)</p>
+                    </div>
+
+                    <!-- Patient Selection (shown after OTP verified with multiple patients) -->
+                    <div x-show="otp.verified && otp.showPatientSelection">
+                        <label class="block text-sm font-medium text-gray-700 mb-3">Select Your Patient Record *</label>
+                        <div class="space-y-2">
+                            <template x-for="patient in otp.patientOptions" :key="patient.id">
+                                <label class="relative block cursor-pointer">
+                                    <input type="radio" 
+                                        :value="patient.id" 
+                                        x-model="otp.selectedPatientId" 
+                                        class="sr-only" 
+                                        @change="selectPatient(patient.id)">
+                                    <div class="p-4 border rounded-lg transition-all"
+                                        :class="otp.selectedPatientId === patient.id ? 'border-primary-600 bg-primary-50 ring-2 ring-primary-600' : 'border-gray-300 hover:border-gray-400'">
+                                        <div class="flex items-center justify-between">
+                                            <div>
+                                                <h4 class="font-medium text-gray-900" x-text="patient.name"></h4>
+                                                <p class="text-sm text-gray-500">
+                                                    Registered: <span x-text="patient.registered"></span>
+                                                    <template x-if="patient.last_visit">
+                                                        <span> • Last Visit: <span x-text="patient.last_visit"></span></span>
+                                                    </template>
+                                                </p>
+                                            </div>
+                                            <div x-show="otp.selectedPatientId === patient.id" class="text-primary-600">
+                                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </label>
+                            </template>
+                        </div>
+                        <p x-show="errors.patient_selection" class="mt-2 text-sm text-red-600" x-text="errors.patient_selection"></p>
+                    </div>
+
+                    <!-- Success indicator for verified single patient -->
+                    <div x-show="otp.verified && !otp.showPatientSelection" class="p-4 bg-green-50 border border-green-200 rounded-md">
                         <div class="flex">
                             <div class="flex-shrink-0">
                                 <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
@@ -172,7 +241,7 @@
                                 </svg>
                             </div>
                             <div class="ml-3">
-                                <p class="text-sm text-green-700">Patient record found: <strong x-text="foundPatient.name"></strong></p>
+                                <p class="text-sm text-green-700">Patient verified: <strong x-text="otp.verifiedPatientName"></strong></p>
                             </div>
                         </div>
                     </div>
@@ -444,9 +513,7 @@
     }
 </style>
 
-<!-- Updated JavaScript section with correct URL references -->
 <script>
-    // Get Django data
     const servicesData = {{ services_json|safe }};
     const csrfToken = '{{ csrf_token }}';
     
@@ -455,20 +522,35 @@
             step: 1,
             submitting: false,
             submitted: false,
-            patientFound: false,
             referenceNumber: '',
             errorMessage: '',
             
-            // Validation errors
             errors: {},
-            
-            // Services data from Django
             services: servicesData || [],
             
-            // Form data - SIMPLIFIED (no dentist)
+            // OTP state
+            otp: {
+                email: '',
+                code: '',
+                codeSent: false,
+                verified: false,
+                sending: false,
+                verifying: false,
+                selectingPatient: false,  // NEW - prevent multiple calls
+                canResend: true,
+                remainingAttempts: null,
+                accessCodeId: null,
+                patientOptions: [],
+                showPatientSelection: false,
+                selectedPatientId: null,
+                verifiedPatientName: '',
+                verifiedPatientData: null
+            },
+            
+            // Form data
             form: {
                 patient_type: '',
-                patient_identifier: '',
+                patient_id: null,
                 first_name: '',
                 last_name: '',
                 email: '',
@@ -485,8 +567,6 @@
             currentMonth: new Date().getMonth(),
             currentYear: new Date().getFullYear(),
             
-            // Data
-            foundPatient: {},
             selectedService: null,
             calendarDays: [],
             availableSlots: { AM: 0, PM: 0 },
@@ -495,7 +575,6 @@
             init() {
                 this.generateCalendar();
                 
-                // Watch for date changes to load slot availability
                 this.$watch('form.appointment_date', (value) => {
                     if (value) {
                         this.loadSlotAvailability();
@@ -517,6 +596,161 @@
                 this.errorMessage = '';
             },
             
+            handlePatientTypeChange() {
+                this.clearErrors();
+                // Reset OTP state when switching patient type
+                this.otp = {
+                    email: '',
+                    code: '',
+                    codeSent: false,
+                    verified: false,
+                    sending: false,
+                    verifying: false,
+                    canResend: true,
+                    remainingAttempts: null,
+                    accessCodeId: null,
+                    patientOptions: [],
+                    showPatientSelection: false,
+                    selectedPatientId: null,
+                    verifiedPatientName: '',
+                    verifiedPatientData: null
+                };
+            },
+            
+            async sendOTPCode() {
+                this.clearErrors('otp_email');
+                
+                if (!this.otp.email || !this.otp.email.trim()) {
+                    this.errors.otp_email = 'Please enter your email address.';
+                    return;
+                }
+                
+                this.otp.sending = true;
+                
+                try {
+                    const response = await fetch('/api/booking/send-otp/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken,
+                        },
+                        body: JSON.stringify({ email: this.otp.email })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.otp.codeSent = true;
+                        this.otp.canResend = false;
+                        this.otp.remainingAttempts = data.remaining_attempts;
+                        this.errorMessage = '';
+                        
+                        // Enable resend after 60 seconds
+                        setTimeout(() => {
+                            this.otp.canResend = true;
+                        }, 60000);
+                        
+                    } else {
+                        this.errors.otp_email = data.error;
+                    }
+                } catch (error) {
+                    console.error('Error sending OTP:', error);
+                    this.errors.otp_email = 'Failed to send verification code. Please try again.';
+                } finally {
+                    this.otp.sending = false;
+                }
+            },
+            
+            async verifyOTPCode() {
+                this.clearErrors('otp_code');
+                
+                if (!this.otp.code || this.otp.code.length !== 6) {
+                    this.errors.otp_code = 'Please enter the 6-digit verification code.';
+                    return;
+                }
+                
+                this.otp.verifying = true;
+                
+                try {
+                    const response = await fetch('/api/booking/verify-otp/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken,
+                        },
+                        body: JSON.stringify({ 
+                            email: this.otp.email,
+                            code: this.otp.code
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success && data.verified) {
+                        this.otp.verified = true;
+                        this.otp.accessCodeId = data.access_code_id;
+                        this.otp.patientOptions = data.patients;
+                        this.otp.showPatientSelection = data.multiple_patients;
+                        
+                        if (!data.multiple_patients && data.patients.length === 1) {
+                            // Single patient - auto-select
+                            await this.selectPatient(data.patients[0].id);
+                        }
+                        
+                        this.errorMessage = '';
+                    } else {
+                        this.errors.otp_code = data.error;
+                    }
+                } catch (error) {
+                    console.error('Error verifying OTP:', error);
+                    this.errors.otp_code = 'Failed to verify code. Please try again.';
+                } finally {
+                    this.otp.verifying = false;
+                }
+            },
+            
+            async selectPatient(patientId) {
+                // Prevent multiple simultaneous calls
+                if (this.otp.selectingPatient) {
+                    return;
+                }
+                
+                this.otp.selectingPatient = true;
+                
+                try {
+                    const response = await fetch('/api/booking/select-patient/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken,
+                        },
+                        body: JSON.stringify({ 
+                            access_code_id: this.otp.accessCodeId,
+                            patient_id: patientId
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        this.otp.verifiedPatientData = data.patient;
+                        this.otp.verifiedPatientName = data.patient.name;
+                        this.form.patient_id = data.patient.id;
+                        this.otp.selectedPatientId = data.patient.id; // Update for visual feedback
+                        this.clearErrors('patient_selection');
+                        console.log('Patient selected successfully:', data.patient.name);
+                    } else {
+                        this.errorMessage = data.error;
+                        console.error('Error selecting patient:', data.error);
+                    }
+                } catch (error) {
+                    console.error('Error selecting patient:', error);
+                    this.errorMessage = 'Failed to select patient. Please try again.';
+                } finally {
+                    this.otp.selectingPatient = false;
+                }
+            },
+            
             validateStep() {
                 this.clearErrors();
                 let isValid = true;
@@ -529,11 +763,13 @@
                         }
                         
                         if (this.form.patient_type === 'existing') {
-                            if (!this.form.patient_identifier?.trim()) {
-                                this.errors.patient_identifier = 'Please enter your email or contact number';
+                            if (!this.otp.verified) {
+                                this.errors.otp_email = 'Please verify your email address';
                                 isValid = false;
-                            } else if (!this.patientFound) {
-                                this.errors.patient_identifier = 'No patient record found. Please check your information or register as new patient';
+                            }
+                            
+                            if (this.otp.showPatientSelection && !this.otp.selectedPatientId) {
+                                this.errors.patient_selection = 'Please select your patient record';
                                 isValid = false;
                             }
                         } else if (this.form.patient_type === 'new') {
@@ -546,13 +782,11 @@
                                 }
                             }
                             
-                            // Validate email format
                             if (this.form.email && !this.isValidEmail(this.form.email)) {
                                 this.errors.email = 'Please enter a valid email address';
                                 isValid = false;
                             }
                             
-                            // Validate phone number if provided
                             if (this.form.contact_number && !this.isValidPhoneNumber(this.form.contact_number)) {
                                 this.errors.contact_number = 'Please enter a valid Philippine mobile number';
                                 isValid = false;
@@ -574,7 +808,6 @@
                             isValid = false;
                         }
                         
-                        // Validate slot availability
                         if (this.form.period && this.availableSlots[this.form.period] <= 0) {
                             this.errors.period = `No ${this.form.period} slots available for selected date`;
                             isValid = false;
@@ -605,31 +838,6 @@
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             },
             
-            async searchPatient() {
-                if (!this.form.patient_identifier || this.form.patient_identifier.length < 3) {
-                    this.patientFound = false;
-                    return;
-                }
-                
-                try {
-                    // Use the correct URL pattern from appointments app
-                    const response = await fetch(`/appointments/api/find-patient/?identifier=${encodeURIComponent(this.form.patient_identifier)}`);
-                    const data = await response.json();
-                    
-                    if (data.found) {
-                        this.patientFound = true;
-                        this.foundPatient = data.patient;
-                        this.clearErrors('patient_identifier');
-                    } else {
-                        this.patientFound = false;
-                        this.foundPatient = {};
-                    }
-                } catch (error) {
-                    console.error('Error searching patient:', error);
-                    this.patientFound = false;
-                }
-            },
-            
             updateServiceInfo() {
                 if (this.form.service) {
                     this.selectedService = this.services.find(s => s.id == this.form.service);
@@ -638,78 +846,34 @@
                 }
             },
             
-            // Calendar functions
             generateCalendar() {
-                console.log('=== CALENDAR DEBUG START ===');
-                console.log('Generating calendar for:', this.currentYear, this.currentMonth + 1);
-                
-                // Create first day of current month
                 const firstDay = new Date(this.currentYear, this.currentMonth, 1);
-                console.log('First day of month:', firstDay.toString());
-                console.log('First day weekday:', firstDay.getDay());
-                
-                // Calculate how many days to go back to get to Monday
                 const firstDayOfWeek = firstDay.getDay();
                 const daysToGoBack = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
                 
-                console.log('Days to go back to Monday:', daysToGoBack);
-                
                 this.calendarDays = [];
                 
-                // Generate 42 days (6 weeks × 7 days)
                 for (let i = 0; i < 42; i++) {
-                    // Calculate the date for this calendar position
-                    // Start from (1 - daysToGoBack) and add i days
                     const dayOfMonth = 1 - daysToGoBack + i;
                     const currentDate = new Date(this.currentYear, this.currentMonth, dayOfMonth);
                     
                     const dayData = {
                         date: this.formatDateForAPI(currentDate),
-                        day: currentDate.getDate(), // This will now be correct
+                        day: currentDate.getDate(),
                         isEmpty: currentDate.getMonth() !== this.currentMonth,
                         available: false,
                         isToday: this.isToday(currentDate),
                         isSelected: this.form.appointment_date === this.formatDateForAPI(currentDate)
                     };
                     
-                    // Check if date is available (basic rules)
                     if (this.isDateAvailable(currentDate)) {
                         dayData.available = true;
-                    }
-                    
-                    // Debug specific positions
-                    if (i >= 19 && i <= 25) {
-                        const dayName = currentDate.toLocaleDateString('en-US', { weekday: 'long' });
-                        const expectedDayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-                        const expectedDay = expectedDayNames[i % 7];
-                        console.log(`Position ${i}: Date ${dayData.date} shows day ${dayData.day}, is ${dayName}, expected ${expectedDay}`);
-                        
-                        // Additional verification
-                        console.log(`  -> Date object: ${currentDate.toString()}`);
-                        console.log(`  -> getDate(): ${currentDate.getDate()}, getMonth(): ${currentDate.getMonth()}, isEmpty: ${dayData.isEmpty}`);
                     }
                     
                     this.calendarDays.push(dayData);
                 }
                 
-                console.log('Generated', this.calendarDays.length, 'calendar days');
-                console.log('=== CALENDAR DEBUG END ===');
-                
-                // Load slot availability for the month
                 this.loadMonthSlotAvailability();
-            },
-
-            // Also add this debugging function to check what day is at what position
-            getCalendarPositionInfo(dayIndex) {
-                const day = this.calendarDays[dayIndex];
-                if (!day) return 'Invalid index';
-                
-                const date = new Date(day.date);
-                const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
-                const expectedDayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-                const expectedDay = expectedDayNames[dayIndex % 7];
-                
-                return `Position ${dayIndex}: ${day.date} is ${dayName} (expected ${expectedDay})`;
             },
             
             changeMonth(direction) {
@@ -733,57 +897,35 @@
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 
-                // Create a comparable date without time
                 const checkDate = new Date(date);
                 checkDate.setHours(0, 0, 0, 0);
                 
-                // Must be future date (tomorrow or later)
                 if (checkDate <= today) {
-                    console.log(`Date ${this.formatDateForAPI(date)} is not available: past or today`);
                     return false;
                 }
                 
-                // No Sundays (0 = Sunday)
                 if (date.getDay() === 0) {
-                    console.log(`Date ${this.formatDateForAPI(date)} is not available: Sunday`);
                     return false;
                 }
                 
-                console.log(`Date ${this.formatDateForAPI(date)} is available`);
                 return true;
             },
             
             selectDate(day) {
-                console.log('=== SELECT DATE DEBUG ===');
-                console.log('Attempting to select:', day);
-                console.log('Day available:', day.available);
-                console.log('Day hasSlots:', day.hasSlots);
-                console.log('Day AM slots:', day.amSlots);
-                console.log('Day PM slots:', day.pmSlots);
-                
                 if (!day.available || day.isEmpty) {
-                    console.log('Cannot select: day not available or empty');
                     return;
                 }
                 
-                // Additional check for slot availability
                 if (day.hasSlots === false || (day.amSlots === 0 && day.pmSlots === 0)) {
-                    console.log('Cannot select: no slots available for this date');
                     this.errorMessage = `No appointment slots available for ${this.formatDate(day.date)}`;
                     return;
                 }
                 
-                const selectedDate = new Date(day.date);
-                const dayName = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
-                console.log(`Selecting ${day.date} (${dayName})`);
-                
                 this.form.appointment_date = day.date;
-                this.form.period = ''; // Reset period selection
+                this.form.period = '';
                 
-                // Load specific slot availability for this date
                 this.loadSlotAvailability();
-                
-                this.generateCalendar(); // Refresh to show selection
+                this.generateCalendar();
             },
             
             getDateClasses(day) {
@@ -792,10 +934,8 @@
                 if (day.isEmpty) {
                     classes.push('text-gray-300', 'cursor-not-allowed');
                 } else if (!day.available) {
-                    // Day is not available (either past date, Sunday, or no slots)
                     classes.push('text-gray-400', 'bg-gray-100', 'cursor-not-allowed', 'unavailable');
                 } else {
-                    // Day is available
                     classes.push('text-gray-900', 'hover:bg-blue-100', 'cursor-pointer', 'available');
                     
                     if (day.isSelected) {
@@ -804,18 +944,16 @@
                         classes.push('bg-blue-50', 'text-blue-600', 'font-semibold');
                     }
                     
-                    // Add visual indicator for slots
                     if (day.hasSlots === false || (day.amSlots === 0 && day.pmSlots === 0)) {
-                        classes.push('ring-2', 'ring-red-200'); // Red ring for no slots
+                        classes.push('ring-2', 'ring-red-200');
                     } else if (day.amSlots > 0 || day.pmSlots > 0) {
-                        classes.push('ring-2', 'ring-green-200'); // Green ring for available slots
+                        classes.push('ring-2', 'ring-green-200');
                     }
                 }
                 
                 return classes.join(' ');
             },
             
-            // Slot availability functions
             async loadMonthSlotAvailability() {
                 if (!this.currentYear || this.currentMonth < 0) return;
                 
@@ -835,41 +973,26 @@
                     
                     if (data.availability) {
                         this.slotData = data.availability;
-                        console.log('=== SLOT DATA LOADED ===');
-                        console.log('Available dates:', Object.keys(this.slotData));
                         
-                        // FIXED: Update calendar days with correct slot availability mapping
                         this.calendarDays = this.calendarDays.map(day => {
                             if (!day.isEmpty && day.available && this.slotData[day.date]) {
                                 const daySlots = this.slotData[day.date];
                                 const hasSlots = daySlots.am_slots.available > 0 || daySlots.pm_slots.available > 0;
                                 
-                                console.log(`Mapping ${day.date} (day ${day.day}): AM=${daySlots.am_slots.available}, PM=${daySlots.pm_slots.available}, hasSlots=${hasSlots}`);
-                                
                                 return {
                                     ...day,
                                     available: hasSlots,
-                                    hasSlots: hasSlots, // Add this flag for easier debugging
+                                    hasSlots: hasSlots,
                                     amSlots: daySlots.am_slots.available,
                                     pmSlots: daySlots.pm_slots.available
                                 };
                             }
                             
-                            // If no slot data, keep original availability (based on date rules only)
                             return day;
-                        });
-                        
-                        console.log('=== UPDATED CALENDAR DAYS ===');
-                        // Debug: show availability for dates around 22
-                        this.calendarDays.forEach((day, index) => {
-                            if (day.day >= 22 && day.day <= 29 && !day.isEmpty) {
-                                console.log(`Day ${day.day} (${day.date}): available=${day.available}, hasSlots=${day.hasSlots}, AM=${day.amSlots}, PM=${day.pmSlots}`);
-                            }
                         });
                     }
                 } catch (error) {
                     console.error('Error loading month slot availability:', error);
-                    // Don't disable all dates on error, keep the basic availability logic
                 }
             },
             
@@ -879,20 +1002,15 @@
                     return;
                 }
                 
-                console.log('Loading slot availability for:', this.form.appointment_date); // Debug log
-                
-                // First check if we have the data in slotData
                 if (this.slotData[this.form.appointment_date]) {
                     const dayData = this.slotData[this.form.appointment_date];
                     this.availableSlots = {
                         AM: dayData.am_slots?.available || 0,
                         PM: dayData.pm_slots?.available || 0
                     };
-                    console.log('Used cached slot data:', this.availableSlots); // Debug log
                     return;
                 }
                 
-                // Fallback: load specific date from API
                 try {
                     const nextDate = new Date(this.form.appointment_date);
                     nextDate.setDate(nextDate.getDate() + 1);
@@ -906,7 +1024,6 @@
                     }
                     
                     const data = await response.json();
-                    console.log('API response for single date:', data); // Debug log
                     
                     if (data.availability && data.availability[this.form.appointment_date]) {
                         const dayData = data.availability[this.form.appointment_date];
@@ -915,45 +1032,16 @@
                             PM: dayData.pm_slots?.available || 0
                         };
                         
-                        // Update the cached data too
                         this.slotData[this.form.appointment_date] = dayData;
-                        
-                        console.log('Loaded from API:', this.availableSlots); // Debug log
                     } else {
-                        console.log('No data found for date in API response'); // Debug log
                         this.availableSlots = { AM: 0, PM: 0 };
                     }
                 } catch (error) {
                     console.error('Error loading slot availability:', error);
                     this.availableSlots = { AM: 0, PM: 0 };
                 }
-                this.debugSlotData();
-            },
-
-            debugSlotData() {
-                console.log('=== SLOT DATA DEBUG ===');
-                console.log('form.appointment_date:', this.form.appointment_date);
-                console.log('availableSlots:', this.availableSlots);
-                console.log('slotData keys:', Object.keys(this.slotData));
-                
-                // Show a few entries around the selected date
-                const selectedDate = new Date(this.form.appointment_date);
-                for (let i = -1; i <= 1; i++) {
-                    const checkDate = new Date(selectedDate);
-                    checkDate.setDate(checkDate.getDate() + i);
-                    const dateStr = checkDate.toISOString().split('T')[0];
-                    const dayName = checkDate.toLocaleDateString('en-US', { weekday: 'long' });
-                    
-                    if (this.slotData[dateStr]) {
-                        console.log(`${dateStr} (${dayName}):`, this.slotData[dateStr]);
-                    } else {
-                        console.log(`${dateStr} (${dayName}): NO DATA`);
-                    }
-                }
-                console.log('======================');
             },
             
-            // Form submission
             async submitForm() {
                 if (!this.validateStep()) {
                     return;
@@ -963,72 +1051,56 @@
                 this.clearErrors();
                 
                 try {
-                    // Use the correct URL for booking
-                    const response = await fetch('/book-appointment/', {
+                    // Prepare submission data
+                    let submissionData = {
+                        service: this.form.service,
+                        appointment_date: this.form.appointment_date,
+                        period: this.form.period,
+                        reason: this.form.reason,
+                        agreed_to_terms: this.form.agreed_to_terms
+                    };
+
+                    if (this.form.patient_type === 'existing') {
+                        submissionData.patient_id = this.form.patient_id;
+                        submissionData.patient_type = 'existing';
+                    } else {
+                        submissionData.patient_type = 'new';
+                        submissionData.first_name = this.form.first_name;
+                        submissionData.last_name = this.form.last_name;
+                        submissionData.email = this.form.email;
+                        submissionData.contact_number = this.form.contact_number;
+                        submissionData.address = this.form.address;
+                    }
+
+                    const response = await fetch('/api/booking/submit/', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'X-CSRFToken': csrfToken,
                         },
-                        body: JSON.stringify(this.form)
+                        body: JSON.stringify(submissionData)
                     });
-                    
+
                     const data = await response.json();
-                    
+
                     if (data.success) {
                         this.submitted = true;
                         this.referenceNumber = data.reference_number;
-                        this.submitting = false;
-                        
-                        // Scroll to top to show success message
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        this.errorMessage = '';
                     } else {
-                        this.submitting = false;
-                        this.errorMessage = data.error || 'An error occurred while submitting your request.';
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        this.errorMessage = data.error || 'Failed to submit appointment request.';
                     }
                 } catch (error) {
+                    console.error('Error submitting appointment:', error);
+                    this.errorMessage = 'Failed to submit appointment request. Please try again.';
+                } finally {
                     this.submitting = false;
-                    console.error('Error submitting form:', error);
-                    this.errorMessage = 'An error occurred while submitting your request. Please try again.';
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
                 }
             },
             
-            resetForm() {
-                this.step = 1;
-                this.submitted = false;
-                this.submitting = false;
-                this.patientFound = false;
-                this.referenceNumber = '';
-                this.errorMessage = '';
-                this.errors = {};
-                this.selectedService = null;
-                this.foundPatient = {};
-                this.availableSlots = { AM: 0, PM: 0 };
-                
-                this.form = {
-                    patient_type: '',
-                    patient_identifier: '',
-                    first_name: '',
-                    last_name: '',
-                    email: '',
-                    contact_number: '',
-                    address: '',
-                    service: '',
-                    appointment_date: '',
-                    period: '',
-                    reason: '',
-                    agreed_to_terms: false
-                };
-                
-                this.generateCalendar();
-            },
-            
-            // Helper functions
             getPatientName() {
-                if (this.form.patient_type === 'existing' && this.foundPatient.name) {
-                    return this.foundPatient.name;
+                if (this.form.patient_type === 'existing' && this.otp.verifiedPatientName) {
+                    return this.otp.verifiedPatientName;
                 } else if (this.form.patient_type === 'new') {
                     return `${this.form.first_name} ${this.form.last_name}`.trim();
                 }
@@ -1051,23 +1123,10 @@
             },
             
             formatDateForAPI(date) {
-                // Use local date components to avoid timezone shifting
                 const year = date.getFullYear();
                 const month = String(date.getMonth() + 1).padStart(2, '0');
                 const day = String(date.getDate()).padStart(2, '0');
-                
                 return `${year}-${month}-${day}`;
-            },
-
-            // Also add this debug version to verify it's working
-            formatDateForAPIDebug(date) {
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                const formatted = `${year}-${month}-${day}`;
-                
-                console.log(`formatDateForAPI: ${date.toString()} -> ${formatted}`);
-                return formatted;
             },
             
             isValidEmail(email) {

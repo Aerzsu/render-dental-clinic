@@ -7,21 +7,17 @@ from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.db.models import Q, Sum, Case, When, DecimalField, F
 from django.http import JsonResponse, HttpResponse
-from django.db import transaction
+from django.db import transaction, models
 from decimal import Decimal
 from datetime import date, timedelta, datetime
 import json
 
 # PDF generation imports
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter, A4
-from reportlab.lib.units import inch
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib import colors
 from io import BytesIO
 
 from .models import Appointment, Payment, PaymentItem, PaymentTransaction
+from appointments.models import Appointment, Payment, PaymentTransaction
+from patients.models import Patient
 from .forms import PaymentForm, AdminOverrideForm
 from services.models import Service, Discount
 
@@ -171,6 +167,101 @@ class PaymentDetailView(LoginRequiredMixin, DetailView):
         
         return context
 
+class PatientPaymentSummaryView(LoginRequiredMixin, DetailView):
+    """Summary view of all payments for a specific patient"""
+    model = Patient
+    template_name = 'payment/patient_payment_summary.html'
+    context_object_name = 'patient'
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not hasattr(request.user, 'has_permission') or not request.user.has_permission('billing'):
+            messages.error(request, 'You do not have permission to access this page.')
+            return redirect('core:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        patient = self.object
+        
+        from decimal import Decimal
+        from django.db.models import Sum, Q
+        
+        # Get all payments for this patient, ordered by most recent first, then by status priority
+        all_payments = Payment.objects.filter(
+            patient=patient
+        ).select_related(
+            'appointment__service',
+            'appointment__assigned_dentist'
+        ).annotate(
+            # Add status priority for ordering (pending/partially_paid first)
+            status_priority=models.Case(
+                models.When(status='pending', then=models.Value(1)),
+                models.When(status='partially_paid', then=models.Value(2)),
+                models.When(status='completed', then=models.Value(3)),
+                models.When(status='cancelled', then=models.Value(4)),
+                default=models.Value(5),
+                output_field=models.IntegerField()
+            )
+        ).order_by('status_priority', '-created_at')
+        
+        # Calculate overall financial summary
+        total_amount_due = Decimal('0')
+        total_amount_paid = Decimal('0')
+        
+        for payment in all_payments:
+            total_amount_due += payment.total_amount
+            total_amount_paid += payment.amount_paid
+        
+        outstanding_balance = total_amount_due - total_amount_paid
+        
+        # Categorize payments
+        pending_payments = all_payments.filter(status='pending')
+        partially_paid_payments = all_payments.filter(status='partially_paid')
+        completed_payments = all_payments.filter(status='completed')
+        
+        # Get completed appointments without payments
+        completed_appointments_without_payment = Appointment.objects.filter(
+            patient=patient,
+            status='completed'
+        ).exclude(
+            payments__isnull=False
+        ).select_related('service', 'assigned_dentist').order_by('-appointment_date')
+        
+        # Check for overdue payments
+        overdue_payments = all_payments.filter(
+            status__in=['pending', 'partially_paid'],
+            next_due_date__isnull=False,
+            next_due_date__lt=date.today()
+        )
+        
+        # Get next upcoming due date
+        next_due_payment = all_payments.filter(
+            status__in=['pending', 'partially_paid'],
+            next_due_date__isnull=False,
+            next_due_date__gte=date.today()
+        ).order_by('next_due_date').first()
+        
+        # Calculate payment progress percentage
+        payment_progress = 0
+        if total_amount_due > 0:
+            payment_progress = (total_amount_paid / total_amount_due) * 100
+        
+        context.update({
+            'all_payments': all_payments,
+            'total_amount_due': total_amount_due,
+            'total_amount_paid': total_amount_paid,
+            'outstanding_balance': outstanding_balance,
+            'payment_progress': payment_progress,
+            'pending_payments': pending_payments,
+            'partially_paid_payments': partially_paid_payments,
+            'completed_payments': completed_payments,
+            'completed_appointments_without_payment': completed_appointments_without_payment,
+            'overdue_payments': overdue_payments,
+            'next_due_payment': next_due_payment,
+            'has_outstanding': outstanding_balance > 0,
+        })
+        
+        return context
 
 class PaymentCreateView(LoginRequiredMixin, CreateView):
     """Enhanced payment creation with dynamic service items"""
@@ -472,154 +563,6 @@ def add_payment_transaction(request, payment_pk):
     
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-
-@login_required
-def generate_receipt_pdf(request, transaction_pk):
-    """Generate PDF receipt for payment transaction"""
-    if not hasattr(request.user, 'has_permission') or not request.user.has_permission('billing'):
-        messages.error(request, 'You do not have permission to access this page.')
-        return redirect('core:dashboard')
-    
-    transaction = get_object_or_404(PaymentTransaction, pk=transaction_pk)
-    payment = transaction.payment
-    
-    # Create PDF
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
-    
-    # Container for the 'Flowable' objects
-    elements = []
-    
-    # Define styles
-    styles = getSampleStyleSheet()
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=18,
-        spaceAfter=30,
-        alignment=1,  # Center alignment
-    )
-    
-    header_style = ParagraphStyle(
-        'CustomHeader',
-        parent=styles['Heading2'],
-        fontSize=14,
-        spaceAfter=12,
-    )
-    
-    # Clinic header
-    elements.append(Paragraph("DENTAL CLINIC RECEIPT", title_style))
-    elements.append(Spacer(1, 12))
-    
-    # Receipt details
-    receipt_data = [
-        ['Receipt Number:', transaction.receipt_number],
-        ['Date:', transaction.payment_date.strftime('%B %d, %Y')],
-        ['Time:', transaction.payment_datetime.strftime('%I:%M %p')],
-        ['Patient:', payment.patient.full_name],
-        ['Service Date:', payment.appointment.appointment_date.strftime('%B %d, %Y')],
-    ]
-    
-    receipt_table = Table(receipt_data, colWidths=[2*inch, 3*inch])
-    receipt_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-    ]))
-    
-    elements.append(receipt_table)
-    elements.append(Spacer(1, 24))
-    
-    # Services performed
-    elements.append(Paragraph("Services Performed", header_style))
-    
-    service_data = [['Service', 'Qty', 'Unit Price', 'Discount', 'Total']]
-    for item in payment.items.all():
-        service_data.append([
-            item.service.name,
-            str(item.quantity),
-            f'₱{item.unit_price:,.2f}',
-            f'₱{item.discount_amount:,.2f}' if item.discount_amount else '₱0.00',
-            f'₱{item.total:,.2f}'
-        ])
-    
-    service_table = Table(service_data, colWidths=[2.5*inch, 0.5*inch, 1*inch, 1*inch, 1*inch])
-    service_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (1, 0), (-1, -1), 'RIGHT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 9),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ]))
-    
-    elements.append(service_table)
-    elements.append(Spacer(1, 24))
-    
-    # Payment summary
-    elements.append(Paragraph("Payment Summary", header_style))
-    
-    summary_data = [
-        ['Total Amount:', f'₱{payment.total_amount:,.2f}'],
-        ['This Payment:', f'₱{transaction.amount:,.2f}'],
-        ['Total Paid:', f'₱{payment.amount_paid:,.2f}'],
-        ['Outstanding Balance:', f'₱{payment.outstanding_balance:,.2f}'],
-    ]
-    
-    summary_table = Table(summary_data, colWidths=[2*inch, 2*inch])
-    summary_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-        ('LINEBELOW', (0, -1), (-1, -1), 2, colors.black),
-    ]))
-    
-    elements.append(summary_table)
-    elements.append(Spacer(1, 24))
-    
-    # Payment method and notes
-    elements.append(Paragraph("Payment Details", header_style))
-    payment_details = [
-        ['Payment Method:', 'Cash'],
-        ['Notes:', transaction.notes or 'No additional notes'],
-    ]
-    
-    if payment.next_due_date and payment.outstanding_balance > 0:
-        payment_details.append(['Next Payment Due:', payment.next_due_date.strftime('%B %d, %Y')])
-    
-    details_table = Table(payment_details, colWidths=[2*inch, 3*inch])
-    details_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-    ]))
-    
-    elements.append(details_table)
-    elements.append(Spacer(1, 48))
-    
-    # Footer
-    elements.append(Paragraph("Thank you for your payment!", styles['Normal']))
-    elements.append(Spacer(1, 12))
-    elements.append(Paragraph("Please keep this receipt for your records.", styles['Normal']))
-    
-    # Build PDF
-    doc.build(elements)
-    
-    # Get the value of the BytesIO buffer and write it to the response
-    pdf = buffer.getvalue()
-    buffer.close()
-    
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="receipt_{transaction.receipt_number}.pdf"'
-    response.write(pdf)
-    
-    return response
 
 
 @login_required 

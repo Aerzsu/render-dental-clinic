@@ -203,14 +203,30 @@ class DailySlotsForm(forms.ModelForm):
         if not date_value:
             return date_value
         
-        # Don't allow Sundays unless explicitly setting to 0 slots
+        # Check if it's a Sunday
         if date_value.weekday() == 6:  # Sunday
             am_slots = self.cleaned_data.get('am_slots', 0)
             pm_slots = self.cleaned_data.get('pm_slots', 0)
+            
             if am_slots > 0 or pm_slots > 0:
-                raise ValidationError('Cannot set slots for Sundays. Use 0 for both AM and PM slots.')
+                raise ValidationError(
+                    'Sundays are not available for appointments. Set both AM and PM slots to 0, or choose a different date.'
+                )
         
         return date_value
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        am_slots = cleaned_data.get('am_slots', 0)
+        pm_slots = cleaned_data.get('pm_slots', 0)
+        
+        # Ensure at least one slot is set (unless it's Sunday)
+        if am_slots == 0 and pm_slots == 0:
+            date_value = cleaned_data.get('date')
+            if date_value and date_value.weekday() != 6:
+                raise ValidationError('Please set at least one slot (AM or PM).')
+        
+        return cleaned_data
 
 
 class PublicBookingForm(forms.Form):

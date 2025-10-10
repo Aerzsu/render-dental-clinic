@@ -127,13 +127,26 @@ class DailySlots(models.Model):
             if self.am_slots > 0 or self.pm_slots > 0:
                 raise ValidationError('Sunday slots should be set to 0 (no appointments on Sundays).')
     
+    # Keep this method ONLY for explicit admin creation, never call it from API
     @classmethod
     def get_or_create_for_date(cls, date_obj, created_by=None):
-        """Get existing or create default slots for a date"""
+        """
+        Get existing or create default slots for a date.
+        
+        WARNING: Only use this in admin views/management commands!
+        Do NOT use in public-facing APIs to avoid auto-creation.
+        
+        Args:
+            date_obj: The date to get or create slots for
+            created_by: The user creating the slots
+            
+        Returns:
+            Tuple of (daily_slots_instance, was_created)
+        """
         try:
             return cls.objects.get(date=date_obj), False
         except cls.DoesNotExist:
-            # Don't create for Sundays or past dates
+            # Validate before creating
             if date_obj.weekday() == 6:  # Sunday
                 return None, False
             if date_obj < timezone.now().date():
@@ -156,7 +169,10 @@ class DailySlots(models.Model):
     @classmethod
     def get_availability_for_range(cls, start_date, end_date, include_pending=True):
         """
-        Get availability data for a date range with context-aware counting
+        Get availability data for a date range WITHOUT creating slots.
+        
+        This is the fixed version that only checks existing slots.
+        For dates without slots, returns unavailable (0 slots).
         """
         availability = {}
         
@@ -174,6 +190,7 @@ class DailySlots(models.Model):
             # Skip Sundays and past dates
             if current_date.weekday() != 6 and current_date >= timezone.now().date():
                 if current_date in slots_dict:
+                    # Slot exists - use actual data
                     slot = slots_dict[current_date]
                     availability[current_date] = {
                         'am_available': slot.get_available_am_slots(include_pending=include_pending),
@@ -186,21 +203,14 @@ class DailySlots(models.Model):
                     if not include_pending:
                         pending_counts = slot.get_pending_counts()
                         availability[current_date].update(pending_counts)
-                        
                 else:
-                    # Default availability for dates without slots
-                    daily_slots, created = cls.get_or_create_for_date(current_date)
-                    if daily_slots:
-                        availability[current_date] = {
-                            'am_available': daily_slots.get_available_am_slots(include_pending=include_pending),
-                            'pm_available': daily_slots.get_available_pm_slots(include_pending=include_pending),
-                            'am_total': daily_slots.am_slots,
-                            'pm_total': daily_slots.pm_slots
-                        }
-                        
-                        if not include_pending:
-                            pending_counts = daily_slots.get_pending_counts()
-                            availability[current_date].update(pending_counts)
+                    # NO SLOT EXISTS - return unavailable (0 slots), don't create
+                    availability[current_date] = {
+                        'am_available': 0,
+                        'pm_available': 0,
+                        'am_total': 0,
+                        'pm_total': 0
+                    }
             
             current_date += timedelta(days=1)
         
@@ -326,114 +336,46 @@ class Appointment(models.Model):
         else:
             return self.temp_contact_number
     
-    def find_existing_patient(self):
+    def create_patient_from_temp_data(self):
         """
-        Try to find an existing patient record using email and phone matching
-        Returns Patient instance if found, None otherwise
-        """
-        from patients.models import Patient
-        
-        # Primary match: email (exact, case-insensitive)
-        if self.temp_email:
-            patient = Patient.objects.filter(
-                email__iexact=self.temp_email.strip(),
-                is_active=True
-            ).first()
-            if patient:
-                return patient
-        
-        # Secondary match: phone number (cleaned format)
-        if self.temp_contact_number:
-            # Clean the phone number (remove spaces, dashes, plus signs)
-            clean_temp_phone = self.temp_contact_number.replace(' ', '').replace('-', '').replace('+', '')
-            
-            # Try exact match first
-            patient = Patient.objects.filter(
-                contact_number=self.temp_contact_number,
-                is_active=True
-            ).first()
-            if patient:
-                return patient
-            
-            # Try cleaned match
-            patients = Patient.objects.filter(is_active=True)
-            for patient in patients:
-                if patient.contact_number:
-                    clean_patient_phone = patient.contact_number.replace(' ', '').replace('-', '').replace('+', '')
-                    if clean_patient_phone and clean_temp_phone and clean_patient_phone == clean_temp_phone:
-                        return patient
-        
-        return None
-    
-    def create_or_update_patient(self):
-        """
-        Create new patient or update existing patient with temp data
-        Returns the Patient instance
+        Create NEW patient from temp data - NEVER updates existing patients
+        For use with NEW patient bookings only
         """
         from patients.models import Patient
         
-        # Try to find existing patient
-        existing_patient = self.find_existing_patient()
+        # Simple validation - ensure temp data exists
+        if not self.temp_first_name or not self.temp_last_name or not self.temp_email:
+            raise ValueError("Temporary patient data is required to create new patient")
         
-        if existing_patient:
-            # Update existing patient with new information
-            updated = False
-            
-            # Update fields if temp data has values
-            if self.temp_first_name and existing_patient.first_name != self.temp_first_name:
-                existing_patient.first_name = self.temp_first_name
-                updated = True
-            
-            if self.temp_last_name and existing_patient.last_name != self.temp_last_name:
-                existing_patient.last_name = self.temp_last_name
-                updated = True
-            
-            if self.temp_email and existing_patient.email != self.temp_email:
-                existing_patient.email = self.temp_email
-                updated = True
-            
-            if self.temp_contact_number and existing_patient.contact_number != self.temp_contact_number:
-                existing_patient.contact_number = self.temp_contact_number
-                updated = True
-            
-            if self.temp_address and existing_patient.address != self.temp_address:
-                existing_patient.address = self.temp_address
-                updated = True
-            
-            if updated:
-                existing_patient.save()
-            
-            return existing_patient
+        # Always create a new patient record
+        patient = Patient.objects.create(
+            first_name=self.temp_first_name,
+            last_name=self.temp_last_name,
+            email=self.temp_email,
+            contact_number=self.temp_contact_number,
+            address=self.temp_address,
+        )
         
-        else:
-            # Create new patient
-            patient = Patient.objects.create(
-                first_name=self.temp_first_name,
-                last_name=self.temp_last_name,
-                email=self.temp_email,
-                contact_number=self.temp_contact_number,
-                address=self.temp_address,
-            )
-            return patient
-    
+        return patient
+
+
     def approve(self, approved_by_user, assigned_dentist=None):
         """
-        Approve/Confirm the appointment, create/update patient record, and assign a dentist
-        FIXED: Disable automatic audit logging for internal operations
+        Approve/Confirm the appointment, create patient record if needed, and assign a dentist
         """
         from django.db import transaction
         
         with transaction.atomic():
-            # Create or update patient record from temp data
+            # Only create patient if not already linked (NEW patient bookings)
+            # For EXISTING patient bookings (OTP-verified), self.patient is already set
             if not self.patient:
-                patient = self.create_or_update_patient()
+                patient = self.create_patient_from_temp_data()
                 # Disable audit log for this patient creation (we'll log the approval instead)
                 patient._skip_audit_log = True
                 patient.save()
                 self.patient = patient
             
             # Update appointment status
-            old_status = self.status
             self.status = 'confirmed'
             self.confirmed_at = timezone.now()
             self.confirmed_by = approved_by_user

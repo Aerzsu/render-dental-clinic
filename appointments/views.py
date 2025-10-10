@@ -673,14 +673,14 @@ def get_appointment_notes(request, appointment_pk):
 
 # DAILY SLOTS MANAGEMENT VIEWS (NEW for AM/PM system)
 class DailySlotsManagementView(LoginRequiredMixin, ListView):
-    """BACKEND VIEW: Manage daily slot allocations"""
+    """Manage daily slot allocations"""
     model = DailySlots
     template_name = 'appointments/daily_slots_list.html'
     context_object_name = 'daily_slots'
     paginate_by = 30
     
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.has_permission('appointments'):
+        if not request.user.has_permission('appointments.view_dailyslots'):
             messages.error(request, 'You do not have permission to access this page.')
             return redirect('core:dashboard')
         return super().dispatch(request, *args, **kwargs)
@@ -688,29 +688,28 @@ class DailySlotsManagementView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         queryset = DailySlots.objects.all()
         
-        # Date range filtering
         date_from = self.request.GET.get('date_from')
         date_to = self.request.GET.get('date_to')
         
+        # If no filters provided, default to next 90 days
         if not date_from and not date_to:
-            # Default to next 60 days
             today = timezone.now().date()
             queryset = queryset.filter(
                 date__gte=today,
-                date__lte=today + timedelta(days=60)
+                date__lte=today + timedelta(days=90)
             )
         else:
             if date_from:
                 try:
-                    date_from = datetime.strptime(date_from, '%Y-%m-%d').date()
-                    queryset = queryset.filter(date__gte=date_from)
+                    date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+                    queryset = queryset.filter(date__gte=date_from_obj)
                 except ValueError:
                     pass
             
             if date_to:
                 try:
-                    date_to = datetime.strptime(date_to, '%Y-%m-%d').date()
-                    queryset = queryset.filter(date__lte=date_to)
+                    date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+                    queryset = queryset.filter(date__lte=date_to_obj)
                 except ValueError:
                     pass
         
@@ -719,14 +718,12 @@ class DailySlotsManagementView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # FIXED: Add admin context slot data for each daily_slot
+        # Enhance slots with admin context data
         enhanced_slots = []
         for slot in context['daily_slots']:
-            # Calculate admin context availability (exclude pending)
             slot.admin_am_available = slot.get_available_am_slots(include_pending=False)
             slot.admin_pm_available = slot.get_available_pm_slots(include_pending=False)
             
-            # Get pending counts
             pending_counts = slot.get_pending_counts()
             slot.am_pending = pending_counts['am_pending']
             slot.pm_pending = pending_counts['pm_pending']
@@ -738,19 +735,23 @@ class DailySlotsManagementView(LoginRequiredMixin, ListView):
             'date_from': self.request.GET.get('date_from', ''),
             'date_to': self.request.GET.get('date_to', ''),
         }
+        
+        # Add info message about default range
+        today = timezone.now().date()
+        if not self.request.GET.get('date_from') and not self.request.GET.get('date_to'):
+            end_range = today + timedelta(days=90)
+            context['default_range_info'] = f"Showing slots from {today.strftime('%b %d, %Y')} to {end_range.strftime('%b %d, %Y')}"
+        
         return context
 
-
 class DailySlotsCreateView(LoginRequiredMixin, CreateView):
-    """
-    BACKEND VIEW: Create/edit daily slots
-    """
+    """Create daily slots for a single date"""
     model = DailySlots
     form_class = DailySlotsForm
     template_name = 'appointments/daily_slots_form.html'
     
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.has_permission('appointments'):
+        if not request.user.has_permission('appointments.add_dailyslots'):
             messages.error(request, 'You do not have permission to access this page.')
             return redirect('core:dashboard')
         return super().dispatch(request, *args, **kwargs)
@@ -758,67 +759,187 @@ class DailySlotsCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.created_by = self.request.user
         
-        # Log the action
-        AuditLog.log_action(
-            user=self.request.user,
-            action='create',
-            model_instance=form.instance,
-            request=self.request
-        )
+        # Check if slots already exist for this date
+        date_value = form.cleaned_data.get('date')
+        if DailySlots.objects.filter(date=date_value).exists():
+            form.add_error('date', 'Slots already exist for this date. Use the Edit option to modify them.')
+            return self.form_invalid(form)
+        
+        response = super().form_valid(form)
         
         messages.success(
             self.request,
-            f'Daily slots for {form.instance.date} created successfully.'
+            f'Slots for {form.instance.date.strftime("%A, %b %d, %Y")} created successfully.'
         )
-        return super().form_valid(form)
+        return response
     
     def get_success_url(self):
         return reverse_lazy('appointments:daily_slots_list')
 
 
 class DailySlotsUpdateView(LoginRequiredMixin, UpdateView):
-    """
-    BACKEND VIEW: Update daily slots
-    """
+    """Update daily slots for a single date"""
     model = DailySlots
     form_class = DailySlotsForm
     template_name = 'appointments/daily_slots_form.html'
     
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.has_permission('appointments'):
+        if not request.user.has_permission('appointments.change_dailyslots'):
             messages.error(request, 'You do not have permission to access this page.')
             return redirect('core:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
     def form_valid(self, form):
-        # Log the action
-        AuditLog.log_action(
-            user=self.request.user,
-            action='update',
-            model_instance=form.instance,
-            request=self.request
-        )
+        response = super().form_valid(form)
         
         messages.success(
             self.request,
-            f'Daily slots for {form.instance.date} updated successfully.'
+            f'Slots for {form.instance.date.strftime("%A, %b %d, %Y")} updated successfully.'
         )
-        return super().form_valid(form)
+        return response
     
     def get_success_url(self):
         return reverse_lazy('appointments:daily_slots_list')
 
 
+def bulk_create_daily_slots_preview(request):
+    """
+    Preview bulk slot creation before confirming
+    Returns JSON with slot creation plan
+    """
+    if not request.user.has_permission('appointments.add_dailyslots'):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+    
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request'}, status=400)
+    
+    try:
+        start_date_str = request.POST.get('start_date')
+        end_date_str = request.POST.get('end_date')
+        am_slots = int(request.POST.get('am_slots', 6))
+        pm_slots = int(request.POST.get('pm_slots', 8))
+        
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        
+        if start_date > end_date:
+            return JsonResponse({'error': 'Start date must be before end date'}, status=400)
+        
+        # Calculate what will be created
+        to_create = []
+        to_skip = []
+        skipped_sundays = 0
+        
+        current_date = start_date
+        while current_date <= end_date:
+            if current_date.weekday() == 6:  # Sunday
+                skipped_sundays += 1
+            elif DailySlots.objects.filter(date=current_date).exists():
+                to_skip.append({
+                    'date': current_date.strftime('%Y-%m-%d'),
+                    'day_name': current_date.strftime('%A'),
+                    'reason': 'Already exists'
+                })
+            else:
+                to_create.append({
+                    'date': current_date.strftime('%Y-%m-%d'),
+                    'day_name': current_date.strftime('%A'),
+                    'am_slots': am_slots,
+                    'pm_slots': pm_slots,
+                    'total': am_slots + pm_slots
+                })
+            
+            current_date += timedelta(days=1)
+        
+        return JsonResponse({
+            'success': True,
+            'summary': {
+                'will_create': len(to_create),
+                'will_skip': len(to_skip),
+                'skipped_sundays': skipped_sundays,
+                'total_days_in_range': (end_date - start_date).days + 1
+            },
+            'to_create': to_create,
+            'to_skip': to_skip,
+            'start_date': start_date.strftime('%b %d, %Y'),
+            'end_date': end_date.strftime('%b %d, %Y')
+        })
+    
+    except ValueError as e:
+        return JsonResponse({'error': f'Invalid input: {str(e)}'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': f'An error occurred: {str(e)}'}, status=500)
+
+
+def bulk_create_daily_slots_confirm(request):
+    """
+    Confirm and execute bulk slot creation after preview
+    """
+    if not request.user.has_permission('appointments.add_dailyslots'):
+        messages.error(request, 'You do not have permission to perform this action.')
+        return redirect('appointments:daily_slots_list')
+    
+    if request.method != 'POST':
+        return redirect('appointments:daily_slots_list')
+    
+    try:
+        start_date_str = request.POST.get('start_date')
+        end_date_str = request.POST.get('end_date')
+        am_slots = int(request.POST.get('am_slots', 6))
+        pm_slots = int(request.POST.get('pm_slots', 8))
+        
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        
+        created_count = 0
+        current_date = start_date
+        
+        with transaction.atomic():
+            while current_date <= end_date:
+                if current_date.weekday() != 6:  # Skip Sundays
+                    daily_slots, created = DailySlots.objects.get_or_create(
+                        date=current_date,
+                        defaults={
+                            'am_slots': am_slots,
+                            'pm_slots': pm_slots,
+                            'created_by': request.user
+                        }
+                    )
+                    
+                    if created:
+                        created_count += 1
+                
+                current_date += timedelta(days=1)
+        
+        if created_count > 0:
+            messages.success(
+                request,
+                f'Successfully created slots for {created_count} working days ({start_date.strftime("%b %d")} - {end_date.strftime("%b %d, %Y")}).'
+            )
+        else:
+            messages.warning(
+                request,
+                f'No new slots created. All dates in this range already have slots or fell on Sundays.'
+            )
+    
+    except ValueError:
+        messages.error(request, 'Invalid date format.')
+    except Exception as e:
+        messages.error(request, f'Error creating slots: {str(e)}')
+    
+    return redirect('appointments:daily_slots_list')
+
+
 # API ENDPOINTS
 
+@require_http_methods(["GET"])
 def get_slot_availability_api(request):
     """
     API ENDPOINT: Get AM/PM slot availability for date range
-    FIXED to handle past dates properly
-    """
-    if request.method != 'GET':
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
     
+    FIXED: Now only checks existing slots, doesn't auto-create.
+    For dates without slots, returns 0 available slots.
+    """
     start_date_str = request.GET.get('start_date')
     end_date_str = request.GET.get('end_date')
     
@@ -834,7 +955,7 @@ def get_slot_availability_api(request):
     # Validate date range
     today = timezone.now().date()
     
-    # FIXED: Don't reject if start_date is in the past, just adjust it
+    # Adjust start_date if in the past
     if start_date < today:
         start_date = today
     
@@ -845,8 +966,12 @@ def get_slot_availability_api(request):
     if (end_date - start_date).days > 90:
         return JsonResponse({'error': 'Date range too large. Maximum 90 days.'}, status=400)
     
-    # Get availability for date range
-    availability = DailySlots.get_availability_for_range(start_date, end_date)
+    # Get availability for date range - NO AUTO-CREATION
+    availability = DailySlots.get_availability_for_range(
+        start_date, 
+        end_date,
+        include_pending=True  # For public booking, count pending to prevent overbooking
+    )
     
     # Format for frontend
     formatted_availability = {}

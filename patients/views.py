@@ -5,14 +5,16 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
-from django.db.models import Q, Prefetch, Sum, Max, Count, Case, When, Value, DecimalField
+from django.db.models import Q, F, Prefetch, Sum, Max, Count, Case, When, Value, DecimalField
 from django.http import JsonResponse, HttpResponse
+from django.template.loader import render_to_string
 from django.utils import timezone as django_timezone
 from datetime import date, timedelta, timezone
 import csv
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
 from io import BytesIO
+from xhtml2pdf import pisa
 
 from .models import Patient
 from .forms import PatientForm, PatientSearchForm, FindPatientForm
@@ -20,7 +22,7 @@ from appointments.models import Appointment
 
 
 class PatientListView(LoginRequiredMixin, ListView):
-    """Enhanced list view with filtering, search, and export functionality - UPDATED for AM/PM system"""
+    """Enhanced list view with filtering, search, and PDF export functionality"""
     model = Patient
     template_name = 'patients/patient_list.html'
     context_object_name = 'patients'
@@ -32,13 +34,31 @@ class PatientListView(LoginRequiredMixin, ListView):
             return redirect('core:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
-    def get_queryset(self):
-        from appointments.models import Payment
-        from django.db.models import F
+    def get(self, request, *args, **kwargs):
+        """Override get to handle PDF export before template rendering"""
+        export_format = request.GET.get('export')
         
+        if export_format == 'pdf':
+            # Get the full queryset (not paginated) for export
+            self.object_list = self.get_queryset()
+            
+            # Limit export to reasonable number
+            if self.object_list.count() > 1000:
+                messages.warning(
+                    request, 
+                    'Export limited to first 1000 patients. Please use filters to narrow your search.'
+                )
+                self.object_list = self.object_list[:1000]
+            
+            return self.export_to_pdf_xhtml2pdf()
+        
+        # Normal list view
+        return super().get(request, *args, **kwargs)
+    
+    def get_queryset(self):
+        # Same as before - no changes needed
         queryset = Patient.objects.all().select_related()
         
-        # Annotate with completed visit count
         queryset = queryset.annotate(
             visit_count=Count(
                 'appointments',
@@ -47,7 +67,6 @@ class PatientListView(LoginRequiredMixin, ListView):
             )
         )
         
-        # Calculate outstanding balance (total_amount - amount_paid for all payments)
         queryset = queryset.annotate(
             outstanding_balance=Sum(
                 Case(
@@ -61,7 +80,6 @@ class PatientListView(LoginRequiredMixin, ListView):
             )
         )
         
-        # Prefetch last completed appointment and next appointment
         queryset = queryset.prefetch_related(
             Prefetch(
                 'appointments',
@@ -80,14 +98,13 @@ class PatientListView(LoginRequiredMixin, ListView):
             )
         )
         
-        # Get filter parameters
+        # Apply filters (same as before)
         search = self.request.GET.get('search', '').strip()
         status = self.request.GET.get('status', '')
         contact = self.request.GET.get('contact', '')
         activity = self.request.GET.get('activity', '')
         sort_by = self.request.GET.get('sort', 'name_asc')
         
-        # Apply search filter
         if search:
             queryset = queryset.filter(
                 Q(first_name__icontains=search) |
@@ -96,14 +113,12 @@ class PatientListView(LoginRequiredMixin, ListView):
                 Q(contact_number__icontains=search)
             )
         
-        # Apply status filter
         if status:
             if status == 'active':
                 queryset = queryset.filter(is_active=True)
             elif status == 'inactive':
                 queryset = queryset.filter(is_active=False)
         
-        # Apply contact method filter
         if contact:
             if contact == 'email_only':
                 queryset = queryset.filter(email__isnull=False).exclude(email='')
@@ -120,7 +135,6 @@ class PatientListView(LoginRequiredMixin, ListView):
                     Q(contact_number__isnull=True) | Q(contact_number='')
                 )
         
-        # Apply activity filter
         if activity:
             today = date.today()
             if activity == 'recent':
@@ -143,7 +157,6 @@ class PatientListView(LoginRequiredMixin, ListView):
                 ).values_list('patient_id', flat=True).distinct()
                 queryset = queryset.exclude(id__in=recent_patient_ids)
         
-        # Apply sorting
         if sort_by == 'name_asc':
             queryset = queryset.order_by('last_name', 'first_name')
         elif sort_by == 'name_desc':
@@ -164,9 +177,9 @@ class PatientListView(LoginRequiredMixin, ListView):
         return queryset
     
     def get_context_data(self, **kwargs):
+        # Same as before - no changes needed
         context = super().get_context_data(**kwargs)
         
-        # Get filter parameters (unchanged)
         context['current_filters'] = {
             'search': self.request.GET.get('search', ''),
             'status': self.request.GET.get('status', ''),
@@ -175,7 +188,6 @@ class PatientListView(LoginRequiredMixin, ListView):
             'sort': self.request.GET.get('sort', 'name_asc'),
         }
         
-        # Build active filters list for display (unchanged)
         active_filters = []
         if context['current_filters']['search']:
             active_filters.append(f"Search: {context['current_filters']['search']}")
@@ -188,25 +200,22 @@ class PatientListView(LoginRequiredMixin, ListView):
         
         context['active_filters'] = active_filters
         
-        # Get insights for dashboard - UPDATED to exclude pending appointments
         total_patients = Patient.objects.filter(is_active=True).count()
         today = date.today()
         
-        # Only count appointments with confirmed patient records
         upcoming_appointments = Appointment.objects.filter(
             appointment_date__gte=today,
-            status__in=['confirmed', 'pending'],  # pending appointments with existing patients still count
-            patient__isnull=False  # Only count appointments with linked patient records
+            status__in=['confirmed', 'pending'],
+            patient__isnull=False
         ).values('patient').distinct().count()
         
         with_email = Patient.objects.filter(is_active=True, email__isnull=False).exclude(email='').count()
         
-        # Only consider patients with completed appointments (confirmed patients only)
         old_date = today - timedelta(days=90)
         no_recent_visits = Patient.objects.filter(is_active=True).exclude(
             appointments__appointment_date__gte=old_date,
             appointments__status='completed',
-            appointments__patient__isnull=False  # Only confirmed appointments
+            appointments__patient__isnull=False
         ).count()
         
         context['insights'] = {
@@ -216,75 +225,110 @@ class PatientListView(LoginRequiredMixin, ListView):
             'no_recent_visits': no_recent_visits,
         }
         
-        # Total count remains the same (only actual Patient records)
         context['total_count'] = Patient.objects.count()
-        
-        # Handle export (unchanged)
-        export_format = self.request.GET.get('export')
-        if export_format in ['csv', 'pdf']:
-            return self.export_patients(context['patients'], export_format)
         
         return context
     
-    def export_patients(self, patients, format_type):
-        """Export patients to CSV or PDF"""
-        if format_type == 'csv':
-            response = HttpResponse(content_type='text/csv')
-            response['Content-Disposition'] = 'attachment; filename="patients.csv"'
+    def export_to_pdf_xhtml2pdf(self):
+        """Generate PDF using xhtml2pdf (no system dependencies required)"""
+        try:
+            patients_qs = self.object_list
             
-            writer = csv.writer(response)
-            writer.writerow(['Name', 'Email', 'Phone', 'Address', 'Date of Birth', 'Created', 'Total Visits'])
-            
-            for patient in patients:
-                writer.writerow([
-                    patient.full_name,
-                    patient.email,
-                    patient.contact_number,
-                    patient.address,
-                    patient.date_of_birth.strftime('%Y-%m-%d') if patient.date_of_birth else '',
-                    patient.created_at.strftime('%Y-%m-%d'),
-                    getattr(patient, 'visit_count', 0)
-                ])
-            
-            return response
-        
-        elif format_type == 'pdf':
-            # Simple PDF export using reportlab
-            buffer = BytesIO()
-            p = canvas.Canvas(buffer, pagesize=letter)
-            
-            # Title
-            p.setFont("Helvetica-Bold", 16)
-            p.drawString(50, 750, "Patient List Report")
-            
-            # Headers
-            y = 700
-            p.setFont("Helvetica-Bold", 12)
-            p.drawString(50, y, "Name")
-            p.drawString(200, y, "Email")
-            p.drawString(350, y, "Phone")
-            p.drawString(500, y, "Visits")
-            
-            # Data
-            y -= 20
-            p.setFont("Helvetica", 10)
-            for patient in patients[:50]:  # Limit to 50 for simplicity
-                if y < 50:
-                    p.showPage()
-                    y = 750
+            # Convert queryset to list with explicit data extraction
+            patients_data = []
+            for patient in patients_qs:
+                patient_dict = {
+                    'full_name': patient.full_name,
+                    'email': patient.email,
+                    'contact_number': patient.contact_number,
+                    'visit_count': patient.visit_count if hasattr(patient, 'visit_count') else 0,
+                    'outstanding_balance': patient.outstanding_balance if hasattr(patient, 'outstanding_balance') else None,
+                }
                 
-                p.drawString(50, y, patient.full_name[:25])
-                p.drawString(200, y, patient.email[:20])
-                p.drawString(350, y, patient.contact_number[:15])
-                p.drawString(500, y, str(getattr(patient, 'visit_count', 0)))
-                y -= 15
+                # Get completed appointments
+                if hasattr(patient, 'completed_appointments') and patient.completed_appointments:
+                    last_appt = patient.completed_appointments[0]
+                    patient_dict['last_visit'] = {
+                        'date': last_appt.appointment_date,
+                        'service_name': last_appt.service.name if last_appt.service else 'N/A',
+                    }
+                else:
+                    patient_dict['last_visit'] = None
+                
+                # Get upcoming appointments
+                if hasattr(patient, 'upcoming_appointments') and patient.upcoming_appointments:
+                    next_appt = patient.upcoming_appointments[0]
+                    patient_dict['next_appointment'] = {
+                        'date': next_appt.appointment_date,
+                        'period': next_appt.get_period_display() if hasattr(next_appt, 'get_period_display') else '',
+                    }
+                else:
+                    patient_dict['next_appointment'] = None
+                
+                patients_data.append(patient_dict)
             
-            p.save()
-            buffer.seek(0)
+            context = {
+                'patients': patients_data,
+                'total_count': len(patients_data),
+                'generated_date': django_timezone.now(),
+                'clinic_name': 'KingJoy Dental Clinic',
+                'filters_applied': self._get_filters_description(),
+            }
             
-            response = HttpResponse(buffer.read(), content_type='application/pdf')
-            response['Content-Disposition'] = 'attachment; filename="patients.pdf"'
-            return response
+            # Render HTML template
+            html_string = render_to_string('patients/patient_list_pdf_simple.html', context)
+            
+            # Create PDF
+            result = BytesIO()
+            pdf = pisa.pisaDocument(BytesIO(html_string.encode("UTF-8")), result)
+            
+            if not pdf.err:
+                response = HttpResponse(result.getvalue(), content_type='application/pdf')
+                response['Content-Disposition'] = f'attachment; filename="patients_report_{date.today()}.pdf"'
+                return response
+            else:
+                # Return error response instead of redirect
+                return HttpResponse(
+                    'Error generating PDF. Please try again.',
+                    status=500,
+                    content_type='text/plain'
+                )
+        
+        except Exception as e:
+            # Log the error for debugging
+            import traceback
+            print(f"PDF Generation Error: {str(e)}")
+            print(traceback.format_exc())
+            return HttpResponse(
+                f'Error generating PDF: {str(e)}',
+                status=500,
+                content_type='text/plain'
+            )
+    
+    def _get_filters_description(self):
+        """Get human-readable description of applied filters"""
+        filters = []
+        
+        search = self.request.GET.get('search', '').strip()
+        if search:
+            filters.append(f"Search: '{search}'")
+        
+        status = self.request.GET.get('status', '')
+        if status:
+            filters.append(f"Status: {status.title()}")
+        
+        contact = self.request.GET.get('contact', '')
+        if contact:
+            filters.append(f"Contact: {contact.replace('_', ' ').title()}")
+        
+        activity = self.request.GET.get('activity', '')
+        if activity:
+            filters.append(f"Activity: {activity.replace('_', ' ').title()}")
+        
+        if not filters:
+            return "All patients"
+        
+        return " | ".join(filters)
 
 
 class PatientDetailView(LoginRequiredMixin, DetailView):

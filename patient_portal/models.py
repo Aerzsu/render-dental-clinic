@@ -1,6 +1,7 @@
 # patient_portal/models.py
 """
 Patient portal authentication models
+UPDATED: Added purpose field to support both portal and booking OTP
 """
 from django.db import models
 from django.utils import timezone
@@ -11,16 +12,29 @@ import string
 
 class PatientPortalAccess(models.Model):
     """
-    Temporary access codes for patient portal authentication
+    Temporary access codes for patient portal authentication AND booking verification
     Codes expire after 15 minutes
+    UPDATED: Added purpose and verified_patient fields
     """
+    PURPOSE_CHOICES = [
+        ('portal', 'Patient Portal Login'),
+        ('booking', 'Appointment Booking Verification'),
+    ]
+    
     email = models.EmailField(db_index=True)
     code = models.CharField(max_length=6, db_index=True)
+    purpose = models.CharField(max_length=10, choices=PURPOSE_CHOICES, default='portal', 
+                              help_text="What this code is being used for")
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
     is_used = models.BooleanField(default=False)
     used_at = models.DateTimeField(null=True, blank=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
+    
+    # For booking: track which patient was selected (null until patient selects)
+    verified_patient = models.ForeignKey('patients.Patient', on_delete=models.CASCADE, 
+                                        null=True, blank=True, related_name='booking_verifications',
+                                        help_text="Selected patient after OTP verification")
     
     class Meta:
         ordering = ['-created_at']
@@ -28,12 +42,14 @@ class PatientPortalAccess(models.Model):
             models.Index(fields=['email', 'code'], name='portal_email_code_idx'),
             models.Index(fields=['expires_at'], name='portal_expires_idx'),
             models.Index(fields=['created_at'], name='portal_created_idx'),
+            models.Index(fields=['purpose'], name='portal_purpose_idx'),
         ]
         verbose_name = 'Patient Portal Access'
         verbose_name_plural = 'Patient Portal Access Codes'
     
     def __str__(self):
-        return f"{self.email} - {self.code} ({'Used' if self.is_used else 'Active'})"
+        status = 'Used' if self.is_used else 'Active'
+        return f"{self.email} - {self.code} ({self.get_purpose_display()}) - {status}"
     
     @property
     def is_expired(self):
@@ -45,11 +61,13 @@ class PatientPortalAccess(models.Model):
         """Check if code is valid (not used and not expired)"""
         return not self.is_used and not self.is_expired
     
-    def mark_as_used(self):
-        """Mark code as used"""
+    def mark_as_used(self, patient=None):
+        """Mark code as used and optionally link patient"""
         self.is_used = True
         self.used_at = timezone.now()
-        self.save(update_fields=['is_used', 'used_at'])
+        if patient:
+            self.verified_patient = patient
+        self.save(update_fields=['is_used', 'used_at', 'verified_patient'])
     
     @classmethod
     def generate_code(cls):
@@ -57,20 +75,23 @@ class PatientPortalAccess(models.Model):
         return ''.join(secrets.choice(string.digits) for _ in range(6))
     
     @classmethod
-    def create_access_code(cls, email, ip_address=None):
+    def create_access_code(cls, email, purpose='portal', ip_address=None):
         """
         Create a new access code for email
-        Returns (code_instance, created) tuple
+        Returns (code_instance, created, error_message) tuple
+        
+        Rate limiting: max 3 requests per hour
         """
-        # Check rate limiting - max 3 requests per hour
+        # Check rate limiting - max 3 requests per hour for this email
         one_hour_ago = timezone.now() - timedelta(hours=1)
         recent_codes = cls.objects.filter(
             email=email,
+            purpose=purpose,
             created_at__gte=one_hour_ago
         ).count()
         
         if recent_codes >= 3:
-            return None, False
+            return None, False, "Too many verification requests. Please wait an hour and try again."
         
         # Generate unique code
         code = cls.generate_code()
@@ -79,22 +100,24 @@ class PatientPortalAccess(models.Model):
         access_code = cls.objects.create(
             email=email,
             code=code,
+            purpose=purpose,
             expires_at=timezone.now() + timedelta(minutes=15),
             ip_address=ip_address
         )
         
-        return access_code, True
+        return access_code, True, None
     
     @classmethod
-    def verify_code(cls, email, code):
+    def verify_code(cls, email, code, purpose='portal'):
         """
-        Verify if code is valid for email
+        Verify if code is valid for email and purpose
         Returns (is_valid, access_code_instance or error_message)
         """
         try:
             access_code = cls.objects.filter(
                 email=email,
                 code=code,
+                purpose=purpose,
                 is_used=False
             ).latest('created_at')
             
@@ -105,6 +128,18 @@ class PatientPortalAccess(models.Model):
             
         except cls.DoesNotExist:
             return False, 'Invalid code. Please check and try again.'
+    
+    @classmethod
+    def get_remaining_attempts(cls, email, purpose='portal'):
+        """Get remaining OTP request attempts for this email"""
+        one_hour_ago = timezone.now() - timedelta(hours=1)
+        recent_codes = cls.objects.filter(
+            email=email,
+            purpose=purpose,
+            created_at__gte=one_hour_ago
+        ).count()
+        
+        return max(0, 3 - recent_codes)
     
     @classmethod
     def cleanup_expired_codes(cls):

@@ -21,4 +21,10 @@ urlpatterns = [
     
     # System settings
     path('settings/', views.SystemSettingsView.as_view(), name='system_settings'),
+
+    # Booking OTP endpoints
+    path('api/booking/send-otp/', views.send_booking_otp, name='send_booking_otp'),
+    path('api/booking/verify-otp/', views.verify_booking_otp, name='verify_booking_otp'),
+    path('api/booking/select-patient/', views.select_booking_patient, name='select_booking_patient'),
+    path('api/booking/submit/', views.submit_booking_appointment, name='submit_booking_appointment'),  # NEW
 ]

@@ -15,10 +15,15 @@ import re
 import pytz
 
 from .models import AuditLog, SystemSetting
-from appointments.models import Appointment, DailySlots
+from appointments.models import Appointment, DailySlots, Payment, PaymentTransaction
 from patients.models import Patient
+from patient_portal.models import PatientPortalAccess
 from services.models import Service
 from users.models import User
+from core.email_service import EmailService
+import logging
+
+logger = logging.getLogger(__name__)
 
 class HomeView(TemplateView):
     """Public landing page"""
@@ -32,7 +37,8 @@ class HomeView(TemplateView):
 
 class BookAppointmentView(TemplateView):
     """
-    PUBLIC VIEW: Simplified appointment booking using AM/PM slots (NO dentist selection)
+    PUBLIC VIEW: Simplified appointment booking using AM/PM slots
+    UPDATED: Now supports OTP verification for existing patients
     """
     template_name = 'core/book_appointment.html'
     
@@ -63,7 +69,7 @@ class BookAppointmentView(TemplateView):
         return context
     
     def post(self, request, *args, **kwargs):
-        """Handle appointment booking submission - UPDATED for AM/PM slots"""
+        """Handle appointment booking submission - UPDATED for OTP flow"""
         try:
             # Check if request is JSON
             if request.content_type == 'application/json':
@@ -85,7 +91,7 @@ class BookAppointmentView(TemplateView):
             }, status=500)
     
     def _handle_json_request(self, data):
-        """Handle JSON appointment request - UPDATED to skip automatic audit log"""
+        """Handle JSON appointment request - UPDATED for OTP-verified patients"""
         # Validate required fields
         required_fields = ['patient_type', 'service', 'appointment_date', 'period']
         for field in required_fields:
@@ -125,7 +131,7 @@ class BookAppointmentView(TemplateView):
                 if not can_book:
                     return JsonResponse({'success': False, 'error': availability_message}, status=400)
                 
-                # Handle patient data - UPDATED to store in temp fields
+                # Handle patient data - UPDATED for OTP flow
                 patient_data, patient_type = self._prepare_patient_data(data)
                 if isinstance(patient_data, JsonResponse):  # Error response
                     return patient_data
@@ -145,11 +151,6 @@ class BookAppointmentView(TemplateView):
                     temp_contact_number=patient_data.get('contact_number', ''),
                     temp_address=patient_data.get('address', ''),
                 )
-                
-                # Skip automatic audit log for public bookings
-                # (We don't want anonymous bookings cluttering the audit log)
-                # Staff will see it in the "Pending Requests" page
-                # When they approve it, that action will be logged
                 
                 # Generate reference number
                 reference_number = f'APT-{appointment.id:06d}'
@@ -175,13 +176,13 @@ class BookAppointmentView(TemplateView):
             }, status=500)
         
     def _prepare_patient_data(self, data):
-        """Prepare patient data for temp storage - UPDATED logic"""
+        """Prepare patient data for temp storage - UPDATED for OTP flow"""
         patient_type_raw = data['patient_type']
         
         if patient_type_raw == 'new':
             return self._prepare_new_patient_data(data)
         elif patient_type_raw == 'existing':
-            return self._prepare_existing_patient_data(data)
+            return self._prepare_existing_patient_data_with_otp(data)
         else:
             return JsonResponse({'success': False, 'error': 'Invalid patient type'}, status=400), None
 
@@ -244,33 +245,32 @@ class BookAppointmentView(TemplateView):
             'email': email,
             'contact_number': contact_number,
             'address': address,
-            'existing_patient': None  # No existing patient to link
+            'existing_patient': None
         }, 'new'
 
-    def _prepare_existing_patient_data(self, data):
-        """Prepare existing patient data - find and link existing patient"""
-        identifier = data.get('patient_identifier', '').strip()
-        if not identifier:
-            return JsonResponse({'success': False, 'error': 'Patient identifier is required'}, status=400), None
+    def _prepare_existing_patient_data_with_otp(self, data):
+        """
+        Prepare existing patient data - UPDATED to use patient_id from OTP verification
+        The frontend has already verified the OTP and selected the patient
+        """
+        patient_id = data.get('patient_id')
         
-        # Search logic
-        query = Q(is_active=True)
-        if '@' in identifier:
-            query &= Q(email__iexact=identifier)
-        else:
-            clean_identifier = identifier.replace(' ', '').replace('-', '')
-            query &= (Q(contact_number=identifier) | Q(contact_number=clean_identifier))
-        
-        patient = Patient.objects.filter(query).first()
-        
-        if not patient:
+        if not patient_id:
             return JsonResponse({
                 'success': False, 
-                'error': 'No patient found with the provided information. Please check your details or register as a new patient.'
+                'error': 'Patient verification required. Please verify your email.'
             }, status=400), None
         
-        # For existing patients, we still store temp data in case there are updates
-        # but we also link to the existing patient record
+        # Get the patient by ID
+        try:
+            patient = Patient.objects.get(id=patient_id, is_active=True)
+        except Patient.DoesNotExist:
+            return JsonResponse({
+                'success': False, 
+                'error': 'Invalid patient selection. Please try again.'
+            }, status=400), None
+        
+        # Return patient data for temp storage
         return {
             'first_name': patient.first_name,
             'last_name': patient.last_name,
@@ -281,7 +281,7 @@ class BookAppointmentView(TemplateView):
         }, 'returning'
     
     def _validate_appointment_datetime(self, appointment_date, period):
-        """Validate appointment date and period constraints - SIMPLIFIED (removed holiday check)"""
+        """Validate appointment date and period constraints"""
         # Check past dates
         if appointment_date <= timezone.now().date():
             return 'Appointment date must be in the future'
@@ -295,120 +295,6 @@ class BookAppointmentView(TemplateView):
             return 'Invalid period selected'
         
         return None  # No validation errors
-    
-    def _handle_patient_data(self, data):
-        """Handle patient creation or finding with validation"""
-        patient_type_raw = data['patient_type']
-        
-        if patient_type_raw == 'new':
-            return self._create_new_patient(data)
-        elif patient_type_raw == 'existing':
-            return self._find_existing_patient(data)
-        else:
-            return JsonResponse({'success': False, 'error': 'Invalid patient type'}, status=400), None
-    
-    def _create_new_patient(self, data):
-        """Create new patient with validation"""
-        required_new_fields = ['first_name', 'last_name', 'email']
-        for field in required_new_fields:
-            if not data.get(field, '').strip():
-                field_label = field.replace('_', ' ').title()
-                return JsonResponse({
-                    'success': False, 
-                    'error': f'{field_label} is required for new patients'
-                }, status=400), None
-        
-        # Extract and validate data
-        first_name = data.get('first_name', '').strip()
-        last_name = data.get('last_name', '').strip()
-        email = data.get('email', '').strip()
-        contact_number = data.get('contact_number', '').strip()
-        address = data.get('address', '').strip()
-        
-        # Validate name fields
-        name_pattern = re.compile(r'^[a-zA-Z\s\-\']+$')
-        
-        if not name_pattern.match(first_name):
-            return JsonResponse({
-                'success': False,
-                'error': 'First name should only contain letters, spaces, hyphens, and apostrophes'
-            }, status=400), None
-        
-        if not name_pattern.match(last_name):
-            return JsonResponse({
-                'success': False,
-                'error': 'Last name should only contain letters, spaces, hyphens, and apostrophes'
-            }, status=400), None
-        
-        # Validate email format
-        try:
-            validate_email(email)
-        except DjangoValidationError:
-            return JsonResponse({
-                'success': False,
-                'error': 'Please enter a valid email address'
-            }, status=400), None
-        
-        # Validate contact number if provided
-        if contact_number:
-            phone_pattern = re.compile(r'^(\+63|0)?9\d{9}$')
-            clean_contact = contact_number.replace(' ', '').replace('-', '')
-            if not phone_pattern.match(clean_contact):
-                return JsonResponse({
-                    'success': False,
-                    'error': 'Please enter a valid Philippine mobile number (e.g., +639123456789)'
-                }, status=400), None
-            contact_number = clean_contact
-        
-        # Check for existing patient
-        existing_query = Q()
-        if email:
-            existing_query |= Q(email__iexact=email, is_active=True)
-        if contact_number:
-            existing_query |= Q(contact_number=contact_number, is_active=True)
-        
-        if existing_query:
-            existing = Patient.objects.filter(existing_query).first()
-            if existing:
-                return JsonResponse({
-                    'success': False, 
-                    'error': 'A patient with this email or contact number already exists. Please use "Existing Patient" option.'
-                }, status=400), None
-        
-        # Create new patient
-        patient = Patient.objects.create(
-            first_name=first_name,
-            last_name=last_name,
-            email=email,
-            contact_number=contact_number or '',
-            address=address,
-        )
-        
-        return patient, 'new'
-    
-    def _find_existing_patient(self, data):
-        """Find existing patient with validation"""
-        identifier = data.get('patient_identifier', '').strip()
-        if not identifier:
-            return JsonResponse({'success': False, 'error': 'Patient identifier is required'}, status=400), None
-        
-        # Search logic
-        query = Q(is_active=True)
-        if '@' in identifier:
-            query &= Q(email__iexact=identifier)
-        else:
-            clean_identifier = identifier.replace(' ', '').replace('-', '')
-            query &= (Q(contact_number=identifier) | Q(contact_number=clean_identifier))
-        
-        patient = Patient.objects.filter(query).first()
-        
-        if not patient:
-            return JsonResponse({
-                'success': False, 
-                'error': 'No patient found with the provided information. Please check your details or register as a new patient.'
-            }, status=400), None
-        
-        return patient, 'returning'
     
     def _handle_form_request(self, request):
         """Handle regular form submission (fallback)"""
@@ -528,8 +414,13 @@ def find_patient_api(request):
         return JsonResponse({'found': False})
 
 class DashboardView(LoginRequiredMixin, TemplateView):
-    """Main dashboard for authenticated users - UPDATED for AM/PM system with Manila timezone"""
-    template_name = 'core/dashboard.html'
+    """Enhanced dashboard with role-based templates - UPDATED for AM/PM system"""
+    
+    def get_template_names(self):
+        """Return different template based on billing permission"""
+        if hasattr(self.request.user, 'has_permission') and self.request.user.has_permission('billing'):
+            return ['core/dashboard_billing.html']
+        return ['core/dashboard.html']
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -538,6 +429,13 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         manila_tz = pytz.timezone('Asia/Manila')
         manila_now = timezone.now().astimezone(manila_tz)
         today = manila_now.date()
+        this_month = today.replace(day=1)
+        
+        # Check if user has billing permissions
+        has_billing_permission = (
+            hasattr(self.request.user, 'has_permission') and 
+            self.request.user.has_permission('billing')
+        )
         
         # Today's appointments - Use BLOCKING_STATUSES for consistency
         todays_appointments = Appointment.objects.filter(
@@ -552,18 +450,61 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             status='pending'
         ).count()
         
-        # Recent patients
-        context['recent_patients'] = Patient.objects.filter(
-            is_active=True
-        ).order_by('-created_at')[:5]
+        # Recent patients (only if user has patient permissions)
+        if hasattr(self.request.user, 'has_permission') and self.request.user.has_permission('patients'):
+            context['recent_patients'] = Patient.objects.filter(
+                is_active=True
+            ).order_by('-created_at')[:5]
         
-        # Statistics
+        # Base statistics
         context['stats'] = {
             'total_patients': Patient.objects.filter(is_active=True).count(),
             'todays_appointments_count': todays_appointments.count(),
             'pending_requests_count': context['pending_requests'],
             'active_dentists': User.objects.filter(is_active_dentist=True).count(),
         }
+        
+        # Add payment metrics ONLY if user has billing permissions
+        if has_billing_permission:
+            from decimal import Decimal
+            from django.db.models import Sum, F, Case, When, DecimalField
+            
+            context['stats'].update({
+                'total_outstanding': Payment.objects.filter(
+                    status__in=['pending', 'partially_paid']
+                ).aggregate(
+                    total=Sum(
+                        Case(
+                            When(status__in=['pending', 'partially_paid'], 
+                                 then=F('total_amount') - F('amount_paid')),
+                            default=0,
+                            output_field=DecimalField()
+                        )
+                    )
+                )['total'] or Decimal('0'),
+                
+                'overdue_payments_count': Payment.objects.filter(
+                    next_due_date__lt=today,
+                    status__in=['pending', 'partially_paid']
+                ).count(),
+                
+                'this_month_revenue': PaymentTransaction.objects.filter(
+                    payment_date__gte=this_month
+                ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0'),
+            })
+            
+            # Overdue payments for attention section
+            context['overdue_payments'] = Payment.objects.filter(
+                next_due_date__lt=today,
+                status__in=['pending', 'partially_paid']
+            ).select_related('patient').order_by('next_due_date')[:5]
+            
+            # Recent payment transactions
+            context['recent_transactions'] = PaymentTransaction.objects.select_related(
+                'payment__patient'
+            ).order_by('-payment_datetime')[:5]
+        
+        context['has_billing_permission'] = has_billing_permission
         
         # Today's slot availability summary with percentage calculations
         try:
@@ -619,31 +560,291 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 }
         
         return context
-    
-    def get_quick_actions(self):
-        """Get quick actions based on user permissions"""
-        actions = []
-        user = self.request.user
+
+@require_http_methods(["POST"])
+def send_booking_otp(request):
+    """
+    API ENDPOINT: Send OTP code for booking verification
+    Used when existing patient enters their email
+    """
+    try:
+        import json
+        data = json.loads(request.body)
+        email = data.get('email', '').strip().lower()
         
-        if user.has_permission('appointments'):
-            actions.extend([
-                {'name': 'New Appointment', 'url': 'appointments:appointment_create', 'icon': 'calendar'},
-                {'name': 'View Calendar', 'url': 'appointments:appointment_calendar', 'icon': 'calendar-view'},
-            ])
+        if not email:
+            return JsonResponse({
+                'success': False,
+                'error': 'Please enter your email address.'
+            }, status=400)
         
-        if user.has_permission('patients'):
-            actions.extend([
-                {'name': 'Add Patient', 'url': 'patients:patient_create', 'icon': 'user-plus'},
-                {'name': 'Find Patient', 'url': 'patients:find_patient', 'icon': 'search'},
-            ])
+        # Validate email format
+        from django.core.validators import validate_email as django_validate_email
+        from django.core.exceptions import ValidationError
+        try:
+            django_validate_email(email)
+        except ValidationError:
+            return JsonResponse({
+                'success': False,
+                'error': 'Please enter a valid email address.'
+            }, status=400)
         
-        if user.has_permission('maintenance'):
-            actions.extend([
-                {'name': 'Manage Users', 'url': 'users:user_list', 'icon': 'users'},
-                {'name': 'System Settings', 'url': 'core:system_settings', 'icon': 'settings'},
-            ])
+        # Check if any patients exist with this email
+        patients = Patient.objects.filter(
+            email__iexact=email,
+            is_active=True
+        )
         
-        return actions
+        if not patients.exists():
+            return JsonResponse({
+                'success': False,
+                'error': 'We couldn\'t find a patient record with this email address. Please check your email or register as a new patient.'
+            }, status=404)
+        
+        # Get client IP
+        ip_address = request.META.get('REMOTE_ADDR')
+        
+        # Create OTP code with rate limiting
+        access_code, created, error_msg = PatientPortalAccess.create_access_code(
+            email=email,
+            purpose='booking',
+            ip_address=ip_address
+        )
+        
+        if not created:
+            return JsonResponse({
+                'success': False,
+                'error': error_msg
+            }, status=429)
+        
+        # Send email with OTP
+        patient_name = patients.first().first_name if patients.count() == 1 else 'Patient'
+        email_sent = EmailService.send_verification_code_email(
+            email=email,
+            code=access_code.code,
+            patient_name=patient_name
+        )
+        
+        if not email_sent:
+            logger.error(f"Failed to send OTP email to {email}")
+            return JsonResponse({
+                'success': False,
+                'error': 'Failed to send verification code. Please try again.'
+            }, status=500)
+        
+        # Get remaining attempts
+        remaining = PatientPortalAccess.get_remaining_attempts(email, purpose='booking')
+        
+        logger.info(f"OTP sent successfully to {email} for booking verification")
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Verification code sent to your email.',
+            'remaining_attempts': remaining,
+            'expires_in_minutes': 15
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid request data.'
+        }, status=400)
+    except Exception as e:
+        logger.error(f"Error in send_booking_otp: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred. Please try again.'
+        }, status=500)
+
+
+@require_http_methods(["POST"])
+def verify_booking_otp(request):
+    """
+    API ENDPOINT: Verify OTP code and return patient selection if multiple found
+    """
+    try:
+        import json
+        data = json.loads(request.body)
+        email = data.get('email', '').strip().lower()
+        code = data.get('code', '').strip()
+        
+        if not email or not code:
+            return JsonResponse({
+                'success': False,
+                'error': 'Email and verification code are required.'
+            }, status=400)
+        
+        # Verify the code
+        is_valid, result = PatientPortalAccess.verify_code(email, code, purpose='booking')
+        
+        if not is_valid:
+            return JsonResponse({
+                'success': False,
+                'error': result  # Error message from verify_code
+            }, status=400)
+        
+        # Code is valid, get the access_code object
+        access_code = result
+        
+        # Find all patients with this email
+        patients = Patient.objects.filter(
+            email__iexact=email,
+            is_active=True
+        ).order_by('-created_at')
+        
+        if not patients.exists():
+            return JsonResponse({
+                'success': False,
+                'error': 'No patient records found. This should not happen.'
+            }, status=404)
+        
+        # Format patient data for selection
+        patient_options = []
+        for patient in patients:
+            # Get last appointment date if exists
+            last_appointment = patient.appointments.filter(
+                status__in=['completed', 'confirmed']
+            ).order_by('-appointment_date').first()
+            
+            last_visit = None
+            if last_appointment:
+                last_visit = last_appointment.appointment_date.strftime('%B %Y')
+            
+            patient_options.append({
+                'id': patient.id,
+                'name': patient.full_name,
+                'registered': patient.created_at.strftime('%B %Y'),
+                'last_visit': last_visit
+            })
+        
+        # Store access_code ID in response for later linking
+        return JsonResponse({
+            'success': True,
+            'verified': True,
+            'access_code_id': access_code.id,
+            'multiple_patients': len(patient_options) > 1,
+            'patients': patient_options
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid request data.'
+        }, status=400)
+    except Exception as e:
+        logger.error(f"Error in verify_booking_otp: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred. Please try again.'
+        }, status=500)
+
+
+@require_http_methods(["POST"])
+def select_booking_patient(request):
+    """
+    API ENDPOINT: Link selected patient to verified OTP session
+    This is called when user selects which patient they are from the list
+    """
+    try:
+        import json
+        data = json.loads(request.body)
+        access_code_id = data.get('access_code_id')
+        patient_id = data.get('patient_id')
+        
+        if not access_code_id or not patient_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'Missing required data.'
+            }, status=400)
+        
+        # Get the access code
+        try:
+            access_code = PatientPortalAccess.objects.get(
+                id=access_code_id,
+                purpose='booking',
+                is_used=False
+            )
+        except PatientPortalAccess.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Verification session expired. Please start over.'
+            }, status=400)
+        
+        # Check if expired
+        if access_code.is_expired:
+            return JsonResponse({
+                'success': False,
+                'error': 'Verification code has expired. Please request a new code.'
+            }, status=400)
+        
+        # Get the patient
+        try:
+            patient = Patient.objects.get(
+                id=patient_id,
+                email__iexact=access_code.email,
+                is_active=True
+            )
+        except Patient.DoesNotExist:
+            return JsonResponse({
+                'success': False,
+                'error': 'Invalid patient selection.'
+            }, status=400)
+        
+        # DON'T mark as used yet - just link the patient
+        # It will be marked as used when the appointment is actually submitted
+        access_code.verified_patient = patient
+        access_code.save(update_fields=['verified_patient'])
+        
+        logger.info(f"Patient {patient.id} selected for booking via OTP")
+        
+        return JsonResponse({
+            'success': True,
+            'patient': {
+                'id': patient.id,
+                'name': patient.full_name,
+                'email': patient.email,
+                'contact_number': patient.contact_number or ''
+            }
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid request data.'
+        }, status=400)
+    except Exception as e:
+        logger.error(f"Error in select_booking_patient: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred. Please try again.'
+        }, status=500)
+
+@require_http_methods(["POST"])
+def submit_booking_appointment(request):
+    """
+    API ENDPOINT: Submit appointment booking (handles the actual booking creation)
+    This is what the frontend calls when user clicks "Submit Request"
+    """
+    try:
+        import json
+        data = json.loads(request.body)
+        
+        # Use the existing _handle_json_request logic from BookAppointmentView
+        view = BookAppointmentView()
+        view.request = request
+        return view._handle_json_request(data)
+        
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid request data.'
+        }, status=400)
+    except Exception as e:
+        logger.error(f"Error in submit_booking_appointment: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred. Please try again.'
+        }, status=500)
 
 class AuditLogListView(LoginRequiredMixin, ListView):
     """Enhanced view for audit logs with comprehensive filtering"""

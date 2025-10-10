@@ -1,0 +1,444 @@
+{% extends 'base.html' %}
+{% load user_tags %}
+
+{% block title %}Dashboard - KingJoy Appointment System{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="sm:flex sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
+            <p class="mt-2 text-sm text-gray-700">Welcome back, {{ user.full_name }}!</p>
+        </div>
+        {% comment %} <div class="mt-4 sm:mt-0">
+            <a href="{% url 'appointments:payment_dashboard' %}" 
+               class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 transition-colors duration-150">
+                💰 Full Payment Dashboard
+            </a>
+        </div> {% endcomment %}
+    </div>
+
+    <!-- Quick Statistics - 4 Column Standard -->
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <!-- Total Patients -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="text-3xl">👥</div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Total Patients</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ stats.total_patients }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Today's Appointments -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="text-3xl">📅</div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Today's Appointments</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ stats.todays_appointments_count }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Requests -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="text-3xl">⏳</div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Pending Requests</dt>
+                            <dd class="text-lg font-medium {% if stats.pending_requests_count > 0 %}text-yellow-600{% else %}text-gray-900{% endif %}">
+                                {{ stats.pending_requests_count }}
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Dentists -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="text-3xl">🦷</div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Active Dentists</dt>
+                            <dd class="text-lg font-medium text-gray-900">{{ stats.active_dentists }}</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Metrics Row - 3 Columns -->
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <!-- Outstanding Balance -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="text-3xl">💰</div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Outstanding Balance</dt>
+                            <dd class="text-lg font-medium {% if stats.total_outstanding > 0 %}text-orange-600{% else %}text-green-600{% endif %}">
+                                ₱{{ stats.total_outstanding|floatformat:2 }}
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overdue Payments -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="text-3xl">⚠️</div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Overdue Payments</dt>
+                            <dd class="text-lg font-medium {% if stats.overdue_payments_count > 0 %}text-red-600{% else %}text-green-600{% endif %}">
+                                {{ stats.overdue_payments_count }}
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- This Month Revenue -->
+        <div class="bg-white overflow-hidden shadow rounded-lg">
+            <div class="p-5">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="text-3xl">📈</div>
+                    </div>
+                    <div class="ml-5 w-0 flex-1">
+                        <dl>
+                            <dt class="text-sm font-medium text-gray-500 truncate">This Month Revenue</dt>
+                            <dd class="text-lg font-medium text-green-600">
+                                ₱{{ stats.this_month_revenue|floatformat:2 }}
+                            </dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Alert (Only show if there are overdue payments) -->
+    {% if stats.overdue_payments_count > 0 %}
+    <div class="bg-white shadow rounded-lg border-l-4 border-red-400">
+        <div class="px-6 py-4">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <div class="text-2xl">⚠️</div>
+                </div>
+                <div class="ml-3 flex-1">
+                    <h3 class="text-sm font-medium text-red-800">Payment Attention Required</h3>
+                    <p class="mt-1 text-sm text-red-700">
+                        {{ stats.overdue_payments_count }} payment{{ stats.overdue_payments_count|pluralize }} overdue. 
+                        <a href="{% url 'appointments:payment_list' %}?overdue=yes" class="font-medium underline hover:text-red-900">
+                            Review now →
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Today's Slot Availability -->
+    {% if todays_slot_summary %}
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900">Today's Slot Availability</h3>
+        </div>
+        <div class="px-6 py-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-700">Morning (AM)</span>
+                        <span class="text-sm text-gray-600">
+                            {{ todays_slot_summary.am_available }}/{{ todays_slot_summary.am_total }} available
+                        </span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-green-600 h-2 rounded-full transition-all duration-300" 
+                             style="width: {{ todays_slot_summary.am_percentage }}%"></div>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-gray-700">Afternoon (PM)</span>
+                        <span class="text-sm text-gray-600">
+                            {{ todays_slot_summary.pm_available }}/{{ todays_slot_summary.pm_total }} available
+                        </span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                             style="width: {{ todays_slot_summary.pm_percentage }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Two Column Layout: Today's Appointments + Payment Activity -->
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <!-- Today's Appointments (2 columns on large screens) -->
+        <div class="lg:col-span-2 bg-white shadow rounded-lg overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-medium text-gray-900">Today's Appointments</h3>
+                    {% if user|has_permission:'appointments' %}
+                    <a href="{% url 'appointments:appointment_calendar' %}" 
+                       class="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-150">
+                        View Calendar
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if todays_appointments %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Period</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for appointment in todays_appointments %}
+                        <tr class="hover:bg-gray-50 transition-colors duration-150">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 h-10 w-10">
+                                        <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                            <span class="text-sm font-medium text-gray-600">
+                                                {% if appointment.patient %}
+                                                    {{ appointment.patient.first_name|first }}{{ appointment.patient.last_name|first }}
+                                                {% else %}
+                                                    {{ appointment.temp_first_name|first }}{{ appointment.temp_last_name|first }}
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900">{{ appointment.patient_name }}</div>
+                                        {% if appointment.patient_type == 'new' %}
+                                        <div class="text-sm text-gray-500">New Patient</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">{{ appointment.service.name }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">{{ appointment.period }}</div>
+                                <div class="text-sm text-gray-500">
+                                    {% if appointment.period == 'AM' %}8:00 AM - 12:00 PM{% else %}1:00 PM - 5:00 PM{% endif %}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {% if appointment.status == 'confirmed' %}bg-green-100 text-green-800
+                                    {% elif appointment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                    {% elif appointment.status == 'completed' %}bg-blue-100 text-blue-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ appointment.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                {% if user|has_permission:'appointments' %}
+                                <a href="{% url 'appointments:appointment_detail' appointment.pk %}" 
+                                   class="text-primary-600 hover:text-primary-900 transition-colors duration-150">View</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-12">
+                <div class="text-4xl mb-2">📅</div>
+                <h3 class="mt-2 text-sm font-medium text-gray-900">No appointments today</h3>
+                <p class="mt-1 text-sm text-gray-500">No appointments are scheduled for today.</p>
+                {% if user|has_permission:'appointments' %}
+                <div class="mt-6">
+                    <a href="{% url 'appointments:appointment_create' %}" 
+                       class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 transition-colors duration-150">
+                        📅 Book New Appointment
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Payment Activity Sidebar (1 column) -->
+        <div class="bg-white shadow rounded-lg overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">Payment Activity</h3>
+            </div>
+            <div class="px-6 py-4">
+                <!-- Show overdue payments if any exist, otherwise show recent transactions -->
+                {% if overdue_payments %}
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-sm font-medium text-red-700">⚠️ Overdue Payments</span>
+                        <a href="{% url 'appointments:payment_list' %}?overdue=yes" class="text-xs text-red-600 hover:text-red-800">
+                            View All
+                        </a>
+                    </div>
+                    {% for payment in overdue_payments %}
+                    <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg border-l-4 border-red-400">
+                        <div class="min-w-0 flex-1">
+                            <div class="text-sm font-medium text-gray-900 truncate">
+                                <a href="{% url 'appointments:payment_detail' payment.pk %}" 
+                                   class="hover:text-primary-600">
+                                    {{ payment.patient.full_name }}
+                                </a>
+                            </div>
+                            <div class="text-xs text-red-600">
+                                Due: {{ payment.next_due_date|date:"M d, Y" }}
+                            </div>
+                        </div>
+                        <div class="ml-3 text-sm font-medium text-red-600 whitespace-nowrap">
+                            ₱{{ payment.outstanding_balance|floatformat:0 }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% elif recent_transactions %}
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-sm font-medium text-gray-700">Recent Transactions</span>
+                        <a href="{% url 'appointments:payment_list' %}" class="text-xs text-primary-600 hover:text-primary-800">
+                            View All
+                        </a>
+                    </div>
+                    {% for transaction in recent_transactions %}
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div class="min-w-0 flex-1">
+                            <div class="text-sm font-medium text-gray-900 truncate">
+                                {{ transaction.payment.patient.full_name }}
+                            </div>
+                            <div class="text-xs text-gray-500">
+                                {{ transaction.payment_date|date:"M d, Y" }}
+                            </div>
+                        </div>
+                        <div class="ml-3 text-sm font-medium text-green-600 whitespace-nowrap">
+                            +₱{{ transaction.amount|floatformat:0 }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-6 text-gray-500">
+                    <div class="text-4xl mb-2">💳</div>
+                    <p class="text-sm">No payment activity</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Patients -->
+    {% if user|has_permission:'patients' and recent_patients %}
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-medium text-gray-900">Recent Patients</h3>
+                <a href="{% url 'patients:patient_list' %}" 
+                   class="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-150">
+                    View All
+                </a>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Added</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for patient in recent_patients %}
+                    <tr class="hover:bg-gray-50 transition-colors duration-150">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10">
+                                    <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                        <span class="text-sm font-medium text-gray-600">
+                                            {{ patient.first_name|first }}{{ patient.last_name|first }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">{{ patient.full_name }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">
+                                {% if patient.email %}<div>{{ patient.email }}</div>{% endif %}
+                                {% if patient.contact_number %}<div>{{ patient.contact_number }}</div>{% endif %}
+                                {% if not patient.email and not patient.contact_number %}
+                                <span class="text-gray-400">No contact info</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ patient.created_at|date:"M d, Y" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <a href="{% url 'patients:patient_detail' patient.pk %}" 
+                               class="text-primary-600 hover:text-primary-900 transition-colors duration-150">View</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

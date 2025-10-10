@@ -1,4 +1,4 @@
-# appointments/urls.py - FIXED for AM/PM slot system
+# appointments/urls.py - Updated for improved slot management
 from django.urls import path
 from . import views, payment_views
 
@@ -25,11 +25,12 @@ urlpatterns = [
     path('notes/<int:appointment_pk>/update/', views.update_appointment_note, name='appointment_note_update'),
     path('notes/<int:appointment_pk>/get/', views.get_appointment_notes, name='appointment_notes_get'),
     
-    # Daily Slots Management (BACKEND - NEW for AM/PM system)
+    # Daily Slots Management (BACKEND - Updated with preview/confirm)
     path('slots/', views.DailySlotsManagementView.as_view(), name='daily_slots_list'),
     path('slots/create/', views.DailySlotsCreateView.as_view(), name='daily_slots_create'),
     path('slots/<int:pk>/edit/', views.DailySlotsUpdateView.as_view(), name='daily_slots_update'),
-    path('slots/bulk-create/', views.bulk_create_daily_slots, name='bulk_create_daily_slots'),
+    path('slots/bulk-preview/', views.bulk_create_daily_slots_preview, name='bulk_create_preview'),
+    path('slots/bulk-confirm/', views.bulk_create_daily_slots_confirm, name='bulk_create_confirm'),
     
     # Payment URLs
     path('payments/', payment_views.PaymentListView.as_view(), name='payment_list'),
@@ -38,9 +39,11 @@ urlpatterns = [
     path('payments/<int:payment_pk>/add-item/', payment_views.add_payment_item, name='add_payment_item'),
     path('payment-items/<int:pk>/delete/', payment_views.delete_payment_item, name='delete_payment_item'),
     path('payments/<int:payment_pk>/add-payment/', payment_views.add_payment_transaction, name='add_payment_transaction'),
-    path('receipts/<int:transaction_pk>/pdf/', payment_views.generate_receipt_pdf, name='receipt_pdf'),
     path('payments/dashboard/', payment_views.payment_dashboard, name='payment_dashboard'),
     
+    # Patient Payment Summary
+    path('patients/<int:pk>/payment-summary/', payment_views.PatientPaymentSummaryView.as_view(), name='patient_payment_summary'),
+
     # Admin verification for price overrides
     path('admin/verify-password/', payment_views.verify_admin_password, name='verify_admin_password'),
 

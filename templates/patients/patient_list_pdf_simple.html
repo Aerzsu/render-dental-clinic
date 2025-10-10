@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Patient List Report</title>
+    <style>
+        @page {
+            size: A4 portrait;
+            margin: 2cm 1.5cm;
+        }
+        
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            color: #1f2937;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 15px;
+        }
+        
+        .clinic-name {
+            font-size: 22pt;
+            font-weight: bold;
+            color: #1e40af;
+            margin: 0 0 8px 0;
+        }
+        
+        .report-title {
+            font-size: 16pt;
+            font-weight: 600;
+            color: #374151;
+            margin: 5px 0;
+        }
+        
+        .report-meta {
+            font-size: 10pt;
+            color: #6b7280;
+            margin-top: 10px;
+        }
+        
+        .filters-applied {
+            background-color: #eff6ff;
+            padding: 10px 15px;
+            border-left: 4px solid #3b82f6;
+            margin-bottom: 20px;
+            font-size: 10pt;
+            line-height: 1.6;
+        }
+        
+        .summary-box {
+            text-align: center;
+            background-color: #f3f4f6;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .stat-number {
+            font-size: 28pt;
+            font-weight: bold;
+            color: #2563eb;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 11pt;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 10pt;
+        }
+        
+        thead {
+            background-color: #1e40af;
+            color: white;
+        }
+        
+        th {
+            padding: 12px 10px;
+            text-align: left;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 10pt;
+            letter-spacing: 0.3px;
+            border: 1px solid #1e3a8a;
+        }
+        
+        td {
+            padding: 10px;
+            border: 1px solid #e5e7eb;
+            vertical-align: top;
+        }
+        
+        tbody tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        
+        tbody tr:hover {
+            background-color: #f3f4f6;
+        }
+        
+        .patient-name {
+            font-weight: 700;
+            color: #111827;
+            font-size: 11pt;
+            margin-bottom: 3px;
+        }
+        
+        .contact-info {
+            font-size: 9pt;
+            color: #6b7280;
+            line-height: 1.4;
+        }
+        
+        .contact-item {
+            margin: 2px 0;
+        }
+        
+        .no-contact {
+            color: #d1d5db;
+            font-style: italic;
+        }
+        
+        .visit-label {
+            font-weight: 600;
+            color: #374151;
+            font-size: 9pt;
+            margin-bottom: 2px;
+        }
+        
+        .visit-date {
+            font-size: 9pt;
+            color: #6b7280;
+            margin-bottom: 4px;
+        }
+        
+        .visit-service {
+            font-size: 8pt;
+            color: #9ca3af;
+        }
+        
+        .next-appointment {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed #e5e7eb;
+        }
+        
+        .next-label {
+            font-weight: 600;
+            color: #0284c7;
+            font-size: 9pt;
+            margin-bottom: 2px;
+        }
+        
+        .financial-visits {
+            font-size: 10pt;
+            margin-bottom: 6px;
+        }
+        
+        .financial-label {
+            font-weight: 600;
+            color: #374151;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 9pt;
+            font-weight: 600;
+        }
+        
+        .badge-success {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        
+        .badge-danger {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .badge-neutral {
+            background-color: #f3f4f6;
+            color: #6b7280;
+        }
+        
+        .no-visits {
+            color: #9ca3af;
+            font-style: italic;
+            font-size: 9pt;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #9ca3af;
+            font-size: 11pt;
+        }
+        
+        .footer-note {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 2px solid #e5e7eb;
+            font-size: 8pt;
+            color: #6b7280;
+            text-align: center;
+            line-height: 1.5;
+        }
+        
+        .page-break {
+            page-break-after: always;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1 class="clinic-name">{{ clinic_name }}</h1>
+        <h2 class="report-title">Patient List Report</h2>
+        <div class="report-meta">
+            Generated on {{ generated_date|date:"F d, Y" }} at {{ generated_date|date:"h:i A" }}
+        </div>
+    </div>
+    
+    <!-- Filters Applied -->
+    {% if filters_applied != "All patients" %}
+    <div class="filters-applied">
+        <strong>Filters Applied:</strong> {{ filters_applied }}
+    </div>
+    {% endif %}
+    
+    <!-- Summary -->
+    <div class="summary-box">
+        <div class="stat-number">{{ total_count }}</div>
+        <div class="stat-label">Total Patients in Report</div>
+    </div>
+    
+    <!-- Patients Table -->
+    {% if patients %}
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 25%;">Patient Information</th>
+                <th style="width: 30%;">Visit History</th>
+                <th style="width: 20%;">Financial Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for patient in patients %}
+            <tr>
+                <!-- Patient Information -->
+                <td>
+                    <div class="patient-name">{{ patient.full_name }}</div>
+                    <div class="contact-info">
+                        {% if patient.email %}
+                            <div class="contact-item">Email: {{ patient.email }}</div>
+                        {% endif %}
+                        {% if patient.contact_number %}
+                            <div class="contact-item">Phone: {{ patient.contact_number }}</div>
+                        {% endif %}
+                        {% if not patient.email and not patient.contact_number %}
+                            <span class="no-contact">No contact information</span>
+                        {% endif %}
+                    </div>
+                </td>
+                
+                <!-- Visit History -->
+                <td>
+                    {% if patient.last_visit %}
+                        <div class="visit-label">Last Visit:</div>
+                        <div class="visit-date">{{ patient.last_visit.date|date:"F d, Y" }}</div>
+                        <div class="visit-service">{{ patient.last_visit.service_name }}</div>
+                    {% else %}
+                        <span class="no-visits">No visits yet</span>
+                    {% endif %}
+                    
+                    {% if patient.next_appointment %}
+                        <div class="next-appointment">
+                            <div class="next-label">Next Appointment:</div>
+                            <div class="visit-date">{{ patient.next_appointment.date|date:"F d, Y" }} - {{ patient.next_appointment.period }}</div>
+                        </div>
+                    {% endif %}
+                </td>
+                
+                <!-- Financial Status -->
+                <td>
+                    <div class="financial-visits">
+                        <span class="financial-label">Total Visits:</span> {{ patient.visit_count }}
+                    </div>
+                    {% if patient.outstanding_balance is not None %}
+                        {% if patient.outstanding_balance > 0 %}
+                            <span class="badge badge-danger">
+                                Balance: ₱{{ patient.outstanding_balance|floatformat:2 }}
+                            </span>
+                        {% elif patient.visit_count > 0 %}
+                            <span class="badge badge-success">
+                                Paid in Full
+                            </span>
+                        {% else %}
+                            <span class="badge badge-neutral">
+                                No billing records
+                            </span>
+                        {% endif %}
+                    {% else %}
+                        <span class="badge badge-neutral">
+                            No billing records
+                        </span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <p><strong>No patients found</strong></p>
+        <p>No patients match the selected criteria.</p>
+    </div>
+    {% endif %}
+    
+    <!-- Footer -->
+    <div class="footer-note">
+        <strong>Confidential Document</strong><br>
+        This report contains sensitive patient information and is intended for internal use only.<br>
+        All patient data must be handled in accordance with data privacy regulations and clinic policies.
+    </div>
+</body>
+</html>

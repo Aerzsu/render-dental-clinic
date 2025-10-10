@@ -98,17 +98,8 @@ class PatientForm(forms.ModelForm):
         self.fields['address'].label = 'Address'
         self.fields['date_of_birth'].label = 'Date of Birth'
     
-    def clean_email(self):
-        """Validate email uniqueness"""
-        email = self.cleaned_data.get('email')
-        if email:
-            email = email.lower().strip()
-            queryset = Patient.objects.filter(email__iexact=email)
-            if self.instance.pk:
-                queryset = queryset.exclude(pk=self.instance.pk)
-            if queryset.exists():
-                raise ValidationError('A patient with this email address already exists.')
-        return email
+    # REMOVED: clean_email method that checked for uniqueness
+    # Email duplicates are now allowed for family members sharing emails
     
     def clean_contact_number(self):
         """Clean and validate contact number using utility function"""

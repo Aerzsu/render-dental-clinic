@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+{% load user_tags %}
+
+{% block title %}Payment Summary - {{ patient.full_name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div>
+        <!-- Back button -->
+        <div class="mb-4">
+            <a href="{% url 'patients:patient_detail' patient.pk %}" 
+               class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                <svg class="-ml-1 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Back to Patient Details
+            </a>
+        </div>
+
+        <!-- Breadcrumb -->
+        <div class="flex items-center space-x-2 text-sm text-gray-500 mb-2">
+            <a href="{% url 'patients:patient_list' %}" class="hover:text-gray-700">Patient Management</a>
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+            <a href="{% url 'patients:patient_detail' patient.pk %}" class="hover:text-gray-700">{{ patient.full_name }}</a>
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+            <span>Payment Summary</span>
+        </div>
+
+        <div class="flex justify-between items-start">
+            <div class="flex items-center space-x-4">
+                <div class="h-16 w-16 rounded-full bg-primary-600 flex items-center justify-center">
+                    <span class="text-xl font-medium text-white">
+                        {{ patient.first_name|first }}{{ patient.last_name|first }}
+                    </span>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Payment Summary</h1>
+                    <p class="mt-1 text-gray-600">{{ patient.full_name }}</p>
+                    {% if patient.contact_info %}
+                        <p class="text-sm text-gray-500">{{ patient.contact_info }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert for Overdue Payments -->
+    {% if overdue_payments %}
+    <div class="bg-red-50 border-l-4 border-red-400 p-4">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-red-800">Overdue Payments</h3>
+                <p class="mt-2 text-sm text-red-700">
+                    This patient has {{ overdue_payments.count }} overdue payment{{ overdue_payments.count|pluralize }}.
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Financial Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white shadow rounded-lg p-6">
+            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Amount Due</dt>
+            <dd class="mt-2 text-2xl font-bold text-gray-900">₱{{ total_amount_due|floatformat:2 }}</dd>
+        </div>
+        
+        <div class="bg-white shadow rounded-lg p-6">
+            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Amount Paid</dt>
+            <dd class="mt-2 text-2xl font-bold text-green-600">₱{{ total_amount_paid|floatformat:2 }}</dd>
+        </div>
+        
+        <div class="bg-white shadow rounded-lg p-6">
+            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Outstanding Balance</dt>
+            <dd class="mt-2 text-2xl font-bold {% if outstanding_balance > 0 %}text-red-600{% else %}text-green-600{% endif %}">
+                ₱{{ outstanding_balance|floatformat:2 }}
+            </dd>
+        </div>
+        
+        <div class="bg-white shadow rounded-lg p-6">
+            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Payment Progress</dt>
+            <dd class="mt-2 text-2xl font-bold text-primary-600">{{ payment_progress|floatformat:1 }}%</dd>
+            <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
+                <div class="bg-primary-600 h-2 rounded-full transition-all duration-300" 
+                     style="width: {{ payment_progress }}%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Next Due Date -->
+    {% if next_due_payment %}
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-blue-800">Next Payment Due</h3>
+                <p class="mt-2 text-sm text-blue-700">
+                    {{ next_due_payment.next_due_date|date:"F d, Y" }} - 
+                    <a href="{% url 'appointments:payment_detail' next_due_payment.pk %}" class="underline hover:text-blue-900">
+                        View Payment #{{ next_due_payment.id|stringformat:"06d" }}
+                    </a>
+                </p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Payments List -->
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900">All Payments</h3>
+        </div>
+        
+        {% if all_payments %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bill ID</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Appointment</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Amount</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount Paid</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for payment in all_payments %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900">#{{ payment.id|stringformat:"06d" }}</div>
+                            {% if payment.payment_type == 'installment' %}
+                                <div class="text-xs text-gray-500">{{ payment.installment_months }} months</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-medium text-gray-900">{{ payment.appointment.service.name }}</div>
+                            {% if payment.appointment.assigned_dentist %}
+                                <div class="text-xs text-gray-500">Dr. {{ payment.appointment.assigned_dentist.get_full_name|default:payment.appointment.assigned_dentist.username }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ payment.appointment.appointment_date|date:"M d, Y" }}</div>
+                            <div class="text-xs text-gray-500">{{ payment.created_at|date:"M d, Y" }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            ₱{{ payment.total_amount|floatformat:2 }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
+                            ₱{{ payment.amount_paid|floatformat:2 }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium {% if payment.outstanding_balance > 0 %}text-red-600{% else %}text-green-600{% endif %}">
+                            ₱{{ payment.outstanding_balance|floatformat:2 }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                {% if payment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                {% elif payment.status == 'partially_paid' %}bg-blue-100 text-blue-800
+                                {% elif payment.status == 'completed' %}bg-green-100 text-green-800
+                                {% elif payment.status == 'cancelled' %}bg-red-100 text-red-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ payment.get_status_display }}
+                            </span>
+                            {% if payment.is_overdue %}
+                                <div class="text-xs text-red-600 mt-1">Overdue</div>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <a href="{% url 'appointments:payment_detail' payment.pk %}" 
+                               class="text-primary-600 hover:text-primary-900">View Details</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="px-6 py-12 text-center">
+            <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+            </svg>
+            <h4 class="text-sm font-medium text-gray-900 mb-1">No Payment Records</h4>
+            <p class="text-sm text-gray-500">This patient has no payment records yet.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Completed Appointments Without Payment -->
+    {% if completed_appointments_without_payment %}
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-medium text-gray-900">Completed Appointments Without Payment</h3>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    {{ completed_appointments_without_payment.count }} pending
+                </span>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dentist</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for appointment in completed_appointments_without_payment %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-medium text-gray-900">{{ appointment.service.name }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ appointment.appointment_date|date:"M d, Y" }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {% if appointment.assigned_dentist %}
+                                Dr. {{ appointment.assigned_dentist.get_full_name|default:appointment.assigned_dentist.username }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <a href="{% url 'appointments:payment_create' appointment_pk=appointment.pk %}" 
+                               class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700">
+                                Create Payment
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Summary Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white shadow rounded-lg p-6">
+            <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Payment Breakdown</h4>
+            <dl class="space-y-2">
+                <div class="flex justify-between">
+                    <dt class="text-sm text-gray-600">Pending:</dt>
+                    <dd class="text-sm font-medium text-yellow-600">{{ pending_payments.count }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-sm text-gray-600">Partially Paid:</dt>
+                    <dd class="text-sm font-medium text-blue-600">{{ partially_paid_payments.count }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-sm text-gray-600">Completed:</dt>
+                    <dd class="text-sm font-medium text-green-600">{{ completed_payments.count }}</dd>
+                </div>
+            </dl>
+        </div>
+
+        <div class="bg-white shadow rounded-lg p-6">
+            <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Payment History</h4>
+            <dl class="space-y-2">
+                <div class="flex justify-between">
+                    <dt class="text-sm text-gray-600">Total Payments:</dt>
+                    <dd class="text-sm font-medium text-gray-900">{{ all_payments.count }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-sm text-gray-600">Overdue:</dt>
+                    <dd class="text-sm font-medium text-red-600">{{ overdue_payments.count }}</dd>
+                </div>
+                <div class="flex justify-between">
+                    <dt class="text-sm text-gray-600">Unpaid Appointments:</dt>
+                    <dd class="text-sm font-medium text-yellow-600">{{ completed_appointments_without_payment.count }}</dd>
+                </div>
+            </dl>
+        </div>
+
+        <div class="bg-white shadow rounded-lg p-6">
+            <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Quick Actions</h4>
+            <div class="space-y-2">
+                <a href="{% url 'patients:patient_detail' patient.pk %}" 
+                   class="block w-full text-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                    View Patient Record
+                </a>
+                {% if has_outstanding %}
+                <button onclick="alert('Add bulk payment functionality')" 
+                        class="block w-full text-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 transition-colors">
+                    Record Payment
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
