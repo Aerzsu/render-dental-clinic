@@ -1,7 +1,7 @@
 # patient_portal/models.py
 """
 Patient portal authentication models
-UPDATED: Added purpose field to support both portal and booking OTP
+UPDATED: Fixed session_key length issue
 """
 from django.db import models
 from django.utils import timezone
@@ -14,7 +14,6 @@ class PatientPortalAccess(models.Model):
     """
     Temporary access codes for patient portal authentication AND booking verification
     Codes expire after 15 minutes
-    UPDATED: Added purpose and verified_patient fields
     """
     PURPOSE_CHOICES = [
         ('portal', 'Patient Portal Login'),
@@ -31,7 +30,6 @@ class PatientPortalAccess(models.Model):
     used_at = models.DateTimeField(null=True, blank=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     
-    # For booking: track which patient was selected (null until patient selects)
     verified_patient = models.ForeignKey('patients.Patient', on_delete=models.CASCADE, 
                                         null=True, blank=True, related_name='booking_verifications',
                                         help_text="Selected patient after OTP verification")
@@ -82,7 +80,6 @@ class PatientPortalAccess(models.Model):
         
         Rate limiting: max 3 requests per hour
         """
-        # Check rate limiting - max 3 requests per hour for this email
         one_hour_ago = timezone.now() - timedelta(hours=1)
         recent_codes = cls.objects.filter(
             email=email,
@@ -93,10 +90,8 @@ class PatientPortalAccess(models.Model):
         if recent_codes >= 3:
             return None, False, "Too many verification requests. Please wait an hour and try again."
         
-        # Generate unique code
         code = cls.generate_code()
         
-        # Create access code with 15-minute expiry
         access_code = cls.objects.create(
             email=email,
             code=code,
@@ -153,9 +148,10 @@ class PatientPortalSession(models.Model):
     """
     Track active patient portal sessions
     Sessions expire after 30 minutes of inactivity
+    FIXED: Increased session_key length to 64 characters
     """
     email = models.EmailField(db_index=True)
-    session_key = models.CharField(max_length=40, unique=True, db_index=True)
+    session_key = models.CharField(max_length=64, unique=True, db_index=True)  # FIXED: Was 40, now 64
     patient = models.ForeignKey('patients.Patient', on_delete=models.CASCADE, related_name='portal_sessions')
     created_at = models.DateTimeField(auto_now_add=True)
     last_activity = models.DateTimeField(auto_now=True)
@@ -221,7 +217,6 @@ class PatientPortalSession(models.Model):
                 session.terminate()
                 return None
             
-            # Refresh session on access
             session.refresh()
             return session
             
