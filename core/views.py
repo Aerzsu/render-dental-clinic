@@ -5,12 +5,14 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.views.generic import TemplateView, ListView
 from django.utils import timezone
+from django.views.generic import FormView
 from django.db.models import Q
 from django.http import JsonResponse
 from datetime import datetime
 from django.db import transaction
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.urls import reverse_lazy
 import re
 import pytz
 
@@ -21,6 +23,7 @@ from patient_portal.models import PatientPortalAccess
 from services.models import Service
 from users.models import User
 from core.email_service import EmailService
+from core.forms import SystemSettingsForm
 import logging
 
 logger = logging.getLogger(__name__)
@@ -960,9 +963,11 @@ class MaintenanceHubView(LoginRequiredMixin, TemplateView):
         }
         return context
 
-class SystemSettingsView(LoginRequiredMixin, TemplateView):
+class SystemSettingsView(LoginRequiredMixin, FormView):
     """System settings management"""
     template_name = 'core/system_settings.html'
+    form_class = SystemSettingsForm
+    success_url = reverse_lazy('core:settings')  # Redirect back to settings page
     
     def dispatch(self, request, *args, **kwargs):
         if not request.user.has_permission('maintenance'):
@@ -970,18 +975,61 @@ class SystemSettingsView(LoginRequiredMixin, TemplateView):
             return redirect('core:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
+    def form_valid(self, form):
+        try:
+            # Save settings and get changes
+            changes = form.save(user=self.request.user)
+            
+            if changes:
+                # Log the changes
+                AuditLog.log_action(
+                    user=self.request.user,
+                    action='update',
+                    model_instance=SystemSetting.objects.first() or SystemSetting(key='settings'),
+                    changes=changes,
+                    request=self.request,
+                    description=f"Updated {len(changes)} system setting(s)"
+                )
+                
+                messages.success(
+                    self.request,
+                    f'✓ Settings updated successfully. {len(changes)} setting(s) changed.'
+                )
+            else:
+                messages.info(self.request, 'No changes were made.')
+                
+        except Exception as e:
+            messages.error(
+                self.request,
+                'An error occurred while saving settings. Please try again.'
+            )
+            # Log the error
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error saving system settings: {str(e)}", exc_info=True)
+            return self.form_invalid(form)
+        
+        return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        """Handle invalid form submission"""
+        messages.error(
+            self.request,
+            'Please correct the errors in the form.'
+        )
+        return super().form_invalid(form)
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Get all system settings
-        settings = {}
-        for setting in SystemSetting.objects.all():
-            settings[setting.key] = setting.value
         
-        context['settings'] = settings
+        # Stats for the settings page
         context['stats'] = {
             'total_appointments': Appointment.objects.count(),
             'total_patients': Patient.objects.count(),
             'total_services': Service.objects.count(),
             'total_users': User.objects.count(),
         }
+        
+        context['page_title'] = 'System Settings'
+        
         return context

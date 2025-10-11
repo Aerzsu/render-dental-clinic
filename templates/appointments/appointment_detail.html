@@ -160,7 +160,7 @@
                             <dd class="mt-1 text-sm text-gray-900">
                                 {{ appointment.get_period_display }}
                                 <span class="text-gray-500">
-                                    ({% if appointment.period == 'AM' %}8:00 AM - 12:00 PM{% else %}1:00 PM - 6:00 PM{% endif %})
+                                    ({% if appointment.period == 'AM' %}{{ AM_PERIOD_DISPLAY }}{% else %}{{ PM_PERIOD_DISPLAY }}{% endif %})
                                 </span>
                             </dd>
                         </div>

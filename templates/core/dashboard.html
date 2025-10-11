@@ -181,7 +181,7 @@
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="text-sm text-gray-900">{{ appointment.period }}</div>
                             <div class="text-sm text-gray-500">
-                                {% if appointment.period == 'AM' %}8:00 AM - 12:00 PM{% else %}1:00 PM - 5:00 PM{% endif %}
+                                {% if appointment.period == 'AM' %}{{ AM_PERIOD_DISPLAY }}{% else %}{{ PM_PERIOD_DISPLAY }}{% endif %}
                             </div>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">

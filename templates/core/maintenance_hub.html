@@ -75,16 +75,20 @@
         </a>
 
         <!-- Settings -->
-        <a href="{% url 'core:system_settings' %}" class="group bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md hover:border-primary-300 transition-all duration-150 p-6">
+        <a href="{% url 'core:settings' %}" 
+        class="block bg-white rounded-lg shadow hover:shadow-md transition-shadow p-6">
             <div class="flex items-center mb-4">
-                <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center group-hover:bg-gray-200 transition-colors duration-150">
-                    <span class="text-2xl">⚙️</span>
+                <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-2xl">
+                    ⚙️
                 </div>
                 <div class="ml-4">
-                    <h3 class="text-lg font-semibold text-gray-900 group-hover:text-primary-700">Settings</h3>
+                    <h3 class="text-lg font-semibold text-gray-900">System Settings</h3>
+                    <p class="text-sm text-gray-500">Configure clinic information</p>
                 </div>
             </div>
-            <p class="text-gray-600 text-sm">Configure system-wide settings and preferences</p>
+            <p class="text-sm text-gray-600">
+                Manage clinic name, contact info, business hours, and other global settings
+            </p>
         </a>
     </div>
 

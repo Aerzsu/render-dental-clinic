@@ -170,10 +170,6 @@
                             </button>
                         </div>
                         <p x-show="errors.otp_email" class="mt-1 text-sm text-red-600" x-text="errors.otp_email"></p>
-                        <p x-show="otp.remainingAttempts !== null && otp.remainingAttempts < 3" 
-                           class="mt-1 text-sm text-yellow-600">
-                            <span x-text="otp.remainingAttempts"></span> verification request(s) remaining this hour
-                        </p>
                     </div>
 
                     <!-- OTP Code Input (shown after code is sent) -->

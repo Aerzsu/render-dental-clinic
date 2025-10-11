@@ -20,7 +20,7 @@ urlpatterns = [
     path('audit-logs/', views.AuditLogListView.as_view(), name='audit_logs'),
     
     # System settings
-    path('settings/', views.SystemSettingsView.as_view(), name='system_settings'),
+    path('maintenance/settings/', views.SystemSettingsView.as_view(), name='settings'),
 
     # Booking OTP endpoints
     path('api/booking/send-otp/', views.send_booking_otp, name='send_booking_otp'),

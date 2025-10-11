@@ -670,7 +670,7 @@ class Payment(models.Model):
                 payment=self,
                 amount=amount,
                 payment_date=payment_date or date.today(),
-                notes=f"Cash payment - ₱{amount}"
+                notes=f"Cash payment - P{amount}"
             )
             
             # Update total paid amount
@@ -755,6 +755,16 @@ class PaymentTransaction(models.Model):
     
     # Receipt tracking
     receipt_number = models.CharField(max_length=50, blank=True, unique=True)
+    
+    # NEW FIELD - Track who processed this payment
+    created_by = models.ForeignKey(
+        'users.User', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='processed_payments',
+        help_text="Staff member who processed this payment"
+    )
     
     class Meta:
         ordering = ['-payment_datetime']

@@ -33,7 +33,7 @@
                                         <span class="mr-1">📅</span>
                                         {{ appointment.appointment_date|date:"M d, Y" }} - {{ appointment.get_period_display }}
                                         <span class="text-xs text-gray-400 ml-1">
-                                            ({% if appointment.period == 'AM' %}8:00 AM - 12:00 PM{% else %}1:00 PM - 6:00 PM{% endif %})
+                                            ({% if appointment.period == 'AM' %}{{ AM_PERIOD_DISPLAY }}{% else %}{{ PM_PERIOD_DISPLAY }}{% endif %})
                                         </span>
                                     </div>
                                     <div class="flex items-center">

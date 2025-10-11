@@ -16,10 +16,14 @@ python manage.py collectstatic --no-input
 # Run migrations
 python manage.py migrate
 
+# Initialize system settings (NEW - add this)
+python manage.py initialize_settings
+
 # Create default roles if they don't exist
 python manage.py shell << EOF
 from users.models import Role
 from django.db import IntegrityError
+
 roles = ['Admin', 'Dentist', 'Staff']
 for role_name in roles:
     try:

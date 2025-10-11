@@ -1,4 +1,4 @@
-# appointments/payment_views.py - Updated with enhanced payment creation
+# appointments/payment_views.py - UPDATED with receipt functionality and proper messages
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
@@ -8,15 +8,16 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.db.models import Q, Sum, Case, When, DecimalField, F
 from django.http import JsonResponse, HttpResponse
 from django.db import transaction, models
+from django.template.loader import render_to_string
 from decimal import Decimal
 from datetime import date, timedelta, datetime
 import json
 
 # PDF generation imports
+from xhtml2pdf import pisa
 from io import BytesIO
 
 from .models import Appointment, Payment, PaymentItem, PaymentTransaction
-from appointments.models import Appointment, Payment, PaymentTransaction
 from patients.models import Patient
 from .forms import PaymentForm, AdminOverrideForm
 from services.models import Service, Discount
@@ -78,15 +79,9 @@ class PaymentListView(LoginRequiredMixin, ListView):
         # Outstanding balance filter
         balance_filter = self.request.GET.get('balance')
         if balance_filter == 'has_balance':
-            # Show only payments with outstanding balance
-            queryset = queryset.extra(
-                where=["total_amount > amount_paid"]
-            )
+            queryset = queryset.extra(where=["total_amount > amount_paid"])
         elif balance_filter == 'no_balance':
-            # Show only fully paid
-            queryset = queryset.extra(
-                where=["total_amount <= amount_paid"]
-            )
+            queryset = queryset.extra(where=["total_amount <= amount_paid"])
         
         # Overdue filter
         overdue = self.request.GET.get('overdue')
@@ -143,7 +138,7 @@ class PaymentDetailView(LoginRequiredMixin, DetailView):
         
         # Get all payment items and transactions
         context['payment_items'] = payment.items.all().select_related('service', 'discount')
-        context['transactions'] = payment.transactions.all().order_by('-payment_datetime')
+        context['transactions'] = payment.transactions.all().select_related('created_by').order_by('-payment_datetime')
         
         # Calculate totals
         context['items_total'] = sum(item.total for item in context['payment_items'])
@@ -167,6 +162,7 @@ class PaymentDetailView(LoginRequiredMixin, DetailView):
         
         return context
 
+
 class PatientPaymentSummaryView(LoginRequiredMixin, DetailView):
     """Summary view of all payments for a specific patient"""
     model = Patient
@@ -183,17 +179,13 @@ class PatientPaymentSummaryView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         patient = self.object
         
-        from decimal import Decimal
-        from django.db.models import Sum, Q
-        
-        # Get all payments for this patient, ordered by most recent first, then by status priority
+        # Get all payments for this patient
         all_payments = Payment.objects.filter(
             patient=patient
         ).select_related(
             'appointment__service',
             'appointment__assigned_dentist'
         ).annotate(
-            # Add status priority for ordering (pending/partially_paid first)
             status_priority=models.Case(
                 models.When(status='pending', then=models.Value(1)),
                 models.When(status='partially_paid', then=models.Value(2)),
@@ -263,6 +255,7 @@ class PatientPaymentSummaryView(LoginRequiredMixin, DetailView):
         
         return context
 
+
 class PaymentCreateView(LoginRequiredMixin, CreateView):
     """Enhanced payment creation with dynamic service items"""
     model = Payment
@@ -309,8 +302,8 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
             discounts_data.append({
                 'id': discount.id,
                 'name': discount.name,
-                'is_percentage': discount.is_percentage,  # Boolean field
-                'value': float(discount.amount),  # Using 'amount' field from model
+                'is_percentage': discount.is_percentage,
+                'value': float(discount.amount),
             })
         
         context['services_json'] = json.dumps(services_data)
@@ -332,7 +325,6 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
             requires_override = any(item.get('requires_admin_override', False) for item in validated_items)
             
             if requires_override and not admin_override_confirmed:
-                # This should not happen if frontend validation works properly
                 messages.error(self.request, 'Admin override required for price violations.')
                 return self.form_invalid(form)
             
@@ -359,7 +351,6 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
                 discount_application = form.cleaned_data.get('discount_application')
                 if discount_application == 'total' and form.cleaned_data.get('total_discount'):
                     total_discount = form.cleaned_data['total_discount']
-                    # FIX: Use is_percentage instead of discount_type, and amount instead of value
                     if total_discount.is_percentage:
                         discount_amount = total_amount * (total_discount.amount / 100)
                     else:
@@ -368,9 +359,9 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
                     if discount_amount > 0:
                         PaymentItem.objects.create(
                             payment=payment,
-                            service=Service.objects.filter(is_archived=False).first(),  # Use any service as placeholder
+                            service=Service.objects.filter(is_archived=False).first(),
                             quantity=1,
-                            unit_price=-discount_amount,  # Negative amount for discount
+                            unit_price=-discount_amount,
                             notes=f'Total discount: {total_discount.name}'
                         )
                         total_amount -= discount_amount
@@ -379,7 +370,7 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
                 payment.total_amount = max(total_amount, Decimal('0'))
                 payment.save()
                 
-                messages.success(self.request, f'Payment record created for {self.appointment.patient.full_name}')
+                messages.success(self.request, f'Payment record created successfully for {self.appointment.patient.full_name}.')
                 
             return response
                 
@@ -411,7 +402,7 @@ def verify_admin_password(request):
         if not request.user.check_password(password):
             return JsonResponse({'valid': False, 'error': 'Invalid password'})
         
-        # Check admin role (adjust based on your user model)
+        # Check admin role
         is_admin = (
             getattr(request.user, 'is_superuser', False) or
             (hasattr(request.user, 'role') and request.user.role and 
@@ -474,6 +465,9 @@ def add_payment_item(request, payment_pk):
                 payment.save()
                 payment.update_status()
             
+            # Add success message
+            messages.success(request, f'Service item "{service.name}" added successfully.')
+            
             return JsonResponse({
                 'success': True,
                 'item': {
@@ -497,12 +491,14 @@ def add_payment_item(request, payment_pk):
 
 @login_required
 def delete_payment_item(request, pk):
+    """Delete payment item"""
     if not hasattr(request.user, 'has_permission') or not request.user.has_permission('billing'):
         return JsonResponse({'error': 'Permission denied'}, status=403)
     
     if request.method == 'POST':
         item = get_object_or_404(PaymentItem, pk=pk)
         payment = item.payment
+        service_name = item.service.name
         
         with transaction.atomic():
             item.delete()
@@ -510,6 +506,9 @@ def delete_payment_item(request, pk):
             payment.total_amount = payment.calculate_total_from_items()
             payment.save()
             payment.update_status()
+        
+        # Add success message
+        messages.success(request, f'Service item "{service_name}" removed successfully.')
         
         return JsonResponse({'success': True})
     
@@ -535,7 +534,7 @@ def add_payment_transaction(request, payment_pk):
                 return JsonResponse({'error': 'Payment amount must be greater than 0'}, status=400)
             
             if amount > payment.outstanding_balance:
-                return JsonResponse({'error': 'Payment cannot exceed outstanding balance'}, status=400)
+                return JsonResponse({'error': 'Payment amount cannot exceed outstanding balance'}, status=400)
             
             with transaction.atomic():
                 # Handle installment setup
@@ -543,18 +542,38 @@ def add_payment_transaction(request, payment_pk):
                     installment_months = int(data.get('installment_months', 1))
                     payment.setup_installment(installment_months)
                 
-                # Add payment
-                payment.add_payment(amount, payment_date)
+                # Create payment transaction with created_by field
+                transaction_record = PaymentTransaction.objects.create(
+                    payment=payment,
+                    amount=amount,
+                    payment_date=payment_date,
+                    notes=data.get('notes', f'Cash payment - P{amount}'),
+                    created_by=request.user  # Track who processed this payment
+                )
                 
-                # Get the latest transaction
-                latest_transaction = payment.transactions.first()
+                # Update payment amounts
+                payment.amount_paid += amount
+                
+                # Update next due date for installments
+                if payment.payment_type == 'installment' and not payment.is_fully_paid:
+                    if payment.next_due_date and payment.next_due_date <= date.today():
+                        payment.next_due_date = payment.next_due_date + timedelta(days=30)
+                
+                payment.save()
+                payment.update_status()
+            
+            # Add success message
+            messages.success(
+                request, 
+                f'Payment of ₱{amount:,.2f} recorded successfully. Receipt: {transaction_record.receipt_number}'
+            )
             
             return JsonResponse({
                 'success': True,
                 'payment_status': payment.status,
                 'amount_paid': float(payment.amount_paid),
                 'outstanding_balance': float(payment.outstanding_balance),
-                'receipt_number': latest_transaction.receipt_number if latest_transaction else None,
+                'receipt_number': transaction_record.receipt_number,
                 'next_due_date': payment.next_due_date.strftime('%Y-%m-%d') if payment.next_due_date else None
             })
             
@@ -564,8 +583,7 @@ def add_payment_transaction(request, payment_pk):
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
 
-
-@login_required 
+@login_required
 def payment_dashboard(request):
     """Payment dashboard with key metrics"""
     if not hasattr(request.user, 'has_permission') or not request.user.has_permission('billing'):
@@ -577,7 +595,6 @@ def payment_dashboard(request):
     
     # Key metrics
     metrics = {
-        # Calculate outstanding balance using F expressions
         'total_outstanding': Payment.objects.filter(
             status__in=['pending', 'partially_paid']
         ).aggregate(
@@ -610,7 +627,7 @@ def payment_dashboard(request):
     
     # Recent transactions
     recent_transactions = PaymentTransaction.objects.select_related(
-        'payment__patient'
+        'payment__patient', 'created_by'
     ).order_by('-payment_datetime')[:10]
     
     # Overdue payments
@@ -626,3 +643,88 @@ def payment_dashboard(request):
     }
     
     return render(request, 'payment/payment_dashboard.html', context)
+
+
+@login_required
+def receipt_pdf(request, transaction_pk):
+    """Generate PDF receipt for a payment transaction"""
+    if not hasattr(request.user, 'has_permission') or not request.user.has_permission('billing'):
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('core:dashboard')
+    
+    transaction_obj = get_object_or_404(
+        PaymentTransaction.objects.select_related(
+            'payment__patient',
+            'payment__appointment__service',
+            'payment__appointment__assigned_dentist',
+            'created_by'
+        ),
+        pk=transaction_pk
+    )
+    
+    payment = transaction_obj.payment
+    
+    # Get all payment items
+    payment_items = payment.items.all().select_related('service', 'discount')
+    
+    # Calculate payment summary
+    subtotal = sum(item.subtotal for item in payment_items)
+    total_discount = sum(item.discount_amount for item in payment_items)
+    
+    # Get all previous transactions (excluding current one, ordered by date)
+    previous_transactions = payment.transactions.filter(
+        payment_datetime__lt=transaction_obj.payment_datetime
+    ).order_by('payment_datetime')
+    
+    # Calculate previous payments total
+    previous_payments_total = sum(t.amount for t in previous_transactions)
+    
+    # Get clinic settings from SystemSetting model
+    from core.models import SystemSetting
+    
+    clinic_name = SystemSetting.get_setting('clinic_name', 'KingJoy Dental Clinic')
+    clinic_address = SystemSetting.get_setting('clinic_address', '54 Obanic St.\nQuezon City, Metro Manila')
+    clinic_phone = SystemSetting.get_setting('clinic_phone', '+63 956 631 6581')
+    clinic_email = SystemSetting.get_setting('clinic_email', 'papatmyfrend@gmail.com')
+    
+    context = {
+        'transaction': transaction_obj,
+        'payment': payment,
+        'patient': payment.patient,
+        'appointment': payment.appointment,
+        'payment_items': payment_items,
+        'subtotal': subtotal,
+        'total_discount': total_discount,
+        'previous_payments_total': previous_payments_total,
+        'previous_transactions': previous_transactions,
+        'clinic_name': clinic_name,
+        'clinic_address': clinic_address,
+        'clinic_phone': clinic_phone,
+        'clinic_email': clinic_email,
+    }
+    
+    try:
+        # Render HTML template
+        html_string = render_to_string('payment/receipt_pdf.html', context)
+        
+        # Create PDF
+        response = HttpResponse(content_type='application/pdf')
+        filename = f'Receipt_{transaction_obj.receipt_number}.pdf'
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
+        
+        # Generate PDF
+        pisa_status = pisa.CreatePDF(
+            html_string,
+            dest=response,
+        )
+        
+        # Check for errors
+        if pisa_status.err:
+            messages.error(request, 'Error generating PDF receipt. Please try again.')
+            return redirect('appointments:payment_detail', pk=payment.pk)
+        
+        return response
+        
+    except Exception as e:
+        messages.error(request, f'Error generating receipt: {str(e)}')
+        return redirect('appointments:payment_detail', pk=payment.pk)

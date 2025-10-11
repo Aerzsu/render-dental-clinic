@@ -1,4 +1,4 @@
-# appointments/urls.py - Updated for improved slot management
+# appointments/urls.py - Updated with receipt PDF URL
 from django.urls import path
 from . import views, payment_views
 
@@ -46,6 +46,9 @@ urlpatterns = [
 
     # Admin verification for price overrides
     path('admin/verify-password/', payment_views.verify_admin_password, name='verify_admin_password'),
+    
+    # Receipt PDF Generation
+    path('receipts/<int:transaction_pk>/pdf/', payment_views.receipt_pdf, name='receipt_pdf'),
 
     # API endpoints for AM/PM slot system (PUBLIC + BACKEND)
     path('api/slot-availability/', views.get_slot_availability_api, name='slot_availability_api'),
