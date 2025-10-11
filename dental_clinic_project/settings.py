@@ -171,6 +171,9 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@kingjoydental.site')
 DEFAULT_FROM_NAME = config('DEFAULT_FROM_NAME', default='KingJoy Dental Clinic')
 
+# Brevo API (for sending emails without SMTP issues)
+BREVO_API_KEY = config('BREVO_API_KEY', default='')
+
 # Email settings
 EMAIL_TIMEOUT = 10
 EMAIL_SUBJECT_PREFIX = '[KingJoy Dental] '
