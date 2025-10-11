@@ -7,6 +7,7 @@ app_name = 'patient_portal'
 urlpatterns = [
     path('', views.PatientPortalLoginView.as_view(), name='login'),
     path('verify/', views.PatientPortalVerifyView.as_view(), name='verify_code'),
+    path('select-patient/', views.PatientPortalSelectPatientView.as_view(), name='select_patient'),
     path('dashboard/', views.PatientPortalDashboardView.as_view(), name='dashboard'),
     path('appointments/', views.PatientPortalAppointmentsView.as_view(), name='appointments'),
     path('billing/', views.PatientPortalBillingView.as_view(), name='billing'),

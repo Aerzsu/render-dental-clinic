@@ -1,0 +1,91 @@
+{% extends 'base_public.html' %}
+
+{% block title %}Select Your Record{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12 px-4">
+    <div class="max-w-2xl mx-auto">
+        <div class="bg-white rounded-lg shadow-md p-8">
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-900">Select Your Record</h1>
+                <p class="text-gray-600 mt-2">Multiple patient records found for {{ email }}</p>
+            </div>
+
+            {% if messages %}
+            <div class="mb-6">
+                {% for message in messages %}
+                <div class="{% if message.tags == 'error' %}bg-red-50 border-l-4 border-red-500 text-red-700{% elif message.tags == 'success' %}bg-green-50 border-l-4 border-green-500 text-green-700{% else %}bg-blue-50 border-l-4 border-blue-500 text-blue-700{% endif %} p-4 rounded">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                
+                <div class="space-y-3">
+                    {% for patient in patients %}
+                    <label class="block cursor-pointer">
+                        <div class="border-2 border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:bg-blue-50 transition duration-200">
+                            <div class="flex items-center">
+                                <input 
+                                    type="radio" 
+                                    name="patient_id" 
+                                    value="{{ patient.id }}" 
+                                    required
+                                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                                >
+                                <div class="ml-4 flex-1">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-lg font-semibold text-gray-900">
+                                            {{ patient.full_name }}
+                                        </span>
+                                        {% if patient.date_of_birth %}
+                                        <span class="text-sm text-gray-500">
+                                            Born: {{ patient.date_of_birth|date:"M d, Y" }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="mt-2 space-y-1 text-sm text-gray-600">
+                                        {% if patient.contact_number %}
+                                        <div>📞 {{ patient.contact_number }}</div>
+                                        {% endif %}
+                                        
+                                        {% if patient.last_appointment_date %}
+                                        <div>📅 Last appointment: {{ patient.last_appointment_date|date:"M d, Y" }}</div>
+                                        {% else %}
+                                        <div class="text-gray-400">No appointments yet</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </label>
+                    {% endfor %}
+                </div>
+
+                <button 
+                    type="submit"
+                    class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-200 font-medium mt-6"
+                >
+                    Continue to Portal
+                </button>
+            </form>
+
+            <div class="mt-6 text-center">
+                <p class="text-sm text-gray-600">Not you? 
+                    <a href="{% url 'patient_portal:logout' %}" class="text-blue-600 hover:underline">Log out</a>
+                </p>
+            </div>
+        </div>
+
+        <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p class="text-sm text-blue-800">
+                <strong>ℹ️ Multiple Records Found:</strong> Please select the patient record you want to access. If you're unsure, check the last appointment date or contact the clinic for assistance.
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

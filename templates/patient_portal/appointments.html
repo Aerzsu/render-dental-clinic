@@ -1,6 +1,6 @@
 {% extends 'base_public.html' %}
 
-{% block title %}Patient Portal - Dashboard{% endblock %}
+{% block title %}Patient Portal - Appointments{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
@@ -20,10 +20,10 @@
     <div class="max-w-7xl mx-auto px-4 py-6">
         <!-- Navigation -->
         <div class="mb-6 flex space-x-4 border-b border-gray-200">
-            <a href="{% url 'patient_portal:dashboard' %}" class="px-4 py-2 border-b-2 border-blue-600 text-blue-600 font-medium">
+            <a href="{% url 'patient_portal:dashboard' %}" class="px-4 py-2 text-gray-600 hover:text-gray-900">
                 Dashboard
             </a>
-            <a href="{% url 'patient_portal:appointments' %}" class="px-4 py-2 text-gray-600 hover:text-gray-900">
+            <a href="{% url 'patient_portal:appointments' %}" class="px-4 py-2 border-b-2 border-blue-600 text-blue-600 font-medium">
                 All Appointments
             </a>
             <a href="{% url 'patient_portal:billing' %}" class="px-4 py-2 text-gray-600 hover:text-gray-900">
@@ -41,38 +41,37 @@
         </div>
         {% endif %}
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <!-- Billing Summary Card -->
-            <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="text-gray-500 text-sm font-medium mb-2">Outstanding Balance</h3>
-                <p class="text-3xl font-bold {% if billing_summary.outstanding > 0 %}text-red-600{% else %}text-green-600{% endif %}">
-                    ₱{{ billing_summary.outstanding|floatformat:2 }}
-                </p>
-            </div>
-
-            <!-- Pending Appointments Card -->
-            <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="text-gray-500 text-sm font-medium mb-2">Pending Requests</h3>
-                <p class="text-3xl font-bold text-yellow-600">{{ pending_count }}</p>
-            </div>
-
-            <!-- Total Paid Card -->
-            <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="text-gray-500 text-sm font-medium mb-2">Total Paid</h3>
-                <p class="text-3xl font-bold text-gray-900">₱{{ billing_summary.total_paid|floatformat:2 }}</p>
-            </div>
-        </div>
-
-        <!-- Upcoming Appointments -->
-        <div class="bg-white rounded-lg shadow mb-6">
+        <!-- All Appointments -->
+        <div class="bg-white rounded-lg shadow">
             <div class="px-6 py-4 border-b border-gray-200">
-                <h2 class="text-xl font-bold text-gray-900">Upcoming Appointments</h2>
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold text-gray-900">All Appointments</h2>
+                    
+                    <!-- Filter by Status -->
+                    <form method="get" class="flex items-center space-x-2">
+                        <label for="status" class="text-sm text-gray-600">Filter:</label>
+                        <select 
+                            name="status" 
+                            id="status" 
+                            onchange="this.form.submit()"
+                            class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        >
+                            <option value="">All Statuses</option>
+                            {% for status_code, status_label in status_choices %}
+                            <option value="{{ status_code }}" {% if status_filter == status_code %}selected{% endif %}>
+                                {{ status_label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                </div>
             </div>
+
             <div class="p-6">
-                {% if upcoming_appointments %}
+                {% if appointments %}
                 <div class="space-y-4">
-                    {% for appointment in upcoming_appointments %}
-                    <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition">
+                    {% for appointment in appointments %}
+                    <div class="border border-gray-200 rounded-lg p-4 {% if appointment.appointment_date >= today and appointment.status in 'pending,confirmed' %}hover:bg-blue-50{% else %}hover:bg-gray-50{% endif %} transition">
                         <div class="flex justify-between items-start">
                             <div class="flex-1">
                                 <div class="flex items-center space-x-2 mb-2">
@@ -82,69 +81,73 @@
                                     <span class="px-2 py-1 text-xs rounded {% if appointment.period == 'AM' %}bg-blue-100 text-blue-800{% else %}bg-purple-100 text-purple-800{% endif %}">
                                         {{ appointment.get_period_display }}
                                     </span>
-                                    <span class="px-2 py-1 text-xs rounded {% if appointment.status == 'confirmed' %}bg-green-100 text-green-800{% elif appointment.status == 'pending' %}bg-yellow-100 text-yellow-800{% endif %}">
+                                    <span class="px-2 py-1 text-xs rounded 
+                                        {% if appointment.status == 'confirmed' %}bg-green-100 text-green-800
+                                        {% elif appointment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                        {% elif appointment.status == 'completed' %}bg-blue-100 text-blue-800
+                                        {% elif appointment.status == 'cancelled' %}bg-red-100 text-red-800
+                                        {% elif appointment.status == 'rejected' %}bg-gray-100 text-gray-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
                                         {{ appointment.get_status_display }}
                                     </span>
+                                    
+                                    {% if appointment.appointment_date >= today and appointment.status in 'pending,confirmed' %}
+                                    <span class="text-xs text-green-600 font-medium">Upcoming</span>
+                                    {% elif appointment.appointment_date < today %}
+                                    <span class="text-xs text-gray-500">Past</span>
+                                    {% endif %}
                                 </div>
-                                <p class="text-gray-700">{{ appointment.service.name }}</p>
+                                
+                                <p class="text-gray-700 font-medium">{{ appointment.service.name }}</p>
+                                
                                 {% if appointment.assigned_dentist %}
-                                <p class="text-sm text-gray-500">Dentist: Dr. {{ appointment.assigned_dentist.get_full_name }}</p>
+                                <p class="text-sm text-gray-500 mt-1">
+                                    👤 Dentist: Dr. {{ appointment.assigned_dentist.get_full_name }}
+                                </p>
+                                {% else %}
+                                <p class="text-sm text-gray-400 mt-1">👤 Dentist: To be assigned</p>
+                                {% endif %}
+                                
+                                {% if appointment.notes %}
+                                <p class="text-sm text-gray-600 mt-2">
+                                    📝 {{ appointment.notes|truncatewords:20 }}
+                                </p>
                                 {% endif %}
                             </div>
-                            {% if appointment.can_be_cancelled and appointment.status in 'pending,confirmed' %}
-                            <form method="post" action="{% url 'patient_portal:cancel_appointment' appointment.id %}" onsubmit="return confirm('Are you sure you want to cancel this appointment?');">
-                                {% csrf_token %}
-                                <button type="submit" class="text-red-600 hover:text-red-700 text-sm">
-                                    Cancel
-                                </button>
-                            </form>
-                            {% endif %}
+                            
+                            <div class="ml-4">
+                                {% if appointment.can_be_cancelled and appointment.status in 'pending,confirmed' %}
+                                <form method="post" action="{% url 'patient_portal:cancel_appointment' appointment.id %}" onsubmit="return confirm('Are you sure you want to cancel this appointment?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="px-3 py-2 text-sm text-red-600 hover:bg-red-50 border border-red-300 rounded-lg transition">
+                                        Cancel
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                     {% endfor %}
                 </div>
                 {% else %}
-                <p class="text-gray-500 text-center py-8">No upcoming appointments</p>
+                <div class="text-center py-12">
+                    <p class="text-gray-500 text-lg">No appointments found</p>
+                    {% if status_filter %}
+                    <a href="{% url 'patient_portal:appointments' %}" class="text-blue-600 hover:underline text-sm mt-2 inline-block">
+                        Clear filter
+                    </a>
+                    {% endif %}
+                </div>
                 {% endif %}
             </div>
         </div>
 
-        <!-- Recent Appointments -->
-        <div class="bg-white rounded-lg shadow">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h2 class="text-xl font-bold text-gray-900">Recent Appointments</h2>
-            </div>
-            <div class="p-6">
-                {% if recent_appointments %}
-                <div class="space-y-4">
-                    {% for appointment in recent_appointments %}
-                    <div class="border border-gray-200 rounded-lg p-4">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <div class="flex items-center space-x-2 mb-2">
-                                    <span class="text-lg font-semibold text-gray-900">
-                                        {{ appointment.appointment_date|date:"F d, Y" }}
-                                    </span>
-                                    <span class="px-2 py-1 text-xs rounded {% if appointment.period == 'AM' %}bg-blue-100 text-blue-800{% else %}bg-purple-100 text-purple-800{% endif %}">
-                                        {{ appointment.get_period_display }}
-                                    </span>
-                                </div>
-                                <p class="text-gray-700">{{ appointment.service.name }}</p>
-                                {% if appointment.assigned_dentist %}
-                                <p class="text-sm text-gray-500">Dentist: Dr. {{ appointment.assigned_dentist.get_full_name }}</p>
-                                {% endif %}
-                            </div>
-                            <span class="px-2 py-1 text-xs rounded {% if appointment.status == 'completed' %}bg-green-100 text-green-800{% elif appointment.status == 'cancelled' %}bg-red-100 text-red-800{% else %}bg-gray-100 text-gray-800{% endif %}">
-                                {{ appointment.get_status_display }}
-                            </span>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <p class="text-gray-500 text-center py-8">No recent appointments</p>
-                {% endif %}
-            </div>
+        <!-- Info Box -->
+        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p class="text-sm text-blue-800">
+                <strong>ℹ️ Note:</strong> You can cancel appointments up to 24 hours before the scheduled date. 
+                For any questions, please contact the clinic directly.
+            </p>
         </div>
     </div>
 </div>
