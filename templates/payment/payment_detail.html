@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load user_tags %}
+{% load payment_filters %}
 
 {% block title %}Payment Details - {{ payment.patient.full_name }}{% endblock %}
 
@@ -58,7 +59,7 @@
             <div class="ml-3">
                 <h3 class="text-sm font-medium text-red-800">Payment Overdue</h3>
                 <p class="mt-2 text-sm text-red-700">
-                    This payment was due on {{ payment.next_due_date|date:"F d, Y" }}. Outstanding balance: ₱{{ payment.outstanding_balance|floatformat:2 }}
+                    This payment was due on {{ payment.next_due_date|date:"F d, Y" }}. Outstanding balance: {{ payment.outstanding_balance|format_currency }}
                 </p>
             </div>
         </div>
@@ -102,24 +103,23 @@
                                     {% if payment.status == 'pending' %}bg-yellow-100 text-yellow-800
                                     {% elif payment.status == 'partially_paid' %}bg-blue-100 text-blue-800
                                     {% elif payment.status == 'completed' %}bg-green-100 text-green-800
-                                    {% elif payment.status == 'cancelled' %}bg-red-100 text-red-800
                                     {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                    {{ payment.get_status_display }}
+                                    {{ payment.status|payment_status_display }}
                                 </span>
                             </dd>
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-500">Total Amount</dt>
-                            <dd class="mt-1 text-lg font-semibold text-gray-900">₱{{ payment.total_amount|floatformat:2 }}</dd>
+                            <dd class="mt-1 text-lg font-semibold text-gray-900">{{ payment.total_amount|format_currency }}</dd>
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-500">Amount Paid</dt>
-                            <dd class="mt-1 text-lg font-semibold text-green-600">₱{{ payment.amount_paid|floatformat:2 }}</dd>
+                            <dd class="mt-1 text-lg font-semibold text-green-600">{{ payment.amount_paid|format_currency }}</dd>
                         </div>
                         <div>
                             <dt class="text-sm font-medium text-gray-500">Outstanding Balance</dt>
-                            <dd class="mt-1 text-lg font-semibold {% if payment.outstanding_balance == 0 %}text-green-600{% elif payment.is_overdue %}text-red-600{% else %}text-yellow-600{% endif %}">
-                                ₱{{ payment.outstanding_balance|floatformat:2 }}
+                            <dd class="mt-1 text-lg font-semibold {% if payment.outstanding_balance == 0 %}text-gray-500{% elif payment.is_overdue %}text-red-600{% else %}text-yellow-600{% endif %}">
+                                {{ payment.outstanding_balance|display_balance }}
                             </dd>
                         </div>
                         <div>
@@ -169,6 +169,29 @@
                         <tbody class="bg-white divide-y divide-gray-200">
                             {% for item in payment_items %}
                             <tr>
+                                <td class="px-6 py-4 text-sm font-medium text-gray-900">
+                                    {{ item.service.name }}
+                                    {% if item.notes %}
+                                        <div class="text-xs text-gray-500">{{ item.notes }}</div>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ item.quantity }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ item.unit_price|format_currency }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {% if item.discount %}
+                                        <span class="text-green-600">-{{ item.discount_amount|format_currency }}</span>
+                                        <div class="text-xs text-gray-500">{{ item.discount.name }}</div>
+                                    {% else %}
+                                        <span class="text-gray-400">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {{ item.total|format_currency }}
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <button onclick="removePaymentItem({{ item.id }})" 
                                             class="text-red-600 hover:text-red-900 transition-colors duration-150">Remove</button>
@@ -188,7 +211,7 @@
                                     Subtotal:
                                 </td>
                                 <td class="px-6 py-3 text-sm font-medium text-gray-900">
-                                    ₱{{ payment_summary.subtotal|floatformat:2 }}
+                                    {{ payment_summary.subtotal|format_currency }}
                                 </td>
                                 <td></td>
                             </tr>
@@ -197,7 +220,7 @@
                                     Total Discount:
                                 </td>
                                 <td class="px-6 py-3 text-sm font-medium text-green-600">
-                                    -₱{{ payment_summary.total_discount|floatformat:2 }}
+                                    -{{ payment_summary.total_discount|format_currency }}
                                 </td>
                                 <td></td>
                             </tr>
@@ -206,7 +229,7 @@
                                     Total Amount:
                                 </td>
                                 <td class="px-6 py-3 text-sm font-bold text-gray-900">
-                                    ₱{{ payment_summary.total_amount|floatformat:2 }}
+                                    {{ payment_summary.total_amount|format_currency }}
                                 </td>
                                 <td></td>
                             </tr>
@@ -216,7 +239,6 @@
             </div>
 
             <!-- Payment History -->
-            <!-- Payment History section - Fixed -->
             <div class="bg-white shadow rounded-lg">
                 <div class="px-6 py-4 border-b border-gray-200">
                     <h3 class="text-lg font-medium text-gray-900">Payment History</h3>
@@ -244,7 +266,7 @@
                                         <span class="text-xs text-gray-500">{{ transaction.payment_datetime|time:"g:i A" }}</span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                                        ₱{{ transaction.amount|floatformat:2 }}
+                                        {{ transaction.amount|format_currency }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                         {% if transaction.created_by %}
@@ -369,7 +391,7 @@
                         {% endif %}
                         {% if payment.payment_type == 'installment' %}
                             <div class="mt-2 text-sm text-gray-600">
-                                Suggested: ₱{{ payment.monthly_amount|floatformat:2 }}
+                                Suggested: {{ payment.monthly_amount|format_currency }}
                             </div>
                         {% endif %}
                     </div>
@@ -383,7 +405,7 @@
 <!-- Add Payment Modal -->
 <div id="addPaymentModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
     <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="fixed inset-0 bg-black opacity-50"></div>
+        <div class="fixed inset-0 bg-black opacity-50" onclick="hideAddPaymentModal()"></div>
         <div class="relative bg-white rounded-lg max-w-md w-full p-6">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-medium text-gray-900">Add Payment</h3>
@@ -399,11 +421,11 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Payment Amount <span class="text-red-500">*</span></label>
-                        <input type="number" name="amount" step="0.01" min="0.01" 
-                               max="{{ payment.outstanding_balance }}" required
+                        <input type="number" name="amount" step="1" min="1" 
+                               max="{{ payment.outstanding_balance|round_amount }}" required
                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
                                placeholder="Enter amount">
-                        <p class="text-xs text-gray-500 mt-1">Outstanding balance: ₱{{ payment.outstanding_balance|floatformat:2 }}</p>
+                        <p class="text-xs text-gray-500 mt-1">Outstanding balance: {{ payment.outstanding_balance|format_currency }}</p>
                     </div>
                     
                     <div>
@@ -438,7 +460,7 @@
 <!-- Add Service Item Modal -->
 <div id="addItemModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
     <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="fixed inset-0 bg-black opacity-50"></div>
+        <div class="fixed inset-0 bg-black opacity-50" onclick="hideAddItemModal()"></div>
         <div class="relative bg-white rounded-lg max-w-md w-full p-6">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-medium text-gray-900">Add Service Item</h3>
@@ -476,7 +498,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Unit Price <span class="text-red-500">*</span></label>
-                            <input type="number" name="unit_price" step="0.01" min="0.01" required
+                            <input type="number" name="unit_price" step="1" min="1" required
                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500">
                             <div id="priceRange" class="text-xs text-gray-500 mt-1 hidden"></div>
                         </div>
@@ -550,29 +572,40 @@ function updateServicePriceRange(select) {
         const maxPrice = selectedOption.dataset.maxPrice;
         const defaultPrice = selectedOption.dataset.defaultPrice;
         
-        // Set default price
+        // Set default price (rounded)
         if (defaultPrice) {
-            unitPriceInput.value = defaultPrice;
+            unitPriceInput.value = Math.round(parseFloat(defaultPrice));
         }
         
-        // Show price range
+        // Show price range (rounded)
         if (minPrice && maxPrice) {
-            priceRangeDiv.textContent = `Price range: ₱${minPrice} - ₱${maxPrice}`;
+            const minPriceRounded = Math.round(parseFloat(minPrice));
+            const maxPriceRounded = Math.round(parseFloat(maxPrice));
+            priceRangeDiv.textContent = `Price range: ₱${minPriceRounded.toLocaleString()} - ₱${maxPriceRounded.toLocaleString()}`;
             priceRangeDiv.classList.remove('hidden');
-            unitPriceInput.min = minPrice;
-            unitPriceInput.max = maxPrice;
+            unitPriceInput.min = minPriceRounded;
+            unitPriceInput.max = maxPriceRounded;
         } else {
             priceRangeDiv.classList.add('hidden');
-            unitPriceInput.min = '0.01';
+            unitPriceInput.min = '1';
             unitPriceInput.removeAttribute('max');
         }
     } else {
         priceRangeDiv.classList.add('hidden');
         unitPriceInput.value = '';
-        unitPriceInput.min = '0.01';
+        unitPriceInput.min = '1';
         unitPriceInput.removeAttribute('max');
     }
 }
+
+// Auto-open payment modal if URL has #add-payment hash
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.location.hash === '#add-payment') {
+        showAddPaymentModal();
+        // Remove hash from URL without triggering scroll
+        history.replaceState(null, null, ' ');
+    }
+});
 
 // Form submissions
 document.getElementById('addPaymentForm').addEventListener('submit', async function(e) {

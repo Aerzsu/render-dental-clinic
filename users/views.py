@@ -265,13 +265,13 @@ def reset_user_password(request, pk):
     user_to_reset.set_password(temp_password)
     user_to_reset.save()
     
-    # Log the action in AuditLog
-    AuditLog.objects.create(
+    # Log the action in AuditLog using the helper method
+    AuditLog.log_action(
         user=request.user,
-        action='password_reset',
-        model_name='User',
-        object_id=str(user_to_reset.pk),
-        details=f'Password reset for user: {user_to_reset.username}'
+        action='password_change',
+        model_instance=user_to_reset,
+        request=request,
+        description=f'Password reset for user: {user_to_reset.username}'
     )
     
     # Store the temporary password in session to display once

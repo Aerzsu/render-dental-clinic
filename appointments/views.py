@@ -1389,3 +1389,23 @@ def bulk_create_daily_slots(request):
             messages.error(request, f'Error creating slots: {str(e)}')
     
     return redirect('appointments:daily_slots_list')
+
+@login_required
+@require_http_methods(["GET"])
+def pending_count_api(request):
+    """
+    API endpoint to get the count of pending appointments.
+    Returns JSON with pending count.
+    
+    Used by JavaScript to auto-refresh the badge every 45 seconds.
+    """
+    # Check if user has appointments permission
+    if not (request.user.is_superuser or request.user.has_perm('appointments.view_appointment')):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+    
+    pending_count = Appointment.objects.filter(status='pending').count()
+    
+    return JsonResponse({
+        'pending_count': pending_count,
+        'success': True
+    })

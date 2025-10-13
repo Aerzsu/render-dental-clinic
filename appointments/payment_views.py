@@ -39,9 +39,9 @@ class PaymentListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         queryset = Payment.objects.select_related('patient', 'appointment__service').prefetch_related('items', 'transactions')
         
-        # Apply filters
+        # Apply filters - REMOVED 'cancelled' from valid statuses
         status = self.request.GET.get('status')
-        if status:
+        if status and status in ['pending', 'partially_paid', 'completed']:
             queryset = queryset.filter(status=status)
         
         amount_min = self.request.GET.get('amount_min')
@@ -76,21 +76,8 @@ class PaymentListView(LoginRequiredMixin, ListView):
             except ValueError:
                 pass
         
-        # Outstanding balance filter
-        balance_filter = self.request.GET.get('balance')
-        if balance_filter == 'has_balance':
-            queryset = queryset.extra(where=["total_amount > amount_paid"])
-        elif balance_filter == 'no_balance':
-            queryset = queryset.extra(where=["total_amount <= amount_paid"])
-        
-        # Overdue filter
-        overdue = self.request.GET.get('overdue')
-        if overdue == 'yes':
-            today = date.today()
-            queryset = queryset.filter(
-                next_due_date__lt=today,
-                status__in=['pending', 'partially_paid']
-            )
+        # REMOVED: Outstanding balance filter (redundant with status filter)
+        # REMOVED: Overdue filter (can be added back if specifically needed)
         
         # Search by patient name
         search = self.request.GET.get('search')
@@ -112,8 +99,6 @@ class PaymentListView(LoginRequiredMixin, ListView):
             'amount_max': self.request.GET.get('amount_max', ''),
             'date_from': self.request.GET.get('date_from', ''),
             'date_to': self.request.GET.get('date_to', ''),
-            'balance': self.request.GET.get('balance', ''),
-            'overdue': self.request.GET.get('overdue', ''),
             'search': self.request.GET.get('search', ''),
         }
         
@@ -303,7 +288,7 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
                 'id': discount.id,
                 'name': discount.name,
                 'is_percentage': discount.is_percentage,
-                'value': float(discount.amount),
+                'amount': float(discount.amount),  # FIXED: Changed 'value' to 'amount'
             })
         
         context['services_json'] = json.dumps(services_data)

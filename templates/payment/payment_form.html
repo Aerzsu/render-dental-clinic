@@ -356,6 +356,28 @@ const availableDiscounts = {{ discounts_json|safe }};
 // Current service items data
 let serviceItems = [];
 
+// Utility function to round amounts (no decimals)
+function roundAmount(value) {
+    return Math.round(parseFloat(value) || 0);
+}
+
+// Utility function to format currency
+function formatCurrency(value) {
+    const rounded = roundAmount(value);
+    return `₱${rounded.toLocaleString('en-PH')}`;
+}
+
+// Utility function to format discount label
+function formatDiscountLabel(discount) {
+    let label = discount.name;
+    if (discount.is_percentage) {
+        label += ` - ${discount.amount}% off`;
+    } else {
+        label += ` - ${formatCurrency(discount.amount)} off`;
+    }
+    return label;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize service items from form data
     const initialData = document.getElementById('id_service_items_data').value;
@@ -465,9 +487,11 @@ function createServiceItemHtml(item, index) {
         `<option value="${service.id}" ${service.id == item.service_id ? 'selected' : ''}>${service.name}</option>`
     ).join('');
     
-    const discountOptions = availableDiscounts.map(discount => 
-        `<option value="${discount.id}" ${discount.id == item.discount_id ? 'selected' : ''}>${discount.name}</option>`
-    ).join('');
+    // Create discount options with formatted labels
+    const discountOptions = availableDiscounts.map(discount => {
+        const label = formatDiscountLabel(discount);
+        return `<option value="${discount.id}" ${discount.id == item.discount_id ? 'selected' : ''}>${label}</option>`;
+    }).join('');
     
     return `
         <div class="service-item border border-gray-200 rounded-lg p-4" data-index="${index}">
@@ -490,7 +514,7 @@ function createServiceItemHtml(item, index) {
                     <label class="block text-sm font-medium text-gray-700">Unit Price (₱)</label>
                     <input type="number" class="price-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
                            value="${item.unit_price || ''}" step="0.01" min="0.01" data-index="${index}" placeholder="0.00">
-                    <p class="text-xs text-gray-500 mt-1">Range: ₱<span class="min-price">${item.min_price || 0}</span> - ₱<span class="max-price">${item.max_price || 999999}</span></p>
+                    <p class="text-xs text-gray-500 mt-1">Range: ₱<span class="min-price">${roundAmount(item.min_price || 0)}</span> - ₱<span class="max-price">${roundAmount(item.max_price || 999999)}</span></p>
                 </div>
                 
                 <div class="discount-section ${document.querySelector('input[name="discount_application"]:checked')?.value === 'per_item' ? '' : 'hidden'}">
@@ -503,9 +527,9 @@ function createServiceItemHtml(item, index) {
                 
                 <div class="sm:col-span-2 lg:col-span-3 flex justify-between items-center pt-2 border-t border-gray-200">
                     <div class="text-sm">
-                        <span class="text-gray-600">Subtotal: ₱</span><span class="subtotal font-medium">0.00</span>
-                        <span class="discount-amount text-green-600 ml-4 hidden">Discount: ₱0.00</span>
-                        <span class="total font-semibold ml-4">Total: ₱0.00</span>
+                        <span class="text-gray-600">Subtotal: </span><span class="subtotal font-medium">₱0</span>
+                        <span class="discount-amount text-green-600 ml-4 hidden">Discount: ₱0</span>
+                        <span class="total font-semibold ml-4">Total: ₱0</span>
                     </div>
                     ${serviceItems.length > 1 ? `
                         <button type="button" class="remove-item text-red-600 hover:text-red-800 text-sm font-medium" data-index="${index}">
@@ -549,7 +573,6 @@ function attachServiceItemListeners(index) {
         updateItemCalculations(index);
     });
     
-    
     // Remove item
     const removeBtn = item.querySelector('.remove-item');
     if (removeBtn) {
@@ -580,13 +603,13 @@ function updateServicePriceRange(index) {
         serviceItems[index].min_price = service.min_price || 0;
         serviceItems[index].max_price = service.max_price || 999999;
         
-        // Update UI
+        // Update UI with rounded values
         const item = document.querySelector(`[data-index="${index}"]`);
         const minPriceSpan = item.querySelector('.min-price');
         const maxPriceSpan = item.querySelector('.max-price');
         
-        minPriceSpan.textContent = service.min_price || 0;
-        maxPriceSpan.textContent = service.max_price || 999999;
+        minPriceSpan.textContent = roundAmount(service.min_price || 0);
+        maxPriceSpan.textContent = roundAmount(service.max_price || 999999);
         
         // Update hidden form field
         document.getElementById('id_service_items_data').value = JSON.stringify(serviceItems);
@@ -611,10 +634,11 @@ function updateItemCalculations(index) {
     if (discountApplicationType === 'per_item' && item.discount_id) {
         const discount = availableDiscounts.find(d => d.id == item.discount_id);
         if (discount) {
-            if (discount.discount_type === 'percentage') {
-                discountAmount = subtotal * (discount.value / 100);
+            // FIXED: Use 'amount' field instead of 'value'
+            if (discount.is_percentage) {
+                discountAmount = subtotal * (discount.amount / 100);
             } else {
-                discountAmount = discount.value;
+                discountAmount = discount.amount;
             }
             discountAmount = Math.min(discountAmount, subtotal);
         }
@@ -622,13 +646,13 @@ function updateItemCalculations(index) {
     
     const total = subtotal - discountAmount;
     
-    // Update display
-    itemElement.querySelector('.subtotal').textContent = subtotal.toFixed(2);
-    itemElement.querySelector('.total').textContent = total.toFixed(2);
+    // Update display with rounded values
+    itemElement.querySelector('.subtotal').textContent = formatCurrency(subtotal);
+    itemElement.querySelector('.total').textContent = formatCurrency(total);
     
     const discountElement = itemElement.querySelector('.discount-amount');
     if (discountAmount > 0) {
-        discountElement.textContent = `Discount: ₱${discountAmount.toFixed(2)}`;
+        discountElement.textContent = `Discount: ${formatCurrency(discountAmount)}`;
         discountElement.classList.remove('hidden');
     } else {
         discountElement.classList.add('hidden');
@@ -676,10 +700,11 @@ function updatePaymentSummary() {
             const discount = availableDiscounts.find(d => d.id == item.discount_id);
             if (discount) {
                 let discountAmount = 0;
-                if (discount.discount_type === 'percentage') {
-                    discountAmount = itemSubtotal * (discount.value / 100);
+                // FIXED: Use 'amount' field instead of 'value'
+                if (discount.is_percentage) {
+                    discountAmount = itemSubtotal * (discount.amount / 100);
                 } else {
-                    discountAmount = discount.value;
+                    discountAmount = discount.amount;
                 }
                 totalDiscount += Math.min(discountAmount, itemSubtotal);
             }
@@ -694,10 +719,11 @@ function updatePaymentSummary() {
         if (totalDiscountId) {
             const discount = availableDiscounts.find(d => d.id == totalDiscountId);
             if (discount) {
-                if (discount.discount_type === 'percentage') {
-                    totalDiscount = subtotal * (discount.value / 100);
+                // FIXED: Use 'amount' field instead of 'value'
+                if (discount.is_percentage) {
+                    totalDiscount = subtotal * (discount.amount / 100);
                 } else {
-                    totalDiscount = discount.value;
+                    totalDiscount = discount.amount;
                 }
                 totalDiscount = Math.min(totalDiscount, subtotal);
             }
@@ -716,10 +742,10 @@ function updatePaymentSummary() {
     
     const total = subtotal - totalDiscount;
     
-    // Update summary display
-    document.getElementById('summarySubtotal').textContent = `₱${subtotal.toFixed(2)}`;
-    document.getElementById('summaryDiscount').textContent = `₱${totalDiscount.toFixed(2)}`;
-    document.getElementById('summaryTotal').textContent = `₱${total.toFixed(2)}`;
+    // Update summary display with rounded values
+    document.getElementById('summarySubtotal').textContent = formatCurrency(subtotal);
+    document.getElementById('summaryDiscount').textContent = formatCurrency(totalDiscount);
+    document.getElementById('summaryTotal').textContent = formatCurrency(total);
 }
 
 function handleFormSubmission(e) {
@@ -760,12 +786,12 @@ function showAdminOverrideModal(violations) {
     // Clear previous violations
     violationsContainer.innerHTML = '';
     
-    // Add violation details
+    // Add violation details with rounded values
     violations.forEach(violation => {
         const violationHtml = `
             <div class="mb-2 p-2 bg-yellow-100 rounded">
                 <strong>${violation.serviceName}</strong><br>
-                Price: ₱${violation.unitPrice} (Range: ₱${violation.minPrice} - ₱${violation.maxPrice})
+                Price: ${formatCurrency(violation.unitPrice)} (Range: ${formatCurrency(violation.minPrice)} - ${formatCurrency(violation.maxPrice)})
             </div>
         `;
         violationsContainer.insertAdjacentHTML('beforeend', violationHtml);

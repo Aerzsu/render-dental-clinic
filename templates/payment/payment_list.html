@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load user_tags %}
+{% load payment_filters %}
 
 {% block title %}Payment Management - Dental Clinic{% endblock %}
 
@@ -68,7 +69,7 @@
 
                 <!-- Advanced Filters -->
                 <div id="advancedFilters" class="hidden border-t border-gray-200 pt-4 mt-4">
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <!-- Status Filter -->
                         <div>
                             <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
@@ -77,8 +78,7 @@
                                 <option value="">All Statuses</option>
                                 <option value="pending" {% if filters.status == 'pending' %}selected{% endif %}>Pending</option>
                                 <option value="partially_paid" {% if filters.status == 'partially_paid' %}selected{% endif %}>Partially Paid</option>
-                                <option value="completed" {% if filters.status == 'completed' %}selected{% endif %}>Completed</option>
-                                <option value="cancelled" {% if filters.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                                <option value="completed" {% if filters.status == 'completed' %}selected{% endif %}>Fully Paid</option>
                             </select>
                         </div>
 
@@ -87,10 +87,10 @@
                             <label for="amount_min" class="block text-sm font-medium text-gray-700">Amount Range</label>
                             <div class="flex space-x-2">
                                 <input type="number" name="amount_min" value="{{ filters.amount_min }}" 
-                                       placeholder="Min" step="0.01"
+                                       placeholder="Min" step="1"
                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
                                 <input type="number" name="amount_max" value="{{ filters.amount_max }}" 
-                                       placeholder="Max" step="0.01"
+                                       placeholder="Max" step="1"
                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
                             </div>
                         </div>
@@ -104,17 +104,6 @@
                                 <input type="date" name="date_to" value="{{ filters.date_to }}"
                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
                             </div>
-                        </div>
-
-                        <!-- Balance Filter -->
-                        <div>
-                            <label for="balance" class="block text-sm font-medium text-gray-700">Balance Status</label>
-                            <select name="balance" 
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                                <option value="">All Balances</option>
-                                <option value="has_balance" {% if filters.balance == 'has_balance' %}selected{% endif %}>Has Balance</option>
-                                <option value="no_balance" {% if filters.balance == 'no_balance' %}selected{% endif %}>Fully Paid</option>
-                            </select>
                         </div>
                     </div>
                     
@@ -207,18 +196,18 @@
                                 {% endif %}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900">₱{{ payment.total_amount|floatformat:2 }}</div>
-                                <div class="text-sm text-green-600">₱{{ payment.amount_paid|floatformat:2 }} paid</div>
+                                <div class="text-sm text-gray-900">{{ payment.total_amount|format_currency }}</div>
+                                <div class="text-sm text-green-600">{{ payment.amount_paid|format_currency }} paid</div>
                                 {% if payment.payment_type == 'installment' %}
                                     <div class="text-xs text-blue-600">{{ payment.installment_months }} months</div>
                                 {% endif %}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm font-medium
-                                    {% if payment.outstanding_balance == 0 %}text-green-600
+                                    {% if payment.outstanding_balance == 0 %}text-gray-500
                                     {% elif payment.is_overdue %}text-red-600
                                     {% else %}text-yellow-600{% endif %}">
-                                    ₱{{ payment.outstanding_balance|floatformat:2 }}
+                                    {{ payment.outstanding_balance|display_balance }}
                                 </div>
                                 {% if payment.outstanding_balance > 0 %}
                                     <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
@@ -244,9 +233,8 @@
                                     {% if payment.status == 'pending' %}bg-yellow-100 text-yellow-800
                                     {% elif payment.status == 'partially_paid' %}bg-blue-100 text-blue-800
                                     {% elif payment.status == 'completed' %}bg-green-100 text-green-800
-                                    {% elif payment.status == 'cancelled' %}bg-red-100 text-red-800
                                     {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                    {{ payment.get_status_display }}
+                                    {{ payment.status|payment_status_display }}
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -402,7 +390,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Show advanced filters if any filters are active
     const urlParams = new URLSearchParams(window.location.search);
-    const hasFilters = ['status', 'amount_min', 'amount_max', 'date_from', 'date_to', 'balance', 'overdue'].some(param => urlParams.has(param));
+    const hasFilters = ['status', 'amount_min', 'amount_max', 'date_from', 'date_to'].some(param => urlParams.has(param));
     if (hasFilters) {
         advancedFilters.classList.remove('hidden');
         toggleFilters.innerHTML = `

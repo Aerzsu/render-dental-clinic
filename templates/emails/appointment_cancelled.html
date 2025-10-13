@@ -69,24 +69,25 @@
             <p>Dear {{ patient_name }},</p>
             
             {% if cancelled_by_patient %}
-            <p>This email confirms that your appointment has been successfully cancelled as requested.</p>
+            <p>This is to confirm that your appointment has been cancelled as per your request.</p>
             {% else %}
             <p>We regret to inform you that your appointment has been cancelled.</p>
             {% endif %}
             
             <div class="appointment-details">
                 <p><strong>Date:</strong> {{ appointment_date }}</p>
-                <p><strong>Period:</strong> {{ period }}</p>
+                <p><strong>Time:</strong> {{ period }}</p>
                 <p><strong>Service:</strong> {{ service }}</p>
             </div>
             
-            {% if cancelled_by_patient %}
-            <p>If you would like to reschedule, you can book a new appointment through our website or contact us directly.</p>
-            {% else %}
-            <p>We apologize for any inconvenience this may cause. If you would like to reschedule, please visit our website to book a new appointment or contact us directly for assistance.</p>
+            {% if not cancelled_by_patient %}
+            <p>We apologize for any inconvenience this may cause. If you have any questions about this cancellation, please don't hesitate to contact us.</p>
             {% endif %}
             
-            <p>Thank you for your understanding.</p>
+            <p><strong>Need to reschedule?</strong></p>
+            <p>You're welcome to book a new appointment at your convenience. Please visit our website or contact us directly to schedule another appointment.</p>
+            
+            <p>We look forward to serving you in the future.</p>
         </div>
         
         <div class="footer">

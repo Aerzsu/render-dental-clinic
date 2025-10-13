@@ -462,15 +462,90 @@
                 <!-- Terms and Conditions -->
                 <div class="mb-6">
                     <label class="flex items-start">
-                        <input type="checkbox" x-model="form.agreed_to_terms" 
-                               :class="['mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded', errors.agreed_to_terms ? 'border-red-300' : '']"
-                               @change="clearErrors('agreed_to_terms')">
+                        <input type="checkbox" x-model="form.agreed_to_terms"
+                            :class="['mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded', errors.agreed_to_terms ? 'border-red-300' : '']"
+                            @change="clearErrors('agreed_to_terms')">
                         <div class="ml-3 text-sm text-gray-600">
-                            I agree to the clinic's terms and conditions. I understand that this is a request and not a confirmed appointment. I will receive confirmation via email or SMS. *
+                            I agree to the clinic's <button type="button" onclick="openTermsModal()" class="text-primary-600 hover:text-primary-700 underline font-medium focus:outline-none focus:ring-2 focus:ring-primary-500 rounded">terms and conditions</button>. I understand that this is a request and not a confirmed appointment. I will receive confirmation via email or SMS. *
                         </div>
                     </label>
                     <p x-show="errors.agreed_to_terms" class="mt-2 text-sm text-red-600" x-text="errors.agreed_to_terms"></p>
                 </div>
+
+                <!-- Terms and Conditions Modal -->
+                <div id="termsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4" onclick="if(event.target === this) closeTermsModal()">
+                    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+                        <!-- Header -->
+                        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+                            <h2 class="text-lg font-bold text-gray-900">Terms and Conditions</h2>
+                            <button type="button" onclick="closeTermsModal()" class="text-gray-400 hover:text-gray-600 p-1 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        
+                        <!-- Scrollable Content -->
+                        <div class="overflow-y-auto flex-1 px-6 py-4 text-sm text-gray-700 space-y-4">
+                            <div>
+                                <h3 class="font-bold text-gray-900 mb-2">1. Appointment Booking</h3>
+                                <p>Online appointment requests are subject to availability and confirmation by KingJoy Dental Clinic. You must provide accurate and complete information when booking (name, contact number, email, and any relevant medical history). Appointment requests do not guarantee immediate confirmation. You will receive confirmation via email, SMS, or phone call once your appointment is approved.</p>
+                            </div>
+                            
+                            <div>
+                                <h3 class="font-bold text-gray-900 mb-2">2. Attendance and Cancellation</h3>
+                                <p>Please arrive at least 10 minutes before your scheduled appointment time. Late arrivals may result in rescheduling at the clinic's discretion. To cancel or reschedule, please notify us at least 24 hours in advance by contacting the clinic directly or by accessing your patient portal on our homepage. Cancellations made less than 24 hours before the appointment may be subject to a cancellation fee.</p>
+                            </div>
+                            
+                            <div>
+                                <h3 class="font-bold text-gray-900 mb-2">3. No-Show Policy</h3>
+                                <p>If you do not arrive for your scheduled appointment and do not notify the clinic beforehand, this will be considered a no-show. Please contact us as soon as possible if you are unable to attend.</p>
+                            </div>
+                            
+                            <div>
+                                <h3 class="font-bold text-gray-900 mb-2">4. Payment and Pricing</h3>
+                                <p>Treatment costs are quoted during the consultation or as agreed upon. Payment is due at the time of service unless alternative arrangements have been made. Prices are subject to change without notice. Applicable taxes and additional fees will be communicated before treatment begins.</p>
+                            </div>
+                            
+                            <div>
+                                <h3 class="font-bold text-gray-900 mb-2">5. Patient Information and Privacy</h3>
+                                <p>All personal and medical information provided through our booking system is kept confidential and used only for appointment scheduling and treatment purposes. Your data is protected in accordance with applicable data privacy laws. However, no online system is completely secure, and we cannot guarantee absolute data security.</p>
+                            </div>
+                            
+                            <div>
+                                <h3 class="font-bold text-gray-900 mb-2">6. Liability Disclaimer</h3>
+                                <p>KingJoy Dental Clinic makes no warranties regarding the accuracy or completeness of information on this website. We are not liable for any direct, indirect, or consequential damages arising from the use of our booking system or website. Dental treatment carries inherent risks, which will be discussed during your consultation.</p>
+                            </div>
+                            
+                            <div>
+                                <h3 class="font-bold text-gray-900 mb-2">7. Medical Advice</h3>
+                                <p>Information provided on our website is for educational purposes only and does not constitute medical advice. Always consult with a qualified dentist for professional medical advice. In case of dental emergencies, please contact the clinic immediately or visit the nearest emergency room.</p>
+                            </div>
+                            
+                            <div>
+                                <h3 class="font-bold text-gray-900 mb-2">8. Prohibited Activities</h3>
+                                <p>You agree not to use this system for unlawful purposes, including submitting false information, attempting unauthorized access, or using automated tools (bots, scripts) to access the website.</p>
+                            </div>
+                            
+                            <div>
+                                <h3 class="font-bold text-gray-900 mb-2">9. Changes to Terms</h3>
+                                <p>KingJoy Dental Clinic may update these Terms and Conditions at any time. Continued use of this system constitutes acceptance of any revised terms.</p>
+                            </div>
+                            
+                            <div class="text-xs text-gray-500">
+                                <p><strong>Last Updated:</strong> October 2025</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Footer -->
+                        <div class="border-t border-gray-200 px-6 py-4 flex-shrink-0">
+                            <button type="button" onclick="closeTermsModal()" class="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors">
+                                I Understand
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
             </div>
             
             <div class="px-8 py-4 bg-gray-50 flex justify-between">
@@ -510,6 +585,25 @@
 </style>
 
 <script>
+    // Modal control for terms and condition
+    function openTermsModal() {
+        document.getElementById('termsModal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeTermsModal() {
+        document.getElementById('termsModal').classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+
+    // Close modal on ESC key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !document.getElementById('termsModal').classList.contains('hidden')) {
+            closeTermsModal();
+        }
+    });
+
+    // appointment booking logic
     const servicesData = {{ services_json|safe }};
     const csrfToken = '{{ csrf_token }}';
     

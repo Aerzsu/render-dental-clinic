@@ -614,6 +614,19 @@ class PaymentForm(forms.ModelForm):
         # Set up discount queryset
         self.fields['total_discount'].queryset = Discount.objects.filter(is_active=True).order_by('name')
         
+        # FORMAT DISCOUNT LABELS - Add this new code block
+        discount_choices = [('', 'No discount')]
+        for discount in Discount.objects.filter(is_active=True).order_by('name'):
+            if discount.is_percentage:
+                label = f"{discount.name} - {discount.amount}% off"
+            else:
+                # Round the amount to remove decimals
+                label = f"{discount.name} - ₱{int(round(discount.amount))} off"
+            discount_choices.append((discount.id, label))
+        
+        self.fields['total_discount'].choices = discount_choices
+        # END OF NEW CODE BLOCK
+        
         # Initialize service items data with appointment service
         if self.appointment and not self.instance.pk:
             initial_service_data = {
@@ -745,7 +758,17 @@ class PaymentItemForm(forms.ModelForm):
         # Filter active services and discounts
         self.fields['service'].queryset = Service.objects.filter(is_archived=False).order_by('name')
         self.fields['discount'].queryset = Discount.objects.filter(is_active=True).order_by('name')
-        self.fields['discount'].empty_label = 'No discount'
+        
+        # FORMAT DISCOUNT LABELS - Add this
+        discount_choices = [('', 'No discount')]
+        for discount in Discount.objects.filter(is_active=True).order_by('name'):
+            if discount.is_percentage:
+                label = f"{discount.name} - {discount.amount}% off"
+            else:
+                label = f"{discount.name} - ₱{int(round(discount.amount))} off"
+            discount_choices.append((discount.id, label))
+        
+        self.fields['discount'].choices = discount_choices
     
     def clean_unit_price(self):
         unit_price = self.cleaned_data.get('unit_price')

@@ -7,7 +7,19 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    
+    <style>
+        /* Safe area support for mobile devices with notches */
+        @supports (padding: max(0px)) {
+            main {
+                padding-bottom: max(6rem, calc(env(safe-area-inset-bottom) + 6rem));
+            }
+        }
+        
+        /* Fallback for browsers that don't support @supports or max() */
+        main {
+            padding-bottom: 6rem;
+        }
+    </style>
     <script>
         tailwind.config = {
             theme: {
@@ -35,6 +47,7 @@
 <body class="bg-gray-50 h-screen overflow-hidden" x-data="{ sidebarOpen: false, isMobile: window.innerWidth < 768 }" @resize.window="isMobile = window.innerWidth < 768">
     {% if user.is_authenticated %}
         {% load user_tags %}
+        {% load appointment_tags %}
         <!-- Top Navigation Bar -->
         <nav class="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 shadow-sm z-40 h-16">
             <div class="flex items-center justify-between h-full px-4">
@@ -150,15 +163,28 @@
                         <!-- Appointments -->
                         {% if user.is_superuser or user|has_permission:"appointments" %}
                         <div x-data="{ open: {% if 'appointments' in request.resolver_match.namespace %}true{% else %}false{% endif %} }">
-                            <button @click="open = !open" class="{% if 'appointments' in request.resolver_match.namespace %}bg-primary-50 border-r-2 border-primary-600 text-primary-700{% else %}text-gray-700 hover:bg-gray-50{% endif %} group w-full flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150">
+                            {% get_pending_appointments_count as pending_count %}
+                            <button @click="open = !open" class="{% if 'appointments' in request.resolver_match.namespace %}bg-primary-50 border-r-2 border-primary-600 text-primary-700{% else %}text-gray-700 hover:bg-gray-50{% endif %} group w-full flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150 relative">
                                 <span class="mr-3 text-lg">📅</span>
                                 <span :class="{ 'opacity-100': !collapsed, 'opacity-0 w-0 overflow-hidden': collapsed }" x-show="!collapsed">Appointments</span>
+                                
+                                <!-- Badge - Small red dot -->
+                                {% if pending_count > 0 %}
+                                <span class="absolute top-1 right-2 h-2 w-2 rounded-full bg-red-500" data-badge="appointments-dot" :class="{ 'opacity-100': !collapsed, 'opacity-100': collapsed }"></span>
+                                {% endif %}
+                                
                                 <svg class="ml-auto h-4 w-4 transform transition-transform duration-200" :class="{ 'rotate-90': open, 'opacity-100': !collapsed, 'opacity-0': collapsed }" x-show="!collapsed" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                                 </svg>
                             </button>
                             <div x-show="open && !collapsed" x-collapse class="ml-6 space-y-1">
-                                <a href="{% url 'appointments:appointment_calendar' %}" class="group flex items-center px-2 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">Calendar View</a>
+                                <a href="{% url 'appointments:appointment_calendar' %}" class="group flex items-center px-2 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md relative">
+                                    <span>Calendar View</span>
+                                    <!-- Badge - Small red dot positioned at top right of text -->
+                                    {% if pending_count > 0 %}
+                                    <span class="ml-1 inline-flex h-2 w-2 rounded-full bg-red-500" data-badge="calendar-count"></span>
+                                    {% endif %}
+                                </a>
                                 <a href="{% url 'appointments:daily_slots_list' %}" class="group flex items-center px-2 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">Slot List</a>
                             </div>
                         </div>
@@ -279,7 +305,7 @@
         </div>
 
         <!-- Mobile Bottom Navigation -->
-        <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+        <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 safe-area-inset-bottom">
             <div class="flex overflow-x-auto">
                 {% if user.is_superuser or user|has_permission:"dashboard" %}
                 <a href="{% url 'core:dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}text-primary-600 bg-primary-50{% else %}text-gray-600{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
@@ -296,9 +322,13 @@
                 {% endif %}
                 
                 {% if user.is_superuser or user|has_permission:"appointments" %}
-                <a href="{% url 'appointments:appointment_calendar' %}" class="{% if 'appointments' in request.resolver_match.namespace %}text-primary-600 bg-primary-50{% else %}text-gray-600{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
+                {% get_pending_appointments_count as pending_count %}
+                <a href="{% url 'appointments:appointment_calendar' %}" class="{% if 'appointments' in request.resolver_match.namespace %}text-primary-600 bg-primary-50{% else %}text-gray-600{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20 relative">
                     <span class="text-lg mb-1">📅</span>
                     <span class="truncate">Appointments</span>
+                    {% if pending_count > 0 %}
+                    <span class="absolute top-0 right-1 h-3 w-3 rounded-full bg-red-500" data-badge="appointments-mobile"></span>
+                    {% endif %}
                 </a>
                 {% endif %}
                 
@@ -367,7 +397,7 @@
             {% endif %}
             
             <!-- Page Content -->
-            <main class="flex-1 overflow-y-auto pb-20 md:pb-0">
+            <main class="flex-1 overflow-y-auto pb-24 md:pb-0">
                 <div class="px-4 sm:px-6 lg:px-8 py-6">
                     {% block content %}
                     {% endblock %}
@@ -378,6 +408,102 @@
 
     <!-- Scripts -->
     {% block scripts %}
+    <script>
+    (function() {
+    const REFRESH_INTERVAL = 45000; // 45 seconds in milliseconds
+    let refreshTimeout;
+    
+    // Function to fetch and update the pending count
+    async function updatePendingBadge() {
+        try {
+            const response = await fetch('{% url "appointments:pending_count_api" %}', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                const pendingCount = data.pending_count;
+                updateBadges(pendingCount);
+            }
+        } catch (error) {
+            console.error('Error updating pending appointments badge:', error);
+        }
+    }
+    
+    // Function to update all badge elements on the page
+    function updateBadges(count) {
+        // Desktop sidebar - Appointments button badge (red dot)
+        const appointmentsBadge = document.querySelector('[data-badge="appointments-dot"]');
+        if (appointmentsBadge) {
+            if (count > 0) {
+                appointmentsBadge.style.display = '';
+            } else {
+                appointmentsBadge.style.display = 'none';
+            }
+        }
+        
+        // Desktop sidebar - Calendar View badge (red dot only)
+        const calendarBadge = document.querySelector('[data-badge="calendar-count"]');
+        if (calendarBadge) {
+            if (count > 0) {
+                calendarBadge.style.display = '';
+            } else {
+                calendarBadge.style.display = 'none';
+            }
+        }
+        
+        // Mobile bottom nav - Appointments badge (red dot)
+        const mobileBadge = document.querySelector('[data-badge="appointments-mobile"]');
+        if (mobileBadge) {
+            if (count > 0) {
+                mobileBadge.style.display = '';
+            } else {
+                mobileBadge.style.display = 'none';
+            }
+        }
+    }
+    
+    // Function to reset the auto-refresh timer
+    function resetAutoRefreshTimer() {
+        clearTimeout(refreshTimeout);
+        refreshTimeout = setTimeout(updatePendingBadge, REFRESH_INTERVAL);
+    }
+    
+    // Listen for HTMX appointment events (these are triggered by approve/reject actions)
+    document.body.addEventListener('appointmentApproved', () => {
+        updatePendingBadge(); // Immediate update
+        resetAutoRefreshTimer(); // Reset timer
+    });
+    
+    document.body.addEventListener('appointmentRejected', () => {
+        updatePendingBadge(); // Immediate update
+        resetAutoRefreshTimer(); // Reset timer
+    });
+    
+    // Also listen for any status changes that might affect pending count
+    document.body.addEventListener('htmx:afterSwap', (event) => {
+        // If the appointment requests list was updated, refresh the badge
+        if (event.detail.target.id === 'request-list-container') {
+            updatePendingBadge();
+            resetAutoRefreshTimer();
+        }
+    });
+    
+    // Start auto-refresh on page load
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => {
+            updatePendingBadge();
+            resetAutoRefreshTimer();
+        });
+    } else {
+        updatePendingBadge();
+        resetAutoRefreshTimer();
+    }
+})();
+    </script>
     {% endblock %}
 
     <script>

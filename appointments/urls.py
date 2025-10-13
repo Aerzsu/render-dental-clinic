@@ -53,4 +53,7 @@ urlpatterns = [
     # API endpoints for AM/PM slot system (PUBLIC + BACKEND)
     path('api/slot-availability/', views.get_slot_availability_api, name='slot_availability_api'),
     path('api/find-patient/', views.find_patient_api, name='find_patient_api'),
+
+    # API endpoint for pending appointments count (for notification badge)
+    path('api/pending-count/', views.pending_count_api, name='pending_count_api'),
 ]

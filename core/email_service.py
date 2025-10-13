@@ -4,6 +4,7 @@ Email service using Brevo API (works on free hosting, no SMTP port issues)
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.utils.html import strip_tags
+from core.models import SystemSetting
 import logging
 import sib_api_v3_sdk
 from sib_api_v3_sdk.rest import ApiException
@@ -65,6 +66,22 @@ def send_email_via_api(recipient_email, subject, html_content, recipient_name=No
         return False
 
 
+def get_period_with_time(period):
+    """
+    Get formatted period with time range from SystemSettings
+    Args:
+        period: 'am' or 'pm'
+    Returns:
+        Formatted string like "AM (8:00 AM - 12:00 PM)"
+    """
+    if period.lower() == 'am':
+        time_range = SystemSetting.get_setting('am_period_display', '8:00 AM - 12:00 PM')
+        return f"AM ({time_range})"
+    else:  # pm
+        time_range = SystemSetting.get_setting('pm_period_display', '1:00 PM - 6:00 PM')
+        return f"PM ({time_range})"
+
+
 class EmailService:
     """Email service wrapper using Brevo API"""
     
@@ -79,7 +96,7 @@ class EmailService:
             context = {
                 'patient_name': appointment.patient_name,
                 'appointment_date': appointment.appointment_date.strftime('%B %d, %Y'),
-                'period': appointment.get_period_display(),
+                'period': get_period_with_time(appointment.period),
                 'service': appointment.service.name,
                 'dentist': appointment.assigned_dentist.get_full_name() if appointment.assigned_dentist else 'To be assigned',
                 'clinic_name': settings.DEFAULT_FROM_NAME,
@@ -119,7 +136,7 @@ class EmailService:
             context = {
                 'patient_name': appointment.patient_name,
                 'appointment_date': appointment.appointment_date.strftime('%B %d, %Y'),
-                'period': appointment.get_period_display(),
+                'period': get_period_with_time(appointment.period),
                 'service': appointment.service.name,
                 'clinic_name': settings.DEFAULT_FROM_NAME,
             }
@@ -156,7 +173,7 @@ class EmailService:
             context = {
                 'patient_name': appointment.patient_name,
                 'appointment_date': appointment.appointment_date.strftime('%B %d, %Y'),
-                'period': appointment.get_period_display(),
+                'period': get_period_with_time(appointment.period),
                 'service': appointment.service.name,
                 'cancelled_by_patient': cancelled_by_patient,
                 'clinic_name': settings.DEFAULT_FROM_NAME,
