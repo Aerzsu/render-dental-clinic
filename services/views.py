@@ -1,9 +1,9 @@
 # services/views.py
-from django.shortcuts import redirect
+from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.urls import reverse_lazy
-from django.views.generic import ListView, DetailView, CreateView, UpdateView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, View
 from django.db.models import Q
 from users.templatetags.user_tags import has_permission
 from .models import Service, Discount
@@ -111,7 +111,7 @@ class ServiceCreateView(LoginRequiredMixin, CreateView):
         return super().dispatch(request, *args, **kwargs)
     
     def form_valid(self, form):
-        messages.success(self.request, f'Service {form.instance.name} created successfully.')
+        messages.success(self.request, f'Service "{form.instance.name}" created successfully.')
         return super().form_valid(form)
     
     def get_success_url(self):
@@ -130,16 +130,14 @@ class ServiceUpdateView(LoginRequiredMixin, UpdateView):
         return super().dispatch(request, *args, **kwargs)
     
     def form_valid(self, form):
-        messages.success(self.request, f'Service {form.instance.name} updated successfully.')
+        messages.success(self.request, f'Service "{form.instance.name}" updated successfully.')
         return super().form_valid(form)
     
     def get_success_url(self):
         return reverse_lazy('services:service_detail', kwargs={'pk': self.object.pk})
 
-class ServiceArchiveView(LoginRequiredMixin, UpdateView):
-    """Archive/unarchive service"""
-    model = Service
-    fields = []
+class ServiceArchiveView(LoginRequiredMixin, View):
+    """Toggle service archive status"""
     
     def dispatch(self, request, *args, **kwargs):
         if not has_permission(request.user, 'billing'):
@@ -147,15 +145,15 @@ class ServiceArchiveView(LoginRequiredMixin, UpdateView):
             return redirect('core:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
-    def form_valid(self, form):
-        service = self.get_object()
+    def get(self, request, pk):
+        service = get_object_or_404(Service, pk=pk)
         service.is_archived = not service.is_archived
         service.save()
         
         status = 'archived' if service.is_archived else 'unarchived'
-        messages.success(self.request, f'Service {service.name} has been {status}.')
+        messages.success(request, f'Service "{service.name}" has been {status} successfully.')
         
-        return redirect('services:service_list')
+        return redirect('services:service_detail', pk=service.pk)
 
 # Discount Views
 class DiscountListView(LoginRequiredMixin, ListView):
@@ -196,25 +194,21 @@ class DiscountListView(LoginRequiredMixin, ListView):
         amount_range = self.request.GET.get('amount_range')
         if amount_range:
             if amount_range == '0-5':
-                # Under 5% or ₱100
                 queryset = queryset.filter(
                     Q(is_percentage=True, amount__lt=5) |
                     Q(is_percentage=False, amount__lt=100)
                 )
             elif amount_range == '5-10':
-                # 5-10% or ₱100-500
                 queryset = queryset.filter(
                     Q(is_percentage=True, amount__gte=5, amount__lte=10) |
                     Q(is_percentage=False, amount__gte=100, amount__lte=500)
                 )
             elif amount_range == '10-25':
-                # 10-25% or ₱500-1000
                 queryset = queryset.filter(
                     Q(is_percentage=True, amount__gte=10, amount__lte=25) |
                     Q(is_percentage=False, amount__gte=500, amount__lte=1000)
                 )
             elif amount_range == '25+':
-                # Over 25% or ₱1000
                 queryset = queryset.filter(
                     Q(is_percentage=True, amount__gte=25) |
                     Q(is_percentage=False, amount__gte=1000)
@@ -266,7 +260,7 @@ class DiscountCreateView(LoginRequiredMixin, CreateView):
         return super().dispatch(request, *args, **kwargs)
     
     def form_valid(self, form):
-        messages.success(self.request, f'Discount {form.instance.name} created successfully.')
+        messages.success(self.request, f'Discount "{form.instance.name}" created successfully.')
         return super().form_valid(form)
     
     def get_success_url(self):
@@ -285,16 +279,14 @@ class DiscountUpdateView(LoginRequiredMixin, UpdateView):
         return super().dispatch(request, *args, **kwargs)
     
     def form_valid(self, form):
-        messages.success(self.request, f'Discount {form.instance.name} updated successfully.')
+        messages.success(self.request, f'Discount "{form.instance.name}" updated successfully.')
         return super().form_valid(form)
     
     def get_success_url(self):
         return reverse_lazy('services:discount_detail', kwargs={'pk': self.object.pk})
 
-class DiscountToggleView(LoginRequiredMixin, UpdateView):
+class DiscountToggleView(LoginRequiredMixin, View):
     """Toggle discount active status"""
-    model = Discount
-    fields = []
     
     def dispatch(self, request, *args, **kwargs):
         if not has_permission(request.user, 'billing'):
@@ -302,12 +294,12 @@ class DiscountToggleView(LoginRequiredMixin, UpdateView):
             return redirect('core:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
-    def form_valid(self, form):
-        discount = self.get_object()
+    def get(self, request, pk):
+        discount = get_object_or_404(Discount, pk=pk)
         discount.is_active = not discount.is_active
         discount.save()
         
         status = 'activated' if discount.is_active else 'deactivated'
-        messages.success(self.request, f'Discount {discount.name} has been {status}.')
+        messages.success(request, f'Discount "{discount.name}" has been {status} successfully.')
         
-        return redirect('services:discount_list')
+        return redirect('services:discount_detail', pk=discount.pk)

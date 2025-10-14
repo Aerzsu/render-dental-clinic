@@ -50,16 +50,17 @@ class UserListView(LoginRequiredMixin, ListView):
                 except (ValueError, TypeError):
                     pass
         
-        # Status filter
-        status_filter = self.request.GET.get('status_filter')
-        if status_filter:
-            if status_filter == 'active':
-                queryset = queryset.filter(is_active=True)
-            elif status_filter == 'inactive':
-                queryset = queryset.filter(is_active=False)
-            elif status_filter == 'dentist':
+        # Filter by inactive status (similar to show_archived for services)
+        show_inactive = self.request.GET.get('show_inactive')
+        if not show_inactive:
+            queryset = queryset.filter(is_active=True)
+        
+        # Dentist filter (keep this as it's user-specific)
+        dentist_filter = self.request.GET.get('dentist_filter')
+        if dentist_filter:
+            if dentist_filter == 'dentist':
                 queryset = queryset.filter(is_active_dentist=True)
-            elif status_filter == 'non_dentist':
+            elif dentist_filter == 'non_dentist':
                 queryset = queryset.filter(is_active_dentist=False)
         
         # Sorting
@@ -89,7 +90,8 @@ class UserListView(LoginRequiredMixin, ListView):
         context.update({
             'search_query': self.request.GET.get('search', ''),
             'role_filter': self.request.GET.get('role_filter', ''),
-            'status_filter': self.request.GET.get('status_filter', ''),
+            'dentist_filter': self.request.GET.get('dentist_filter', ''),
+            'show_inactive': self.request.GET.get('show_inactive', False),
             'sort_by': self.request.GET.get('sort', 'username'),
             # Only show non-archived roles in the filter dropdown
             'available_roles': Role.objects.filter(is_archived=False).order_by('display_name'),

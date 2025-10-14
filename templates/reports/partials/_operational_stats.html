@@ -1,0 +1,99 @@
+<!-- templates/reports/partials/_operational_stats.html -->
+<div class="mb-8">
+    <h2 class="text-2xl font-bold text-gray-900 mb-4">📅 Operational Statistics</h2>
+    
+    <!-- Key Metrics -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        
+        <!-- Total Appointments -->
+        <div class="report-card">
+            <div class="metric-label">Total Appointments</div>
+            <div class="metric-value text-blue-600">{{ total_appointments }}</div>
+            <p class="text-sm text-gray-500 mt-1">
+                In selected period
+            </p>
+        </div>
+        
+        <!-- Completed -->
+        <div class="report-card">
+            <div class="metric-label">Completed</div>
+            <div class="metric-value text-green-600">{{ completed_appointments }}</div>
+            <p class="text-sm text-gray-500 mt-1">
+                {% widthratio completed_appointments total_appointments 100 as comp_pct %}
+                {{ comp_pct|default:"0" }}% of total
+            </p>
+        </div>
+        
+        <!-- No-Shows -->
+        <div class="report-card">
+            <div class="metric-label">No-Shows</div>
+            <div class="metric-value text-red-600">{{ no_shows }}</div>
+            <p class="text-sm text-gray-500 mt-1">
+                {{ no_show_rate }}% no-show rate
+            </p>
+        </div>
+        
+        <!-- Utilization Rate -->
+        <div class="report-card">
+            <div class="metric-label">Slot Utilization</div>
+            <div class="metric-value text-purple-600">{{ utilization_rate }}%</div>
+            <p class="text-sm text-gray-500 mt-1">
+                {{ used_slots }}/{{ total_slots }} slots used
+            </p>
+        </div>
+        
+    </div>
+    
+    <!-- Appointment Status Breakdown -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        
+        <!-- Status Chart -->
+        <div class="report-card">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">📊 Appointments by Status</h3>
+            <div class="chart-container">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Daily Schedule Chart -->
+        <div class="report-card">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">📆 Daily Schedule (Confirmed/Completed)</h3>
+            <div class="chart-container">
+                <canvas id="dailyScheduleChart"></canvas>
+            </div>
+        </div>
+        
+    </div>
+    
+    <!-- Pending Requests Table -->
+    {% if pending_requests %}
+    <div class="report-card">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">⏳ Pending Appointment Requests</h3>
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Patient</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Requested</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for appt in pending_requests %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm text-gray-900">{{ appt.appointment_date|date:"M d, Y" }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">{{ appt.get_period_display }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-900">{{ appt.patient_name }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">{{ appt.service.name }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-500">{{ appt.requested_at|timesince }} ago</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+    
+</div>

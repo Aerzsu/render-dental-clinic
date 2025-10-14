@@ -21,6 +21,12 @@
             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
             </svg>
+            {% if object %}
+                <a href="{% url 'services:service_detail' object.pk %}" class="hover:text-gray-700">{{ object.name }}</a>
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+            {% endif %}
             <span>{% if object %}Edit Service{% else %}Add New Service{% endif %}</span>
         </div>
         <h1 class="text-2xl font-bold text-gray-900">
@@ -145,28 +151,6 @@
                 </button>
             </div>
         </form>
-    </div>
-
-    <!-- Help Text -->
-    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div class="flex">
-            <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-            </div>
-            <div class="ml-3">
-                <h3 class="text-sm font-medium text-blue-800">Service Setup Tips</h3>
-                <div class="mt-2 text-sm text-blue-700">
-                    <ul class="list-disc list-inside space-y-1">
-                        <li>Use clear, descriptive names for your services (e.g., "Dental Cleaning", "Root Canal Treatment")</li>
-                        <li>Set realistic price ranges based on complexity and materials needed</li>
-                        <li>Enter the actual expected duration - be as precise as needed for accurate scheduling</li>
-                        <li>Consider buffer time for patient preparation and cleanup in your duration estimate</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 {% endblock %}

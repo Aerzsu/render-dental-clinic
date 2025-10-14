@@ -1,0 +1,117 @@
+<!-- templates/reports/partials/_analytics_charts.html -->
+<div class="mb-8">
+    <h2 class="text-2xl font-bold text-gray-900 mb-4">📊 Analytics & Insights</h2>
+    
+    <!-- Key Analytics Metrics -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        
+        <!-- Average Treatment Value -->
+        <div class="report-card">
+            <div class="metric-label">Avg Treatment Value</div>
+            <div class="metric-value text-blue-600">₱{{ avg_treatment_value|floatformat:2|default:"0.00" }}</div>
+            <p class="text-sm text-gray-500 mt-1">
+                Per completed appointment
+            </p>
+        </div>
+        
+        <!-- Collection Rate -->
+        <div class="report-card">
+            <div class="metric-label">Collection Rate</div>
+            <div class="metric-value text-green-600">{{ collection_rate|floatformat:1|default:"0" }}%</div>
+            <p class="text-sm text-gray-500 mt-1">
+                ₱{{ total_collected|floatformat:0 }} / ₱{{ total_billed|floatformat:0 }}
+            </p>
+        </div>
+        
+        <!-- New Patients -->
+        <div class="report-card">
+            <div class="metric-label">New Patients</div>
+            <div class="metric-value text-purple-600">{{ new_patients|default:"0" }}</div>
+            <p class="text-sm text-gray-500 mt-1">
+                {{ new_patient_percentage|floatformat:1|default:"0" }}% of total
+            </p>
+        </div>
+        
+        <!-- Returning Patients -->
+        <div class="report-card">
+            <div class="metric-label">Returning Patients</div>
+            <div class="metric-value text-indigo-600">{{ returning_patients|default:"0" }}</div>
+            <p class="text-sm text-gray-500 mt-1">
+                {{ returning_patient_percentage|floatformat:1|default:"0" }}% of total
+            </p>
+        </div>
+        
+    </div>
+    
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        
+        <!-- Popular Services by Count -->
+        <div class="report-card">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">🏆 Most Performed Services</h3>
+            {% if popular_services_by_count %}
+            <div class="chart-container">
+                <canvas id="servicesCountChart"></canvas>
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">No service data available for this period</p>
+            {% endif %}
+        </div>
+        
+        <!-- Popular Services by Revenue -->
+        <div class="report-card">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">💎 Top Revenue Services</h3>
+            {% if popular_services_by_revenue %}
+            <div class="chart-container">
+                <canvas id="servicesRevenueChart"></canvas>
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">No revenue data available for this period</p>
+            {% endif %}
+        </div>
+        
+    </div>
+    
+    <!-- Patient Type Distribution -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        
+        <!-- New vs Returning Chart -->
+        <div class="report-card">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">👥 Patient Type Distribution</h3>
+            {% if new_patients or returning_patients %}
+            <div class="chart-container">
+                <canvas id="patientTypeChart"></canvas>
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">No patient data available for this period</p>
+            {% endif %}
+        </div>
+        
+        <!-- Discount Usage -->
+        <div class="report-card">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">🎫 Discount Usage</h3>
+            {% if discount_usage %}
+            <div class="space-y-3">
+                {% for discount in discount_usage %}
+                <div class="border-b border-gray-200 pb-3 last:border-0">
+                    <div class="flex justify-between items-start mb-1">
+                        <span class="font-medium text-gray-900">{{ discount.discount__name }}</span>
+                        <span class="text-sm text-gray-600">{{ discount.times_used }}x used</span>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        Total Given: <span class="font-medium text-red-600">₱{{ discount.total_discount_given|floatformat:2 }}</span>
+                    </div>
+                    <div class="text-sm text-gray-500">
+                        Avg per use: ₱{{ discount.avg_discount|floatformat:2 }}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">No discounts used in this period</p>
+            {% endif %}
+        </div>
+        
+    </div>
+    
+</div>

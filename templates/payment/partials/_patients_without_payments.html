@@ -1,0 +1,134 @@
+<!-- templates/payments/partials/_patients_without_payments.html -->
+<div class="bg-yellow-50 border border-yellow-200 rounded-lg overflow-hidden mb-6">
+    <div class="px-6 py-5 bg-white border-b border-yellow-200 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center mb-2 sm:mb-0">
+            <svg class="h-6 w-6 text-yellow-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+            </svg>
+            <div>
+                <h2 class="text-xl font-semibold text-yellow-900 leading-tight">
+                    Patients Missing Payment Records
+                </h2>
+                <p class="text-sm text-yellow-700 mt-1">
+                    Completed appointments from the last 90 days need payment records.
+                </p>
+            </div>
+        </div>
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-200 text-yellow-800 shadow-sm">
+            {{ patients_without_payments|length }} patient{{ patients_without_payments|length|pluralize }}
+        </span>
+    </div>
+
+    {% if patients_without_payments %}
+        <div class="bg-white">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Patient
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Appointment Date
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Service
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Dentist
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Days Ago
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Action
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for appointment in patients_without_payments %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 h-8 w-8">
+                                        <div class="h-8 w-8 rounded-full bg-yellow-600 flex items-center justify-center">
+                                            <span class="text-xs font-medium text-white">
+                                                {{ appointment.patient.first_name|first }}{{ appointment.patient.last_name|first }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="ml-3">
+                                        <div class="text-sm font-medium text-gray-900">
+                                            <a href="{% url 'patients:patient_detail' appointment.patient.pk %}" 
+                                               class="hover:text-primary-600">
+                                                {{ appointment.patient.full_name }}
+                                            </a>
+                                        </div>
+                                        <div class="text-sm text-gray-500">
+                                            {{ appointment.patient.phone|default:"No phone" }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">
+                                    {{ appointment.appointment_date|date:"M d, Y" }}
+                                </div>
+                                <div class="text-sm text-gray-500">
+                                    {{ appointment.get_period_display }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm text-gray-900">
+                                    {{ appointment.service.name|truncatechars:40 }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">
+                                    {{ appointment.assigned_dentist.get_full_name|default:appointment.assigned_dentist.username }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">
+                                    {{ appointment.days_since_completion }} day{{ appointment.days_since_completion|pluralize }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <a href="{% url 'appointments:payment_create' appointment.pk %}" 
+                                   class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                                    <svg class="-ml-0.5 mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                    </svg>
+                                    Create Payment
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            {% if total_patients_without_payments > patients_without_payments|length %}
+                <div class="px-6 py-3 bg-gray-50 border-t border-gray-200 text-center">
+                    <p class="text-sm text-gray-600">
+                        Showing {{ patients_without_payments|length }} of {{ total_patients_without_payments }} patients. 
+                        <a href="{% url 'appointments:appointment_list' %}?status=completed&has_payment=false" 
+                           class="text-primary-600 hover:text-primary-700 font-medium">
+                            View all in appointment list
+                        </a>
+                    </p>
+                </div>
+            {% endif %}
+        </div>
+    {% else %}
+        <div class="px-6 py-8 text-center bg-white">
+            <svg class="mx-auto h-12 w-12 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">All caught up!</h3>
+            <p class="mt-1 text-sm text-gray-500">
+                All completed appointments have payment records created.
+            </p>
+        </div>
+    {% endif %}
+</div>

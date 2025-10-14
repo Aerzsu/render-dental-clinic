@@ -11,6 +11,7 @@ from django.db import transaction, models
 from django.template.loader import render_to_string
 from decimal import Decimal
 from datetime import date, timedelta, datetime
+from django.utils import timezone
 import json
 
 # PDF generation imports
@@ -39,7 +40,7 @@ class PaymentListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         queryset = Payment.objects.select_related('patient', 'appointment__service').prefetch_related('items', 'transactions')
         
-        # Apply filters - REMOVED 'cancelled' from valid statuses
+        # Apply filters
         status = self.request.GET.get('status')
         if status and status in ['pending', 'partially_paid', 'completed']:
             queryset = queryset.filter(status=status)
@@ -76,9 +77,6 @@ class PaymentListView(LoginRequiredMixin, ListView):
             except ValueError:
                 pass
         
-        # REMOVED: Outstanding balance filter (redundant with status filter)
-        # REMOVED: Overdue filter (can be added back if specifically needed)
-        
         # Search by patient name
         search = self.request.GET.get('search')
         if search:
@@ -89,8 +87,41 @@ class PaymentListView(LoginRequiredMixin, ListView):
         
         return queryset.order_by('-created_at')
     
+    def get_patients_without_payments(self):
+        """Get patients with completed appointments but no payment records"""
+        from .models import Appointment
+        
+        # Calculate date 90 days ago
+        ninety_days_ago = timezone.now().date() - timedelta(days=90)
+        
+        # Get completed appointments without payment records
+        appointments = Appointment.objects.filter(
+            status='completed',
+            appointment_date__gte=ninety_days_ago
+        ).select_related(
+            'patient', 'service', 'assigned_dentist'
+        ).prefetch_related(
+            'payments'
+        ).order_by('-appointment_date', '-period')
+        
+        # Filter to only those without payments
+        appointments_without_payments = []
+        for appointment in appointments:
+            if not appointment.payments.exists():
+                # Add days_since_completion as an attribute
+                days_diff = (timezone.now().date() - appointment.appointment_date).days
+                appointment.days_since_completion = days_diff
+                appointments_without_payments.append(appointment)
+        
+        return appointments_without_payments
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        
+        # Get patients without payment records (limit to 15 for display)
+        patients_without_payments = self.get_patients_without_payments()
+        context['patients_without_payments'] = patients_without_payments[:15]
+        context['total_patients_without_payments'] = len(patients_without_payments)
         
         # Current filters for form population
         context['filters'] = {
@@ -103,7 +134,6 @@ class PaymentListView(LoginRequiredMixin, ListView):
         }
         
         return context
-
 
 class PaymentDetailView(LoginRequiredMixin, DetailView):
     """Payment detail view with edit capabilities"""
@@ -140,7 +170,7 @@ class PaymentDetailView(LoginRequiredMixin, DetailView):
         }
         
         # Available services for adding items
-        context['available_services'] = Service.objects.filter(is_archived=False).order_by('name')
+        context['available_services'] = Service.active.all().order_by('name')
         
         # Available discounts
         context['available_discounts'] = Discount.objects.filter(is_active=True).order_by('name')
@@ -274,7 +304,7 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
         
         # Add services and discounts data for JavaScript
         services_data = []
-        for service in Service.objects.filter(is_archived=False):
+        for service in Service.active.all():
             services_data.append({
                 'id': service.id,
                 'name': service.name,
@@ -344,7 +374,7 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
                     if discount_amount > 0:
                         PaymentItem.objects.create(
                             payment=payment,
-                            service=Service.objects.filter(is_archived=False).first(),
+                            service=Service.active.all().first(),
                             quantity=1,
                             unit_price=-discount_amount,
                             notes=f'Total discount: {total_discount.name}'

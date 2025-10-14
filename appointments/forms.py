@@ -69,7 +69,7 @@ class AppointmentForm(forms.ModelForm):
         self.fields['patient'].queryset = Patient.objects.filter(is_active=True).order_by('last_name', 'first_name')
         
         # Filter active services
-        self.fields['service'].queryset = Service.objects.filter(is_archived=False).order_by('name')
+        self.fields['service'].queryset = Service.active.all().order_by('name')
         
         # Filter active dentists
         self.fields['assigned_dentist'].queryset = User.objects.filter(is_active_dentist=True).order_by('first_name', 'last_name')
@@ -339,7 +339,7 @@ class PublicBookingForm(forms.Form):
         super().__init__(*args, **kwargs)
         
         # Set active service queryset
-        self.fields['service'].queryset = Service.objects.filter(is_archived=False).order_by('name')
+        self.fields['service'].queryset = Service.active.all().order_by('name')
         
         # Set minimum date to tomorrow
         tomorrow = (timezone.now() + timedelta(days=1)).date()

@@ -385,7 +385,9 @@
                             {{ payment.next_due_date|date:"M d, Y" }}
                         </div>
                         {% if payment.is_overdue %}
-                            <div class="text-sm text-red-600 font-medium">OVERDUE</div>
+                            <div class="text-sm text-red-600 font-medium">
+                                The payment was due on {{ payment.next_due_date|date:"M d, Y" }}
+                            </div>
                         {% else %}
                             <div class="text-sm text-gray-500">{{ payment.next_due_date|timeuntil }} remaining</div>
                         {% endif %}

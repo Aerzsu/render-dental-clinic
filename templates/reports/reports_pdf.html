@@ -1,0 +1,423 @@
+<!-- templates/reports/reports_pdf.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Reports - {{ start_date|date:"M d, Y" }} to {{ end_date|date:"M d, Y" }}</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1.5cm;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 10pt;
+            line-height: 1.4;
+            color: #000;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+        }
+        
+        .header-line {
+            border-top: 2px solid #000;
+            margin: 10px 0;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 18pt;
+            font-weight: bold;
+        }
+        
+        .header p {
+            margin: 2px 0;
+            font-size: 9pt;
+        }
+        
+        .section {
+            margin-bottom: 20px;
+            page-break-inside: avoid;
+        }
+        
+        .section-title {
+            font-size: 14pt;
+            font-weight: bold;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #333;
+        }
+        
+        .metrics-grid {
+            display: table;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        
+        .metric-box {
+            display: table-cell;
+            width: 25%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: center;
+        }
+        
+        .metric-label {
+            font-size: 8pt;
+            text-transform: uppercase;
+            color: #666;
+        }
+        
+        .metric-value {
+            font-size: 16pt;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 9pt;
+        }
+        
+        table th {
+            background-color: #f0f0f0;
+            padding: 8px;
+            text-align: left;
+            font-weight: bold;
+            border: 1px solid #ddd;
+        }
+        
+        table td {
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+        }
+        
+        table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 8pt;
+            color: #666;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
+        }
+        
+        .page-break {
+            page-break-after: always;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- Header -->
+    <div class="header">
+        <h1>{{ clinic_name }}</h1>
+        <p>{{ clinic_address|linebreaksbr }}</p>
+        <p>{{ clinic_phone }} | {{ clinic_email }}</p>
+        <div class="header-line"></div>
+        <p style="margin-top: 10px; font-weight: bold;">
+            REPORTS &amp; ANALYTICS
+        </p>
+        <p>
+            Report Period: {{ start_date|date:"F d, Y" }} to {{ end_date|date:"F d, Y" }}
+        </p>
+        <p style="font-size: 8pt;">
+            Generated: {{ generated_at|date:"F d, Y g:i A" }} by {{ generated_by }}
+        </p>
+        <div class="header-line"></div>
+    </div>
+    
+    <!-- Financial Summary -->
+    <div class="section">
+        <div class="section-title">FINANCIAL SUMMARY</div>
+        
+        <div class="metrics-grid">
+            <div class="metric-box">
+                <div class="metric-label">Total Revenue</div>
+                <div class="metric-value">PHP {{ total_revenue|floatformat:2 }}</div>
+                <div style="font-size: 8pt;">{{ transaction_count }} transactions</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">Avg Transaction</div>
+                <div class="metric-value">PHP {{ avg_transaction|floatformat:2 }}</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">Outstanding</div>
+                <div class="metric-value">PHP {{ total_outstanding|floatformat:2 }}</div>
+                <div style="font-size: 8pt;">{{ patients_with_balance }} patients</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">Overdue</div>
+                <div class="metric-value">{{ overdue_count }}</div>
+                <div style="font-size: 8pt;">payments</div>
+            </div>
+        </div>
+        
+        {% if service_revenue %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Service</th>
+                    <th class="text-right">Count</th>
+                    <th class="text-right">Revenue</th>
+                    <th class="text-right">% of Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in service_revenue %}
+                <tr>
+                    <td>{{ item.service__name }}</td>
+                    <td class="text-right">{{ item.service_count }}</td>
+                    <td class="text-right">PHP {{ item.total_revenue|floatformat:2 }}</td>
+                    <td class="text-right">
+                        {% widthratio item.total_revenue total_revenue 100 %}%
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+    
+    <!-- Operational Statistics -->
+    <div class="section">
+        <div class="section-title">OPERATIONAL STATISTICS</div>
+        
+        <div class="metrics-grid">
+            <div class="metric-box">
+                <div class="metric-label">Total Appointments</div>
+                <div class="metric-value">{{ total_appointments }}</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">Completed</div>
+                <div class="metric-value">{{ completed_appointments }}</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">No-Shows</div>
+                <div class="metric-value">{{ no_shows }}</div>
+                <div style="font-size: 8pt;">{{ no_show_rate }}% rate</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">Utilization</div>
+                <div class="metric-value">{{ utilization_rate }}%</div>
+                <div style="font-size: 8pt;">{{ used_slots }}/{{ total_slots }} slots</div>
+            </div>
+        </div>
+        
+        {% if appointments_by_status %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Status</th>
+                    <th class="text-right">Count</th>
+                    <th class="text-right">Percentage</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for status in appointments_by_status %}
+                <tr>
+                    <td>{{ status.status|title }}</td>
+                    <td class="text-right">{{ status.count }}</td>
+                    <td class="text-right">
+                        {% widthratio status.count total_appointments 100 %}%
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+    
+    <div class="page-break"></div>
+    
+    <!-- Analytics & Insights -->
+    <div class="section">
+        <div class="section-title">ANALYTICS &amp; INSIGHTS</div>
+        
+        <div class="metrics-grid">
+            <div class="metric-box">
+                <div class="metric-label">Avg Treatment Value</div>
+                <div class="metric-value">PHP {{ avg_treatment_value|floatformat:2 }}</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">Collection Rate</div>
+                <div class="metric-value">{{ collection_rate }}%</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">New Patients</div>
+                <div class="metric-value">{{ new_patients }}</div>
+                <div style="font-size: 8pt;">{{ new_patient_percentage }}%</div>
+            </div>
+            <div class="metric-box">
+                <div class="metric-label">Returning</div>
+                <div class="metric-value">{{ returning_patients }}</div>
+                <div style="font-size: 8pt;">{{ returning_patient_percentage }}%</div>
+            </div>
+        </div>
+        
+        <!-- Popular Services by Count -->
+        {% if popular_services_by_count %}
+        <h3 style="font-size: 11pt; margin-bottom: 10px;">Most Performed Services</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Service</th>
+                    <th class="text-right">Times Performed</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for service in popular_services_by_count %}
+                <tr>
+                    <td>{{ service.service__name }}</td>
+                    <td class="text-right">{{ service.service_count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+        
+        <!-- Popular Services by Revenue -->
+        {% if popular_services_by_revenue %}
+        <h3 style="font-size: 11pt; margin-bottom: 10px;">Top Revenue Services</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Service</th>
+                    <th class="text-right">Revenue</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for service in popular_services_by_revenue %}
+                <tr>
+                    <td>{{ service.service__name }}</td>
+                    <td class="text-right">PHP {{ service.total_revenue|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+        
+        <!-- Discount Usage -->
+        {% if discount_usage %}
+        <h3 style="font-size: 11pt; margin-bottom: 10px;">Discount Usage</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Discount</th>
+                    <th class="text-right">Times Used</th>
+                    <th class="text-right">Total Given</th>
+                    <th class="text-right">Avg per Use</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for discount in discount_usage %}
+                <tr>
+                    <td>{{ discount.discount__name }}</td>
+                    <td class="text-right">{{ discount.times_used }}</td>
+                    <td class="text-right">PHP {{ discount.total_discount_given|floatformat:2 }}</td>
+                    <td class="text-right">PHP {{ discount.avg_discount|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+    
+    <!-- Recent Transactions -->
+    {% if recent_transactions %}
+    <div class="section">
+        <div class="section-title">RECENT PAYMENT TRANSACTIONS</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Patient</th>
+                    <th>Service</th>
+                    <th class="text-right">Amount</th>
+                    <th>Receipt</th>
+                    <th>Processed By</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for txn in recent_transactions %}
+                <tr>
+                    <td>{{ txn.payment_date|date:"M d, Y" }}</td>
+                    <td>{{ txn.payment.patient.full_name }}</td>
+                    <td>{{ txn.payment.appointment.service.name|default:"N/A" }}</td>
+                    <td class="text-right">PHP {{ txn.amount|floatformat:2 }}</td>
+                    <td>{{ txn.receipt_number }}</td>
+                    <td>
+                        {% if txn.created_by %}
+                            {{ txn.created_by.get_full_name|default:txn.created_by.username }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    
+    <!-- Overdue Payments -->
+    {% if overdue_payments %}
+    <div class="section">
+        <div class="section-title">OVERDUE PAYMENTS</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Patient</th>
+                    <th>Service</th>
+                    <th class="text-right">Balance</th>
+                    <th>Due Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for payment in overdue_payments %}
+                <tr>
+                    <td>{{ payment.patient.full_name }}</td>
+                    <td>{{ payment.appointment.service.name }}</td>
+                    <td class="text-right">PHP {{ payment.outstanding_balance|floatformat:2 }}</td>
+                    <td>{{ payment.next_due_date|date:"M d, Y" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+    
+    <!-- Footer -->
+    <div class="footer">
+        <p>{{ clinic_name }} - Reports &amp; Analytics</p>
+        <p>This is a computer-generated report</p>
+    </div>
+    
+</body>
+</html>

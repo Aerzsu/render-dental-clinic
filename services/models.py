@@ -3,6 +3,10 @@ from django.db import models
 from django.core.validators import MinValueValidator
 from decimal import Decimal
 
+class ActiveServiceManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_archived=False)
+
 class Service(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
@@ -28,6 +32,9 @@ class Service(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+    objects = models.Manager()  # Default manager
+    active = ActiveServiceManager()  # Custom manager for active services only
+
     class Meta:
         ordering = ['name']
     

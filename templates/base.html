@@ -7,6 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* Safe area support for mobile devices with notches */
         @supports (padding: max(0px)) {
@@ -200,7 +201,7 @@
 
                         <!-- Reports -->
                          {% if user.is_superuser or user|has_permission:"reports" %}
-                        <a href="#" class="text-gray-700 hover:bg-gray-50 group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150">
+                        <a href="{% url 'reports:dashboard' %}" class="text-gray-700 hover:bg-gray-50 group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150">
                             <span class="mr-3 text-lg">📈</span>
                             <span :class="{ 'opacity-100': !collapsed, 'opacity-0 w-0 overflow-hidden': collapsed }" x-show="!collapsed">Reports</span>
                         </a>
@@ -340,7 +341,7 @@
                 {% endif %}
 
                 {% if user.is_superuser or user|has_permission:"reports" %}
-                <a href="#" class="text-gray-600 flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
+                <a href="{% url 'reports:dashboard' %}" class="text-gray-600 flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
                     <span class="text-lg mb-1">📈</span>
                     <span class="truncate">Reports</span>
                 </a>

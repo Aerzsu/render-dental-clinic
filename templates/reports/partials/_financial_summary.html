@@ -1,0 +1,88 @@
+<!-- templates/reports/partials/_financial_summary.html -->
+<div class="mb-8">
+    <h2 class="text-2xl font-bold text-gray-900 mb-4">💰 Financial Summary</h2>
+    
+    <!-- Key Metrics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        
+        <!-- Total Revenue -->
+        <div class="report-card">
+            <div class="metric-label">Total Revenue</div>
+            <div class="metric-value text-green-600">₱{{ total_revenue|floatformat:2|default:"0.00" }}</div>
+            <p class="text-sm text-gray-500 mt-1">
+                From {{ transaction_count }} transaction{{ transaction_count|pluralize }}
+            </p>
+        </div>
+        
+        <!-- Average Transaction -->
+        <div class="report-card">
+            <div class="metric-label">Avg Transaction</div>
+            <div class="metric-value text-blue-600">₱{{ avg_transaction|floatformat:2|default:"0.00" }}</div>
+            <p class="text-sm text-gray-500 mt-1">
+                Per payment received
+            </p>
+        </div>
+        
+        <!-- Outstanding Balance -->
+        <div class="report-card">
+            <div class="metric-label">Outstanding Balance</div>
+            <div class="metric-value text-orange-600">₱{{ total_outstanding|floatformat:2|default:"0.00" }}</div>
+            <p class="text-sm text-gray-500 mt-1">
+                {{ patients_with_balance }} patient{{ patients_with_balance|pluralize }} with balance
+            </p>
+        </div>
+        
+        <!-- Overdue Payments -->
+        <div class="report-card">
+            <div class="metric-label">Overdue Payments</div>
+            <div class="metric-value text-red-600">{{ overdue_count }}</div>
+            <p class="text-sm text-gray-500 mt-1">
+                Past due date
+            </p>
+        </div>
+        
+    </div>
+    
+    <!-- Service Revenue Breakdown -->
+    <div class="report-card">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">📈 Service Revenue Breakdown</h3>
+        
+        {% if service_revenue %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Service</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Count</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Revenue</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">% of Total</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for item in service_revenue %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 text-sm text-gray-900">{{ item.service__name }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600 text-right">{{ item.service_count }}</td>
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900 text-right">
+                            ₱{{ item.total_revenue|floatformat:2 }}
+                        </td>
+                        <td class="px-4 py-3 text-sm text-gray-600">
+                            <div class="flex items-center">
+                                {% widthratio item.total_revenue total_revenue 100 as percentage %}
+                                <div class="w-24 bg-gray-200 rounded-full h-2 mr-2">
+                                    <div class="bg-blue-600 h-2 rounded-full" style="width: {{ percentage }}%"></div>
+                                </div>
+                                <span>{{ percentage }}%</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-center py-8">No service revenue data for this period</p>
+        {% endif %}
+    </div>
+    
+</div>

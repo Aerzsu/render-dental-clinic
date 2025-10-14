@@ -21,7 +21,15 @@
         <div class="flex items-center space-x-2 text-sm text-gray-500 mb-2">
             <a href="{% url 'users:user_list' %}" class="hover:text-gray-700">User Management</a>
             <span>/</span>
-            <span>{% if user_obj.pk %}Edit User{% else %}Add New User{% endif %}</span>
+            {% if user_obj.pk %}
+                <a href="{% url 'users:user_detail' user_obj.pk %}" class="hover:text-gray-700">
+                    {{ user_obj.get_full_name|default:user_obj.username }}
+                </a>
+                <span>/</span>
+                <span>Edit User</span>
+            {% else %}
+                <span>Add New User</span>
+            {% endif %}
         </div>
         <h1 class="text-2xl font-bold text-gray-900">
             {% if user_obj.pk %}

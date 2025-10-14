@@ -1390,6 +1390,7 @@ def bulk_create_daily_slots(request):
     
     return redirect('appointments:daily_slots_list')
 
+# for red notification badge in modules
 @login_required
 @require_http_methods(["GET"])
 def pending_count_api(request):

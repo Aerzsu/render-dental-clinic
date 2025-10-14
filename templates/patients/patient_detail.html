@@ -14,21 +14,12 @@
         <!-- Back button -->
         <div class="mb-4">
             <a href="{% url 'patients:patient_list' %}" 
-               class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
-                <svg class="-ml-1 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors">
+                <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                 </svg>
                 Back to Patient Management
             </a>
-        </div>
-        
-        <!-- Breadcrumb -->
-        <div class="flex items-center space-x-2 text-sm text-gray-500 mb-2">
-            <a href="{% url 'patients:patient_list' %}" class="hover:text-gray-700">Patient Management</a>
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-            </svg>
-            <span>{{ patient.full_name }}</span>
         </div>
         
         <div class="flex justify-between items-start">

@@ -221,8 +221,8 @@
                                         Edit
                                     </a>
                                     <a href="{% url 'services:service_toggle_archive' service.pk %}" 
-                                       class="text-gray-600 hover:text-gray-900 text-sm font-medium"
-                                       onclick="return confirm('Are you sure you want to {% if service.is_archived %}unarchive{% else %}archive{% endif %} this service?')">
+                                    class="text-gray-600 hover:text-gray-900 text-sm font-medium"
+                                    onclick="return confirm('Are you sure you want to {% if service.is_archived %}unarchive{% else %}archive{% endif %} this service?')">
                                         {% if service.is_archived %}Unarchive{% else %}Archive{% endif %}
                                     </a>
                                 </div>

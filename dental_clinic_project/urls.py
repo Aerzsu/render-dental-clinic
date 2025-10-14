@@ -12,8 +12,8 @@ urlpatterns = [
     path('appointments/', include('appointments.urls', namespace='appointments')),
     path('services/', include('services.urls', namespace='services')),
     path('portal/', include('patient_portal.urls', namespace='patient_portal')),
+    path('reports/', include('reports.urls', namespace='reports')),
 ]
-
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

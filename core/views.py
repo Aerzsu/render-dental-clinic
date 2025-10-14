@@ -34,7 +34,7 @@ class HomeView(TemplateView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['services'] = Service.objects.filter(is_archived=False)[:6]
+        context['services'] = Service.active.all()[:6]
         context['dentists'] = User.objects.filter(is_active_dentist=True)
         return context
 
@@ -50,7 +50,7 @@ class BookAppointmentView(TemplateView):
         
         # Get services for booking form
         services = []
-        for service in Service.objects.filter(is_archived=False).order_by('name'):
+        for service in Service.active.all().order_by('name'):
             services.append({
                 'id': service.id,
                 'name': service.name,
