@@ -93,8 +93,6 @@
                                 <option value="">All Contact Types</option>
                                 <option value="email_only" {% if current_filters.contact == 'email_only' %}selected{% endif %}>Email Only</option>
                                 <option value="phone_only" {% if current_filters.contact == 'phone_only' %}selected{% endif %}>Phone Only</option>
-                                <option value="both" {% if current_filters.contact == 'both' %}selected{% endif %}>Both Email & Phone</option>
-                                <option value="none" {% if current_filters.contact == 'none' %}selected{% endif %}>No Contact Info</option>
                             </select>
                         </div>
 
@@ -497,16 +495,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Clear filters
+    // Clear filters and immediately redirect
     clearFilters.addEventListener('click', function() {
-        const formInputs = searchForm.querySelectorAll('input, select');
-        formInputs.forEach(input => {
-            if (input.type === 'text' || input.type === 'email' || input.type === 'tel') {
-                input.value = '';
-            } else if (input.tagName === 'SELECT') {
-                input.selectedIndex = 0;
-            }
-        });
+        window.location.href = '{% url "patients:patient_list" %}';
     });
     
     // Export PDF with validation and loading state

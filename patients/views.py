@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.db.models import Q, F, Prefetch, Sum, Max, Count, Case, When, Value, DecimalField
+from django.db.models.functions import Concat
 from django.http import JsonResponse, HttpResponse
 from django.template.loader import render_to_string
 from django.utils import timezone as django_timezone
@@ -56,8 +57,16 @@ class PatientListView(LoginRequiredMixin, ListView):
         return super().get(request, *args, **kwargs)
     
     def get_queryset(self):
-        # Same as before - no changes needed
         queryset = Patient.objects.all().select_related()
+        
+        # Annotate with full name for searching and sorting
+        queryset = queryset.annotate(
+            full_name_concat=Concat(
+                'first_name', 
+                Value(' '), 
+                'last_name'
+            )
+        )
         
         queryset = queryset.annotate(
             visit_count=Count(
@@ -98,20 +107,46 @@ class PatientListView(LoginRequiredMixin, ListView):
             )
         )
         
-        # Apply filters (same as before)
+        # Apply filters
         search = self.request.GET.get('search', '').strip()
         status = self.request.GET.get('status', '')
         contact = self.request.GET.get('contact', '')
         activity = self.request.GET.get('activity', '')
         sort_by = self.request.GET.get('sort', 'name_asc')
         
+        # Enhanced full name search - handles "mark tan" or "tan mark"
         if search:
-            queryset = queryset.filter(
-                Q(first_name__icontains=search) |
-                Q(last_name__icontains=search) |
-                Q(email__icontains=search) |
-                Q(contact_number__icontains=search)
-            )
+            search_terms = search.split()
+            
+            if len(search_terms) == 1:
+                # Single word search - search in first name, last name, email, or phone
+                queryset = queryset.filter(
+                    Q(first_name__icontains=search_terms[0]) |
+                    Q(last_name__icontains=search_terms[0]) |
+                    Q(email__icontains=search_terms[0]) |
+                    Q(contact_number__icontains=search_terms[0])
+                )
+            else:
+                # Multiple words - search as full name in any order
+                # Create Q objects for each permutation of the search terms
+                q_objects = Q()
+                
+                # Forward order: "mark tan" matches first_name="mark" AND last_name="tan"
+                q_objects |= Q(
+                    first_name__icontains=search_terms[0],
+                    last_name__icontains=search_terms[1]
+                )
+                
+                # Reverse order: "tan mark" matches first_name="mark" AND last_name="tan"
+                q_objects |= Q(
+                    first_name__icontains=search_terms[1],
+                    last_name__icontains=search_terms[0]
+                )
+                
+                # Also check if it's in email or phone (for full search phrase)
+                q_objects |= Q(email__icontains=search) | Q(contact_number__icontains=search)
+                
+                queryset = queryset.filter(q_objects)
         
         if status:
             if status == 'active':
@@ -126,14 +161,6 @@ class PatientListView(LoginRequiredMixin, ListView):
             elif contact == 'phone_only':
                 queryset = queryset.filter(contact_number__isnull=False).exclude(contact_number='')
                 queryset = queryset.filter(Q(email__isnull=True) | Q(email=''))
-            elif contact == 'both':
-                queryset = queryset.filter(email__isnull=False, contact_number__isnull=False)
-                queryset = queryset.exclude(Q(email='') | Q(contact_number=''))
-            elif contact == 'none':
-                queryset = queryset.filter(
-                    Q(email__isnull=True) | Q(email=''),
-                    Q(contact_number__isnull=True) | Q(contact_number='')
-                )
         
         if activity:
             today = date.today()
@@ -157,10 +184,11 @@ class PatientListView(LoginRequiredMixin, ListView):
                 ).values_list('patient_id', flat=True).distinct()
                 queryset = queryset.exclude(id__in=recent_patient_ids)
         
+        # Sorting by full display name
         if sort_by == 'name_asc':
-            queryset = queryset.order_by('last_name', 'first_name')
+            queryset = queryset.order_by('full_name_concat')
         elif sort_by == 'name_desc':
-            queryset = queryset.order_by('-last_name', '-first_name')
+            queryset = queryset.order_by('-full_name_concat')
         elif sort_by == 'date_added_desc':
             queryset = queryset.order_by('-created_at')
         elif sort_by == 'date_added_asc':
@@ -177,7 +205,6 @@ class PatientListView(LoginRequiredMixin, ListView):
         return queryset
     
     def get_context_data(self, **kwargs):
-        # Same as before - no changes needed
         context = super().get_context_data(**kwargs)
         
         context['current_filters'] = {
@@ -287,7 +314,6 @@ class PatientListView(LoginRequiredMixin, ListView):
                 response['Content-Disposition'] = f'attachment; filename="patients_report_{date.today()}.pdf"'
                 return response
             else:
-                # Return error response instead of redirect
                 return HttpResponse(
                     'Error generating PDF. Please try again.',
                     status=500,
@@ -295,7 +321,6 @@ class PatientListView(LoginRequiredMixin, ListView):
                 )
         
         except Exception as e:
-            # Log the error for debugging
             import traceback
             print(f"PDF Generation Error: {str(e)}")
             print(traceback.format_exc())
@@ -506,41 +531,6 @@ class PatientSearchView(LoginRequiredMixin, ListView):
         context['form'] = PatientSearchForm(self.request.GET)
         context['query'] = self.request.GET.get('query', '')
         return context
-
-
-class FindPatientView(LoginRequiredMixin, ListView):
-    """Find patient by email or phone for appointment booking"""
-    model = Patient
-    template_name = 'patients/find_patient.html'
-    context_object_name = 'patients'
-    
-    def dispatch(self, request, *args, **kwargs):
-        if not request.user.has_permission('patients'):
-            messages.error(request, 'You do not have permission to access this page.')
-            return redirect('core:dashboard')
-        return super().dispatch(request, *args, **kwargs)
-    
-    def get_queryset(self):
-        identifier = self.request.GET.get('identifier', '').strip()
-        if not identifier:
-            return Patient.objects.none()
-        
-        # Search by email or phone number
-        return Patient.objects.filter(
-            Q(email__iexact=identifier) | Q(contact_number=identifier)
-        ).order_by('last_name', 'first_name')
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['form'] = FindPatientForm(self.request.GET)
-        context['identifier'] = self.request.GET.get('identifier', '')
-        
-        # If no results and identifier provided, suggest creating new patient
-        if context['identifier'] and not context['patients']:
-            context['suggest_create'] = True
-        
-        return context
-
 
 @login_required
 def toggle_patient_active(request, pk):

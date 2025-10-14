@@ -13,7 +13,6 @@ urlpatterns = [
     
     # Search and find functionality
     path('search/', views.PatientSearchView.as_view(), name='patient_search'),
-    path('find/', views.FindPatientView.as_view(), name='find_patient'),
     
     # AJAX endpoints
     path('api/<int:pk>/quick-info/', views.patient_quick_info, name='patient_quick_info'),
