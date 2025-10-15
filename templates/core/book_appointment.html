@@ -87,7 +87,7 @@
         </div>
     </div>
 
-    <!-- Success Message -->
+    <!-- UPDATED Success Message Section - Replace the existing success div in book_appointment.html -->
     <div x-show="submitted" class="max-w-3xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden mb-2">
         <div class="p-8 text-center">
             <div class="w-16 h-16 bg-green-100 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -96,7 +96,9 @@
                 </svg>
             </div>
             <h2 class="text-2xl font-bold text-gray-900 mb-2">Request Submitted!</h2>
-            <p class="text-gray-600 mb-4">Your appointment request has been successfully submitted.</p>
+            <p class="text-gray-600 mb-6">Your appointment request has been received. We'll review it and contact you within 24 hours to confirm.</p>
+            
+            <!-- Reference Number -->
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                 <p class="text-sm text-blue-700">
                     <strong>Reference Number:</strong> <span x-text="referenceNumber"></span><br>
@@ -105,6 +107,47 @@
                     Please keep this reference number for your records.
                 </p>
             </div>
+
+            <!-- ADDED: What Happens Next Section -->
+            <div class="space-y-3 mb-6 text-left">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <div>
+                        <p class="font-medium text-gray-900">What happens next?</p>
+                        <p class="text-sm text-gray-600 mt-1">We'll send a confirmation email with your appointment date and time.</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+                    </svg>
+                    <div>
+                        <p class="font-medium text-gray-900">Check your email</p>
+                        <p class="text-sm text-gray-600 mt-1">
+                            Check <strong x-text="form.patient_type === 'existing' ? otp.email : form.email"></strong> for our confirmation.
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-purple-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                    <div>
+                        <p class="font-medium text-gray-900">No confirmation yet?</p>
+                        <p class="text-sm text-gray-600 mt-1">Contact us directly if you don't hear back within 24 hours.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Return Home Button -->
+            <a href="{% url 'core:home' %}" class="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                Return to Home
+            </a>
         </div>
     </div>
 
@@ -365,6 +408,14 @@
                     <p x-show="errors.appointment_date" class="mt-2 text-sm text-red-600" x-text="errors.appointment_date"></p>
                 </div>
 
+                <div x-show="form.appointment_date && loadingSlots" class="mt-4 flex items-center justify-center text-sm text-gray-600">
+                    <svg class="animate-spin h-4 w-4 mr-2 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Checking available times...
+                </div>
+
                 <!-- Period Selection (AM/PM) -->
                 <div x-show="form.appointment_date" class="mb-6">
                     <label class="block text-sm font-medium text-gray-700 mb-3">Select Time Period *</label>
@@ -472,21 +523,28 @@
                     <p x-show="errors.agreed_to_terms" class="mt-2 text-sm text-red-600" x-text="errors.agreed_to_terms"></p>
                 </div>
 
-                <!-- Terms and Conditions Modal -->
-                <div id="termsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4" onclick="if(event.target === this) closeTermsModal()">
+                <!-- Terms Modal - UPDATED with accessibility -->
+                <div id="termsModal" 
+                    role="dialog" 
+                    aria-modal="true" 
+                    aria-labelledby="termsTitle"
+                    class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4"
+                    onclick="if(event.target === this) closeTermsModal()">
                     <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
-                        <!-- Header -->
                         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
-                            <h2 class="text-lg font-bold text-gray-900">Terms and Conditions</h2>
-                            <button type="button" onclick="closeTermsModal()" class="text-gray-400 hover:text-gray-600 p-1 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded">
+                            <h2 id="termsTitle" class="text-lg font-bold text-gray-900">Terms and Conditions</h2>
+                            <button type="button" 
+                                    aria-label="Close terms dialog"
+                                    onclick="closeTermsModal()" 
+                                    class="text-gray-400 hover:text-gray-600 p-1 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                 </svg>
                             </button>
                         </div>
                         
-                        <!-- Scrollable Content -->
                         <div class="overflow-y-auto flex-1 px-6 py-4 text-sm text-gray-700 space-y-4">
+                            <!-- Terms content (same as before) -->
                             <div>
                                 <h3 class="font-bold text-gray-900 mb-2">1. Appointment Booking</h3>
                                 <p>Online appointment requests are subject to availability and confirmation by KingJoy Dental Clinic. You must provide accurate and complete information when booking (name, contact number, email, and any relevant medical history). Appointment requests do not guarantee immediate confirmation. You will receive confirmation via email, SMS, or phone call once your appointment is approved.</p>
@@ -537,7 +595,6 @@
                             </div>
                         </div>
                         
-                        <!-- Footer -->
                         <div class="border-t border-gray-200 px-6 py-4 flex-shrink-0">
                             <button type="button" onclick="closeTermsModal()" class="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors">
                                 I Understand
@@ -545,7 +602,6 @@
                         </div>
                     </div>
                 </div>
-
             </div>
             
             <div class="px-8 py-4 bg-gray-50 flex justify-between">
@@ -611,10 +667,15 @@
 </style>
 
 <script>
-    // Modal control for terms and condition
+    // Modal control for terms and condition - UPDATED with keyboard support
     function openTermsModal() {
-        document.getElementById('termsModal').classList.remove('hidden');
+        const modal = document.getElementById('termsModal');
+        modal.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
+        
+        // Focus first focusable element in modal
+        const closeButton = modal.querySelector('button[aria-label="Close terms dialog"]');
+        if (closeButton) closeButton.focus();
     }
 
     function closeTermsModal() {
@@ -622,16 +683,56 @@
         document.body.style.overflow = '';
     }
 
-    // Close modal on ESC key
+    // Close modal on ESC key - UPDATED
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && !document.getElementById('termsModal').classList.contains('hidden')) {
             closeTermsModal();
         }
     });
 
+    // ADDED: User-friendly error messages
+    const USER_MESSAGES = {
+        // Patient type & selection
+        patient_type_required: 'Please select whether you are a new or existing patient',
+        patient_selection_required: 'Please select your patient record from the list',
+        
+        // OTP & Email
+        otp_email_required: 'Please enter your email address',
+        otp_email_invalid: 'We couldn\'t find an account with this email. Please check and try again.',
+        otp_code_required: 'Please enter the 6-digit verification code',
+        otp_code_invalid: 'The code you entered is incorrect or has expired. Please request a new code.',
+        otp_code_expired: 'Your code expired. Please request a new one.',
+        otp_send_failed: 'Failed to send verification code. Please try again.',
+        otp_verify_failed: 'Failed to verify code. Please try again.',
+        
+        // New patient fields
+        first_name_required: 'First Name is required',
+        first_name_invalid: 'First name should only contain letters, spaces, hyphens, and apostrophes',
+        last_name_required: 'Last Name is required',
+        last_name_invalid: 'Last name should only contain letters, spaces, hyphens, and apostrophes',
+        email_required: 'Email is required',
+        email_invalid: 'Please enter a valid email address',
+        contact_number_invalid: 'Please enter a valid Philippine mobile number',
+        
+        // Appointment details
+        service_required: 'Please choose a service',
+        date_required: 'Please pick a date for your appointment',
+        period_required: 'Please select morning or afternoon',
+        period_no_slots: 'No slots available for selected time period. Please choose another time.',
+        no_slots_selected_date: 'Unfortunately, there are no available slots on this date. Please choose another date.',
+        
+        // Terms
+        terms_required: 'Please agree to our terms to continue',
+        
+        // Generic errors
+        submit_failed: 'Failed to submit appointment request. Please try again.',
+        unexpected_error: 'An unexpected error occurred. Please try again.',
+    };
+
     // appointment booking logic
     const servicesData = {{ services_json|safe }};
     const csrfToken = '{{ csrf_token }}';
+    const todayDate = '{{ today_date }}';  // ADDED: Server timezone
     
     function appointmentBooking() {
         return {
@@ -644,6 +745,10 @@
             errors: {},
             services: servicesData || [],
             
+            // ADDED: Loading state for slot checking
+            loadingSlots: false,
+            loadingTimeout: null,
+            
             // OTP state
             otp: {
                 email: '',
@@ -652,7 +757,7 @@
                 verified: false,
                 sending: false,
                 verifying: false,
-                selectingPatient: false,  // NEW - prevent multiple calls
+                selectingPatient: false,
                 canResend: true,
                 remainingAttempts: null,
                 accessCodeId: null,
@@ -737,7 +842,7 @@
                 this.clearErrors('otp_email');
                 
                 if (!this.otp.email || !this.otp.email.trim()) {
-                    this.errors.otp_email = 'Please enter your email address.';
+                    this.errors.otp_email = USER_MESSAGES.otp_email_required;
                     return;
                 }
                 
@@ -767,11 +872,11 @@
                         }, 60000);
                         
                     } else {
-                        this.errors.otp_email = data.error;
+                        this.errors.otp_email = data.error || USER_MESSAGES.otp_email_invalid;
                     }
                 } catch (error) {
                     console.error('Error sending OTP:', error);
-                    this.errors.otp_email = 'Failed to send verification code. Please try again.';
+                    this.errors.otp_email = USER_MESSAGES.otp_send_failed;
                 } finally {
                     this.otp.sending = false;
                 }
@@ -781,7 +886,7 @@
                 this.clearErrors('otp_code');
                 
                 if (!this.otp.code || this.otp.code.length !== 6) {
-                    this.errors.otp_code = 'Please enter the 6-digit verification code.';
+                    this.errors.otp_code = USER_MESSAGES.otp_code_required;
                     return;
                 }
                 
@@ -815,11 +920,11 @@
                         
                         this.errorMessage = '';
                     } else {
-                        this.errors.otp_code = data.error;
+                        this.errors.otp_code = data.error || USER_MESSAGES.otp_code_invalid;
                     }
                 } catch (error) {
                     console.error('Error verifying OTP:', error);
-                    this.errors.otp_code = 'Failed to verify code. Please try again.';
+                    this.errors.otp_code = USER_MESSAGES.otp_verify_failed;
                 } finally {
                     this.otp.verifying = false;
                 }
@@ -852,16 +957,16 @@
                         this.otp.verifiedPatientData = data.patient;
                         this.otp.verifiedPatientName = data.patient.name;
                         this.form.patient_id = data.patient.id;
-                        this.otp.selectedPatientId = data.patient.id; // Update for visual feedback
+                        this.otp.selectedPatientId = data.patient.id;
                         this.clearErrors('patient_selection');
                         console.log('Patient selected successfully:', data.patient.name);
                     } else {
-                        this.errorMessage = data.error;
+                        this.errorMessage = data.error || USER_MESSAGES.unexpected_error;
                         console.error('Error selecting patient:', data.error);
                     }
                 } catch (error) {
                     console.error('Error selecting patient:', error);
-                    this.errorMessage = 'Failed to select patient. Please try again.';
+                    this.errorMessage = USER_MESSAGES.unexpected_error;
                 } finally {
                     this.otp.selectingPatient = false;
                 }
@@ -874,37 +979,36 @@
                 switch (this.step) {
                     case 1:
                         if (!this.form.patient_type) {
-                            this.errors.patient_type = 'Please select patient type';
+                            this.errors.patient_type = USER_MESSAGES.patient_type_required;
                             isValid = false;
                         }
                         
                         if (this.form.patient_type === 'existing') {
                             if (!this.otp.verified) {
-                                this.errors.otp_email = 'Please verify your email address';
+                                this.errors.otp_email = USER_MESSAGES.otp_email_required;
                                 isValid = false;
                             }
                             
                             if (this.otp.showPatientSelection && !this.otp.selectedPatientId) {
-                                this.errors.patient_selection = 'Please select your patient record';
+                                this.errors.patient_selection = USER_MESSAGES.patient_selection_required;
                                 isValid = false;
                             }
                         } else if (this.form.patient_type === 'new') {
                             const requiredFields = ['first_name', 'last_name', 'email'];
                             for (const field of requiredFields) {
                                 if (!this.form[field]?.trim()) {
-                                    const label = field.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
-                                    this.errors[field] = `${label} is required`;
+                                    this.errors[field] = USER_MESSAGES[`${field}_required`];
                                     isValid = false;
                                 }
                             }
                             
                             if (this.form.email && !this.isValidEmail(this.form.email)) {
-                                this.errors.email = 'Please enter a valid email address';
+                                this.errors.email = USER_MESSAGES.email_invalid;
                                 isValid = false;
                             }
                             
                             if (this.form.contact_number && !this.isValidPhoneNumber(this.form.contact_number)) {
-                                this.errors.contact_number = 'Please enter a valid Philippine mobile number';
+                                this.errors.contact_number = USER_MESSAGES.contact_number_invalid;
                                 isValid = false;
                             }
                         }
@@ -912,27 +1016,27 @@
                         
                     case 2:
                         if (!this.form.service) {
-                            this.errors.service = 'Please select a service';
+                            this.errors.service = USER_MESSAGES.service_required;
                             isValid = false;
                         }
                         if (!this.form.appointment_date) {
-                            this.errors.appointment_date = 'Please select an appointment date';
+                            this.errors.appointment_date = USER_MESSAGES.date_required;
                             isValid = false;
                         }
                         if (!this.form.period) {
-                            this.errors.period = 'Please select a time period (AM or PM)';
+                            this.errors.period = USER_MESSAGES.period_required;
                             isValid = false;
                         }
                         
                         if (this.form.period && this.availableSlots[this.form.period] <= 0) {
-                            this.errors.period = `No ${this.form.period} slots available for selected date`;
+                            this.errors.period = USER_MESSAGES.period_no_slots;
                             isValid = false;
                         }
                         break;
                         
                     case 3:
                         if (!this.form.agreed_to_terms) {
-                            this.errors.agreed_to_terms = 'Please agree to the terms and conditions';
+                            this.errors.agreed_to_terms = USER_MESSAGES.terms_required;
                             isValid = false;
                         }
                         break;
@@ -1009,17 +1113,16 @@
                 return date.toDateString() === today.toDateString();
             },
             
+            // UPDATED: Use server timezone for date validation
             isDateAvailable(date) {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
+                const dateISO = date.toISOString().split('T')[0];
                 
-                const checkDate = new Date(date);
-                checkDate.setHours(0, 0, 0, 0);
-                
-                if (checkDate <= today) {
+                // Check if date is in the past or today
+                if (dateISO <= todayDate) {
                     return false;
                 }
                 
+                // Check if Sunday
                 if (date.getDay() === 0) {
                     return false;
                 }
@@ -1027,20 +1130,30 @@
                 return true;
             },
             
+            // UPDATED: Added loading state with threshold
             selectDate(day) {
                 if (!day.available || day.isEmpty) {
                     return;
                 }
                 
                 if (day.hasSlots === false || (day.amSlots === 0 && day.pmSlots === 0)) {
-                    this.errorMessage = `No appointment slots available for ${this.formatDate(day.date)}`;
+                    this.errorMessage = USER_MESSAGES.no_slots_selected_date;
                     return;
                 }
                 
                 this.form.appointment_date = day.date;
                 this.form.period = '';
                 
-                this.loadSlotAvailability();
+                // Show loading indicator only if request takes longer than 200ms
+                this.loadingTimeout = setTimeout(() => {
+                    this.loadingSlots = true;
+                }, 200);
+                
+                this.loadSlotAvailability().finally(() => {
+                    clearTimeout(this.loadingTimeout);
+                    this.loadingSlots = false;
+                });
+                
                 this.generateCalendar();
             },
             
@@ -1167,7 +1280,6 @@
                 this.clearErrors();
                 
                 try {
-                    // Prepare submission data
                     let submissionData = {
                         service: this.form.service,
                         appointment_date: this.form.appointment_date,
@@ -1204,11 +1316,11 @@
                         this.referenceNumber = data.reference_number;
                         this.errorMessage = '';
                     } else {
-                        this.errorMessage = data.error || 'Failed to submit appointment request.';
+                        this.errorMessage = data.error || USER_MESSAGES.submit_failed;
                     }
                 } catch (error) {
                     console.error('Error submitting appointment:', error);
-                    this.errorMessage = 'Failed to submit appointment request. Please try again.';
+                    this.errorMessage = USER_MESSAGES.submit_failed;
                 } finally {
                     this.submitting = false;
                 }

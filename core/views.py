@@ -63,10 +63,14 @@ class BookAppointmentView(TemplateView):
         am_period_display = SystemSetting.get_setting('am_period_display', '8:00 AM - 12:00 PM')
         pm_period_display = SystemSetting.get_setting('pm_period_display', '1:00 PM - 6:00 PM')
         
+        # ADDED: Pass today's date from server for timezone consistency
+        today_date = timezone.now().date().isoformat()
+        
         context.update({
             'services_json': json.dumps(services),
             'am_period_display': am_period_display,
             'pm_period_display': pm_period_display,
+            'today_date': today_date,  # ADDED
         })
         
         return context
@@ -523,6 +527,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             am_percentage = (am_available / am_total * 100) if am_total > 0 else 0
             pm_percentage = (pm_available / pm_total * 100) if pm_total > 0 else 0
             
+            # Check if fully booked
+            is_fully_booked = am_available == 0 and pm_available == 0
+            
             context['todays_slot_summary'] = {
                 'am_available': am_available,
                 'am_total': am_total,
@@ -530,37 +537,22 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 'pm_available': pm_available,
                 'pm_total': pm_total,
                 'pm_percentage': round(pm_percentage, 1),
+                'slots_not_configured': False,
+                'is_fully_booked': is_fully_booked,
             }
             
         except DailySlots.DoesNotExist:
-            # Try to create default slots for today
-            daily_slots, created = DailySlots.get_or_create_for_date(today)
-            if daily_slots:
-                am_available = daily_slots.get_available_am_slots()
-                am_total = daily_slots.am_slots
-                pm_available = daily_slots.get_available_pm_slots()
-                pm_total = daily_slots.pm_slots
-                
-                am_percentage = (am_available / am_total * 100) if am_total > 0 else 0
-                pm_percentage = (pm_available / pm_total * 100) if pm_total > 0 else 0
-                
-                context['todays_slot_summary'] = {
-                    'am_available': am_available,
-                    'am_total': am_total,
-                    'am_percentage': round(am_percentage, 1),
-                    'pm_available': pm_available,
-                    'pm_total': pm_total,
-                    'pm_percentage': round(pm_percentage, 1),
-                }
-            else:
-                context['todays_slot_summary'] = {
-                    'am_available': 0,
-                    'am_total': 0,
-                    'am_percentage': 0,
-                    'pm_available': 0,
-                    'pm_total': 0,
-                    'pm_percentage': 0,
-                }
+            # If admin hasn't set up slots for today
+            context['todays_slot_summary'] = {
+                'am_available': 0,
+                'am_total': 0,
+                'am_percentage': 0,
+                'pm_available': 0,
+                'pm_total': 0,
+                'pm_percentage': 0,
+                'slots_not_configured': True,
+                'is_fully_booked': False,
+            }
         
         return context
 

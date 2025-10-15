@@ -7,7 +7,8 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js - only load on pages that need it -->
+    {% block extra_head %}{% endblock %}
     <style>
         /* Safe area support for mobile devices with notches */
         @supports (padding: max(0px)) {
@@ -19,6 +20,34 @@
         /* Fallback for browsers that don't support @supports or max() */
         main {
             padding-bottom: 6rem;
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        /* Optional: Add subtle gradient to indicate scrollability */
+        .md\:hidden .overflow-x-auto {
+            position: relative;
+        }
+        .md\:hidden .overflow-x-auto::after {
+            content: '';
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            width: 40px;
+            background: linear-gradient(to left, rgba(255,255,255,0.9), transparent);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .md\:hidden .overflow-x-auto.has-scroll::after {
+            opacity: 1;
         }
     </style>
     <script>
@@ -121,6 +150,10 @@
                 </div>
             </div>
         </nav>
+
+        <div id="loading-bar" 
+             class="hidden fixed top-16 left-0 right-0 h-1 bg-primary-600 z-50 transition-all duration-300 md:left-64" 
+             style="width: 0%"></div>
 
         <!-- Sidebar for Desktop -->
         <div class="hidden md:flex md:flex-shrink-0 md:fixed md:inset-y-0 md:left-0 md:z-30 md:top-16">
@@ -304,7 +337,7 @@
 
         <!-- Mobile Bottom Navigation -->
         <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 safe-area-inset-bottom">
-            <div class="flex overflow-x-auto">
+            <div class="flex overflow-x-auto scrollbar-hide" style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
                 {% if user.is_superuser or user|has_permission:"dashboard" %}
                 <a href="{% url 'core:dashboard' %}" class="{% if 'core' in request.resolver_match.namespace and request.resolver_match.url_name == 'dashboard' %}text-primary-600 bg-primary-50{% else %}text-gray-600{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
                     <span class="text-lg mb-1">📊</span>
@@ -382,16 +415,39 @@
             {% if messages %}
                 <div class="px-4 sm:px-6 lg:px-8 pt-4 flex-shrink-0">
                     {% for message in messages %}
-                        <div class="rounded-lg p-4 mb-4 {% if message.tags == 'error' %}bg-red-50 text-red-800 border border-red-200{% elif message.tags == 'warning' %}bg-yellow-50 text-yellow-800 border border-yellow-200{% elif message.tags == 'success' %}bg-green-50 text-green-800 border border-green-200{% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %} shadow-sm">
-                            <div class="flex items-center">
-                                <span class="mr-2">
-                                    {% if message.tags == 'error' %}⚠️{% elif message.tags == 'warning' %}⚠️{% elif message.tags == 'success' %}✅{% else %}ℹ️{% endif %}
-                                </span>
-                                {{ message }}
+                        <div class="rounded-lg p-4 mb-4 {% if message.tags == 'error' %}bg-red-50 text-red-800 border border-red-200{% elif message.tags == 'warning' %}bg-yellow-50 text-yellow-800 border border-yellow-200{% elif message.tags == 'success' %}bg-green-50 text-green-800 border border-green-200{% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %} shadow-sm transition-opacity duration-500"
+                            data-message-type="{{ message.tags }}"
+                            x-data="{ show: true }"
+                            x-show="show"
+                            x-transition>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center flex-1">
+                                    <span class="mr-2">
+                                        {% if message.tags == 'error' %}⚠️{% elif message.tags == 'warning' %}⚠️{% elif message.tags == 'success' %}✅{% else %}ℹ️{% endif %}
+                                    </span>
+                                    {{ message }}
+                                </div>
+                                <button @click="show = false" class="ml-4 text-gray-400 hover:text-gray-600 focus:outline-none">
+                                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                    </svg>
+                                </button>
                             </div>
                         </div>
                     {% endfor %}
                 </div>
+                
+                <!-- Auto-dismiss success messages after 5 seconds -->
+                <script>
+                    document.addEventListener('DOMContentLoaded', () => {
+                        document.querySelectorAll('[data-message-type="success"]').forEach(msg => {
+                            setTimeout(() => {
+                                const alpineData = Alpine.$data(msg);
+                                if (alpineData) alpineData.show = false;
+                            }, 5000);
+                        });
+                    });
+                </script>
             {% endif %}
             
             <!-- Page Content -->
@@ -408,8 +464,13 @@
     {% block scripts %}
     <script>
     (function() {
-    const REFRESH_INTERVAL = 45000; // 45 seconds in milliseconds
-    let refreshTimeout;
+    const REFRESH_INTERVAL = 45000; // 45 seconds
+    const MAX_REFRESH_INTERVAL = 300000; // 5 minutes
+    
+    // KEEP ALL THESE VARIABLES
+    let refreshTimeout; // ← This is needed for resetAutoRefreshTimer()
+    let currentInterval = REFRESH_INTERVAL;
+    let consecutiveZeroCount = 0;
     
     // Function to fetch and update the pending count
     async function updatePendingBadge() {
@@ -425,9 +486,25 @@
                 const data = await response.json();
                 const pendingCount = data.pending_count;
                 updateBadges(pendingCount);
+                
+                // Adaptive polling logic
+                if (pendingCount === 0) {
+                    consecutiveZeroCount++;
+                    // After 3 consecutive zeros, slow down
+                    if (consecutiveZeroCount >= 3) {
+                        currentInterval = Math.min(currentInterval * 1.5, MAX_REFRESH_INTERVAL);
+                    }
+                } else {
+                    // If appointments found, reset to fast polling
+                    consecutiveZeroCount = 0;
+                    currentInterval = REFRESH_INTERVAL;
+                }
+                
+                resetAutoRefreshTimer();
             }
         } catch (error) {
             console.error('Error updating pending appointments badge:', error);
+            resetAutoRefreshTimer(); // Keep trying even on error
         }
     }
     
@@ -436,49 +513,39 @@
         // Desktop sidebar - Appointments button badge (red dot)
         const appointmentsBadge = document.querySelector('[data-badge="appointments-dot"]');
         if (appointmentsBadge) {
-            if (count > 0) {
-                appointmentsBadge.style.display = '';
-            } else {
-                appointmentsBadge.style.display = 'none';
-            }
+            appointmentsBadge.style.display = count > 0 ? '' : 'none';
         }
         
         // Desktop sidebar - Calendar View badge (red dot only)
         const calendarBadge = document.querySelector('[data-badge="calendar-count"]');
         if (calendarBadge) {
-            if (count > 0) {
-                calendarBadge.style.display = '';
-            } else {
-                calendarBadge.style.display = 'none';
-            }
+            calendarBadge.style.display = count > 0 ? '' : 'none';
         }
         
         // Mobile bottom nav - Appointments badge (red dot)
         const mobileBadge = document.querySelector('[data-badge="appointments-mobile"]');
         if (mobileBadge) {
-            if (count > 0) {
-                mobileBadge.style.display = '';
-            } else {
-                mobileBadge.style.display = 'none';
-            }
+            mobileBadge.style.display = count > 0 ? '' : 'none';
         }
     }
     
     // Function to reset the auto-refresh timer
     function resetAutoRefreshTimer() {
-        clearTimeout(refreshTimeout);
-        refreshTimeout = setTimeout(updatePendingBadge, REFRESH_INTERVAL);
+        clearTimeout(refreshTimeout); // ← Uses the variable
+        refreshTimeout = setTimeout(updatePendingBadge, currentInterval); // ← And sets it
     }
     
     // Listen for HTMX appointment events (these are triggered by approve/reject actions)
     document.body.addEventListener('appointmentApproved', () => {
+        currentInterval = REFRESH_INTERVAL; // Reset to fast polling
+        consecutiveZeroCount = 0;
         updatePendingBadge(); // Immediate update
-        resetAutoRefreshTimer(); // Reset timer
     });
     
     document.body.addEventListener('appointmentRejected', () => {
+        currentInterval = REFRESH_INTERVAL; // Reset to fast polling
+        consecutiveZeroCount = 0;
         updatePendingBadge(); // Immediate update
-        resetAutoRefreshTimer(); // Reset timer
     });
     
     // Also listen for any status changes that might affect pending count
@@ -486,7 +553,6 @@
         // If the appointment requests list was updated, refresh the badge
         if (event.detail.target.id === 'request-list-container') {
             updatePendingBadge();
-            resetAutoRefreshTimer();
         }
     });
     
@@ -494,13 +560,41 @@
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
             updatePendingBadge();
-            resetAutoRefreshTimer();
         });
     } else {
         updatePendingBadge();
-        resetAutoRefreshTimer();
     }
 })();
+
+// loading bar
+document.addEventListener('DOMContentLoaded', () => {
+    const loadingBar = document.getElementById('loading-bar');
+    
+    // Show on navigation click
+    document.querySelectorAll('a[href]:not([href^="#"])').forEach(link => {
+        link.addEventListener('click', () => {
+            loadingBar.classList.remove('hidden');
+            loadingBar.style.width = '70%';
+        });
+    });
+    
+    // Complete on page load
+    window.addEventListener('load', () => {
+        loadingBar.style.width = '100%';
+        setTimeout(() => {
+            loadingBar.classList.add('hidden');
+            loadingBar.style.width = '0%';
+        }, 300);
+    });
+});
+
+    // Check if mobile nav is scrollable and add visual indicator
+    document.addEventListener('DOMContentLoaded', () => {
+        const mobileNav = document.querySelector('.md\\:hidden .overflow-x-auto');
+        if (mobileNav && mobileNav.scrollWidth > mobileNav.clientWidth) {
+            mobileNav.classList.add('has-scroll');
+        }
+    });
     </script>
     {% endblock %}
 

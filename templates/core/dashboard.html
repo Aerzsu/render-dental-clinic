@@ -86,42 +86,67 @@
         </div>
     </div>
 
-    <!-- Today's Slot Availability -->
-    {% if todays_slot_summary %}
-    <div class="bg-white shadow rounded-lg">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <h3 class="text-lg font-medium text-gray-900">Today's Slot Availability</h3>
+    <!-- Slots Not Configured Warning -->
+    {% if todays_slot_summary.slots_not_configured %}
+    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div class="flex items-center">
+            <svg class="w-5 h-5 text-yellow-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+            </svg>
+            <div>
+                <p class="font-medium text-yellow-800">Today's slots not configured</p>
+                <p class="text-sm text-yellow-700">Admin hasn't set up appointment slots for today. Patients cannot book for today.</p>
+            </div>
         </div>
-        <div class="px-6 py-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-sm font-medium text-gray-700">Morning (AM)</span>
-                        <span class="text-sm text-gray-600">
-                            {{ todays_slot_summary.am_available }}/{{ todays_slot_summary.am_total }} available
-                        </span>
+    </div>
+    {% elif todays_slot_summary.is_fully_booked %}
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div class="flex items-center">
+            <svg class="w-5 h-5 text-red-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 0 1 5.11 6.524a6 6 0 0 1 8.367 8.366zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V9h2v4z" clip-rule="evenodd"/>
+            </svg>
+            <div>
+                <p class="font-medium text-red-800">All slots booked for today</p>
+                <p class="text-sm text-red-700">No more appointments available for today. All AM and PM slots are fully booked.</p>
+            </div>
+        </div>
+    </div>
+    {% else %}
+        <!-- Today's Slot Availability -->
+        <div class="bg-white shadow rounded-lg">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">Today's Slot Availability</h3>
+            </div>
+            <div class="px-6 py-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-700">Morning (AM)</span>
+                            <span class="text-sm text-gray-600">
+                                {{ todays_slot_summary.am_available }}/{{ todays_slot_summary.am_total }} available
+                            </span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-green-600 h-2 rounded-full transition-all duration-300" 
+                                 style="width: {{ todays_slot_summary.am_percentage }}%"></div>
+                        </div>
                     </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2">
-                        <div class="bg-green-600 h-2 rounded-full transition-all duration-300" 
-                             style="width: {{ todays_slot_summary.am_percentage }}%"></div>
-                    </div>
-                </div>
-                
-                <div>
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-sm font-medium text-gray-700">Afternoon (PM)</span>
-                        <span class="text-sm text-gray-600">
-                            {{ todays_slot_summary.pm_available }}/{{ todays_slot_summary.pm_total }} available
-                        </span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-2">
-                        <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                             style="width: {{ todays_slot_summary.pm_percentage }}%"></div>
+                    
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-gray-700">Afternoon (PM)</span>
+                            <span class="text-sm text-gray-600">
+                                {{ todays_slot_summary.pm_available }}/{{ todays_slot_summary.pm_total }} available
+                            </span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                                 style="width: {{ todays_slot_summary.pm_percentage }}%"></div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
     {% endif %}
 
     <!-- Today's Appointments Table -->
