@@ -3,6 +3,7 @@ from django.urls import path
 from . import views
 from appointments import views as appointment_views
 from core.views import BookAppointmentView
+from .views import ThemeToggleView
 
 app_name = 'core'
 
@@ -11,6 +12,7 @@ urlpatterns = [
     path('', views.HomeView.as_view(), name='home'),
     path('book-appointment/', BookAppointmentView.as_view(), name='book_appointment'),
     # Authenticated pages
+    path('theme/toggle/', ThemeToggleView.as_view(), name='theme_toggle'),
     path('dashboard/', views.DashboardView.as_view(), name='dashboard'),
     
     # Maintenance module

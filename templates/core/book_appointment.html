@@ -21,7 +21,7 @@
                      :class="step >= 1 ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300'">
                     <span class="text-sm font-medium">1</span>
                 </div>
-                <span class="ml-2 text-sm font-medium">Patient Info</span>
+                <span class="ml-2 text-sm font-medium hidden sm:inline">Patient Info</span>
             </div>
             <div class="flex-1 h-px mx-4" :class="step >= 2 ? 'bg-primary-600' : 'bg-gray-300'"></div>
             <div class="flex items-center" :class="step >= 2 ? 'text-primary-600' : 'text-gray-400'">
@@ -29,7 +29,7 @@
                      :class="step >= 2 ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300'">
                     <span class="text-sm font-medium">2</span>
                 </div>
-                <span class="ml-2 text-sm font-medium">Service & Schedule</span>
+                <span class="ml-2 text-sm font-medium hidden sm:inline">Service & Schedule</span>
             </div>
             <div class="flex-1 h-px mx-4" :class="step >= 3 ? 'bg-primary-600' : 'bg-gray-300'"></div>
             <div class="flex items-center" :class="step >= 3 ? 'text-primary-600' : 'text-gray-400'">
@@ -37,7 +37,7 @@
                      :class="step >= 3 ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300'">
                     <span class="text-sm font-medium">3</span>
                 </div>
-                <span class="ml-2 text-sm font-medium">Confirm</span>
+                <span class="ml-2 text-sm font-medium hidden sm:inline">Confirm</span>
             </div>
         </div>
     </div>
@@ -48,7 +48,7 @@
             <div class="flex">
                 <div class="flex-shrink-0">
                     <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L10 9.414l1.707-1.707a1 1 0 011.414 1.414L11.414 10l1.707 1.707a1 1 0 01-1.414 1.414L10 10.586l-1.707 1.707a1 1 0 01-1.414-1.414L8.586 10 6.879 8.293a1 1 0 011.414-1.414L10 8.586z" clip-rule="evenodd" />
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
                     </svg>
                 </div>
                 <div class="ml-3">
@@ -56,7 +56,7 @@
                 </div>
                 <div class="ml-auto pl-3">
                     <div class="-mx-1.5 -my-1.5">
-                        <button type="button" @click="errorMessage = ''" class="inline-flex bg-red-50 rounded-md p-1.5 text-red-400 hover:bg-red-100">
+                        <button type="button" @click="errorMessage = ''" class="inline-flex bg-red-50 rounded-md p-1.5 text-red-400 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500">
                             <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
                             </svg>
@@ -87,7 +87,7 @@
         </div>
     </div>
 
-    <!-- Success Message -->
+    <!-- Success Message - UPDATED with better expectations -->
     <div x-show="submitted" class="max-w-3xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden mb-2">
         <div class="p-8 text-center">
             <div class="w-16 h-16 bg-green-100 rounded-full mx-auto mb-4 flex items-center justify-center">
@@ -96,7 +96,41 @@
                 </svg>
             </div>
             <h2 class="text-2xl font-bold text-gray-900 mb-2">Request Submitted!</h2>
-            <p class="text-gray-600 mb-4">Your appointment request has been successfully submitted.</p>
+            <p class="text-gray-600 mb-6">Your appointment request has been received. We'll review it and contact you within 24 hours to confirm.</p>
+
+            <div class="space-y-3 mb-6">
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <div>
+                        <p class="font-medium text-gray-900">What happens next?</p>
+                        <p class="text-sm text-gray-600 mt-1">We'll send a confirmation email with your appointment date and time.</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+                    </svg>
+                    <div>
+                        <p class="font-medium text-gray-900">Check your email</p>
+                        <p class="text-sm text-gray-600 mt-1">Check <strong x-text="form.patient_type === 'existing' ? (otp.verifiedPatientData?.email || form.email) : form.email"></strong> for our confirmation.</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start">
+                    <svg class="w-5 h-5 text-purple-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z"/>
+                    </svg>
+                    <div>
+                        <p class="font-medium text-gray-900">No confirmation yet?</p>
+                        <p class="text-sm text-gray-600 mt-1">Contact us directly if you don't hear back within 24 hours.</p>
+                    </div>
+                </div>
+            </div>
+            
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                 <p class="text-sm text-blue-700">
                     <strong>Reference Number:</strong> <span x-text="referenceNumber"></span><br>
@@ -110,7 +144,7 @@
 
     <!-- Booking Form -->
     <form x-show="!submitted" class="max-w-3xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden" @submit.prevent="submitForm">
-        <!-- Step 1: Patient Information -->
+        <!-- Step 1: Patient Information (UNCHANGED from your original) -->
         <div x-show="step === 1">
             <div class="p-8">
                 <h2 class="text-2xl font-bold text-gray-900 mb-6">Patient Information</h2>
@@ -149,9 +183,8 @@
                     <p x-show="errors.patient_type" class="mt-2 text-sm text-red-600" x-text="errors.patient_type"></p>
                 </div>
 
-                <!-- Existing Patient OTP Flow -->
+                <!-- Existing Patient OTP Flow (UNCHANGED) -->
                 <div x-show="form.patient_type === 'existing'" class="space-y-6">
-                    <!-- Email Input with Send Code Button -->
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
                         <div class="flex gap-2">
@@ -172,7 +205,6 @@
                         <p x-show="errors.otp_email" class="mt-1 text-sm text-red-600" x-text="errors.otp_email"></p>
                     </div>
 
-                    <!-- OTP Code Input (shown after code is sent) -->
                     <div x-show="otp.codeSent && !otp.verified">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Verification Code *</label>
                         <div class="flex gap-2">
@@ -192,7 +224,6 @@
                         <p class="mt-1 text-sm text-gray-500">Check your email for the 6-digit verification code (expires in 15 minutes)</p>
                     </div>
 
-                    <!-- Patient Selection (shown after OTP verified with multiple patients) -->
                     <div x-show="otp.verified && otp.showPatientSelection">
                         <label class="block text-sm font-medium text-gray-700 mb-3">Select Your Patient Record *</label>
                         <div class="space-y-2">
@@ -228,7 +259,6 @@
                         <p x-show="errors.patient_selection" class="mt-2 text-sm text-red-600" x-text="errors.patient_selection"></p>
                     </div>
 
-                    <!-- Success indicator for verified single patient -->
                     <div x-show="otp.verified && !otp.showPatientSelection" class="p-4 bg-green-50 border border-green-200 rounded-md">
                         <div class="flex">
                             <div class="flex-shrink-0">
@@ -243,7 +273,7 @@
                     </div>
                 </div>
 
-                <!-- New Patient Form -->
+                <!-- New Patient Form (UNCHANGED) -->
                 <div x-show="form.patient_type === 'new'" class="space-y-6">
                     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                         <div>
@@ -295,7 +325,7 @@
             </div>
         </div>
 
-        <!-- Step 2: Service & Date/Period Selection -->
+        <!-- Step 2: Service & Date/Period Selection - UPDATED -->
         <div x-show="step === 2">
             <div class="p-8">
                 <h2 class="text-2xl font-bold text-gray-900 mb-6">Service & Schedule</h2>
@@ -312,7 +342,6 @@
                     </select>
                     <p x-show="errors.service" class="mt-1 text-sm text-red-600" x-text="errors.service"></p>
                     
-                    <!-- Service Information -->
                     <div x-show="selectedService" class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                         <h4 class="font-medium text-blue-900 mb-2">Service Details</h4>
                         <div class="text-sm text-blue-700 space-y-1">
@@ -322,20 +351,20 @@
                     </div>
                 </div>
 
-                <!-- Date Selection -->
+                <!-- Date Selection - UPDATED with visual indicators -->
                 <div class="mb-8">
                     <label class="block text-sm font-medium text-gray-700 mb-3">Select Date *</label>
                     <div class="bg-white border border-gray-200 rounded-lg p-4">
                         <div class="flex items-center justify-between mb-4">
                             <button type="button" @click="changeMonth(-1)" 
-                                    class="p-2 hover:bg-gray-100 rounded-md">
+                                    class="p-2 hover:bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                                 </svg>
                             </button>
                             <h4 class="font-medium text-gray-900" x-text="currentMonthName + ' ' + currentYear"></h4>
                             <button type="button" @click="changeMonth(1)" 
-                                    class="p-2 hover:bg-gray-100 rounded-md">
+                                    class="p-2 hover:bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                                 </svg>
@@ -353,34 +382,46 @@
                         <div class="grid grid-cols-7 gap-1">
                             <template x-for="day in calendarDays" :key="day.date || day.index">
                                 <button type="button" 
-                                        class="calendar-day text-sm rounded-md border min-h-[40px] flex items-center justify-center" 
+                                        class="calendar-day text-sm rounded-md border min-h-[40px] flex items-center justify-center transition-all" 
                                         :class="getDateClasses(day)"
                                         @click="day.isEmpty || !day.available ? null : selectDate(day)"
                                         :disabled="day.isEmpty || !day.available"
+                                        :title="day.available && day.amSlots === 0 && day.pmSlots === 0 ? 'No slots available' : ''"
                                         x-text="day.day">
                                 </button>
                             </template>
                         </div>
                     </div>
+                    
+                    <!-- Loading indicator - NEW -->
+                    <div x-show="form.appointment_date && loadingSlots" class="mt-2 flex items-center text-sm text-gray-600">
+                        <svg class="animate-spin h-4 w-4 mr-2 text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Checking available times...
+                    </div>
+                    
                     <p x-show="errors.appointment_date" class="mt-2 text-sm text-red-600" x-text="errors.appointment_date"></p>
                 </div>
 
-                <!-- Period Selection (AM/PM) -->
+                <!-- Period Selection - UPDATED with better mobile responsiveness -->
                 <div x-show="form.appointment_date" class="mb-6">
                     <label class="block text-sm font-medium text-gray-700 mb-3">Select Time Period *</label>
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <label class="relative">
                             <input type="radio" x-model="form.period" value="AM" class="sr-only" @change="clearErrors('period')">
-                            <div class="p-4 border rounded-lg cursor-pointer transition-all" 
+                            <div class="p-3 sm:p-4 border rounded-lg cursor-pointer transition-all" 
                                  :class="form.period === 'AM' ? 'border-primary-600 bg-primary-50 ring-2 ring-primary-600' : (availableSlots.AM > 0 ? 'border-gray-300 hover:border-gray-400' : 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-50')">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <h3 class="text-lg font-medium text-gray-900">Morning (AM)</h3>
-                                        <p class="text-sm text-gray-500">{{ am_period_display }}</p>
+                                <div class="flex items-center justify-between gap-2">
+                                    <div class="min-w-0">
+                                        <h3 class="text-base sm:text-lg font-medium text-gray-900">Morning</h3>
+                                        <p class="text-xs sm:text-sm text-gray-500 truncate">{{ am_period_display }}</p>
                                     </div>
-                                    <div class="text-right">
-                                        <p class="text-sm font-medium" :class="availableSlots.AM > 0 ? 'text-green-600' : 'text-red-600'">
-                                            <span x-text="availableSlots.AM"></span> slots available
+                                    <div class="text-right flex-shrink-0">
+                                        <p class="text-xs sm:text-sm font-medium" 
+                                           :class="availableSlots.AM > 0 ? 'text-green-600' : 'text-red-600'">
+                                            <span x-text="availableSlots.AM"></span> slots
                                         </p>
                                     </div>
                                 </div>
@@ -388,16 +429,17 @@
                         </label>
                         <label class="relative">
                             <input type="radio" x-model="form.period" value="PM" class="sr-only" @change="clearErrors('period')">
-                            <div class="p-4 border rounded-lg cursor-pointer transition-all" 
+                            <div class="p-3 sm:p-4 border rounded-lg cursor-pointer transition-all" 
                                  :class="form.period === 'PM' ? 'border-primary-600 bg-primary-50 ring-2 ring-primary-600' : (availableSlots.PM > 0 ? 'border-gray-300 hover:border-gray-400' : 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-50')">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <h3 class="text-lg font-medium text-gray-900">Afternoon (PM)</h3>
-                                        <p class="text-sm text-gray-500">{{ pm_period_display }}</p>
+                                <div class="flex items-center justify-between gap-2">
+                                    <div class="min-w-0">
+                                        <h3 class="text-base sm:text-lg font-medium text-gray-900">Afternoon</h3>
+                                        <p class="text-xs sm:text-sm text-gray-500 truncate">{{ pm_period_display }}</p>
                                     </div>
-                                    <div class="text-right">
-                                        <p class="text-sm font-medium" :class="availableSlots.PM > 0 ? 'text-green-600' : 'text-red-600'">
-                                            <span x-text="availableSlots.PM"></span> slots available
+                                    <div class="text-right flex-shrink-0">
+                                        <p class="text-xs sm:text-sm font-medium" 
+                                           :class="availableSlots.PM > 0 ? 'text-green-600' : 'text-red-600'">
+                                            <span x-text="availableSlots.PM"></span> slots
                                         </p>
                                     </div>
                                 </div>
@@ -407,7 +449,7 @@
                     <p x-show="errors.period" class="mt-2 text-sm text-red-600" x-text="errors.period"></p>
                 </div>
 
-                <!-- Reason (Optional) -->
+                <!-- Reason -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Reason for Visit</label>
                     <textarea x-model="form.reason" rows="3" 
@@ -428,7 +470,7 @@
             </div>
         </div>
 
-        <!-- Step 3: Confirmation -->
+        <!-- Step 3: Confirmation - UPDATED -->
         <div x-show="step === 3">
             <div class="p-8">
                 <h2 class="text-2xl font-bold text-gray-900 mb-6">Review & Confirm</h2>
@@ -472,21 +514,36 @@
                     <p x-show="errors.agreed_to_terms" class="mt-2 text-sm text-red-600" x-text="errors.agreed_to_terms"></p>
                 </div>
 
-                <!-- Terms and Conditions Modal -->
-                <div id="termsModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4" onclick="if(event.target === this) closeTermsModal()">
+                <!-- Ready to Submit Notice - NEW -->
+                <div class="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                    <p class="text-sm text-gray-600 mb-3">
+                        <strong>Ready to submit?</strong> Once submitted, you'll receive an email confirmation within 24 hours.
+                    </p>
+                </div>
+
+                <!-- Terms Modal - UPDATED with accessibility -->
+                <div id="termsModal" 
+                     role="dialog" 
+                     aria-modal="true" 
+                     aria-labelledby="termsTitle"
+                     class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4" 
+                     @keydown.escape="closeTermsModal()"
+                     onclick="if(event.target === this) closeTermsModal()">
                     <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
-                        <!-- Header -->
                         <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
-                            <h2 class="text-lg font-bold text-gray-900">Terms and Conditions</h2>
-                            <button type="button" onclick="closeTermsModal()" class="text-gray-400 hover:text-gray-600 p-1 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded">
+                            <h2 id="termsTitle" class="text-lg font-bold text-gray-900">Terms and Conditions</h2>
+                            <button type="button" 
+                                    aria-label="Close terms dialog"
+                                    onclick="closeTermsModal()" 
+                                    class="text-gray-400 hover:text-gray-600 p-1 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                                 </svg>
                             </button>
                         </div>
                         
-                        <!-- Scrollable Content -->
                         <div class="overflow-y-auto flex-1 px-6 py-4 text-sm text-gray-700 space-y-4">
+                            <!-- Terms content (same as before) -->
                             <div>
                                 <h3 class="font-bold text-gray-900 mb-2">1. Appointment Booking</h3>
                                 <p>Online appointment requests are subject to availability and confirmation by KingJoy Dental Clinic. You must provide accurate and complete information when booking (name, contact number, email, and any relevant medical history). Appointment requests do not guarantee immediate confirmation. You will receive confirmation via email, SMS, or phone call once your appointment is approved.</p>
@@ -537,7 +594,6 @@
                             </div>
                         </div>
                         
-                        <!-- Footer -->
                         <div class="border-t border-gray-200 px-6 py-4 flex-shrink-0">
                             <button type="button" onclick="closeTermsModal()" class="w-full px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors">
                                 I Understand
@@ -545,7 +601,6 @@
                         </div>
                     </div>
                 </div>
-
             </div>
             
             <div class="px-8 py-4 bg-gray-50 flex justify-between">
@@ -570,30 +625,30 @@
     </form>
 
     <!-- Payment Terms Notice -->
-<div class="max-w-3xl mt-12 mx-auto mb-6">
-    <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
-        <div class="flex">
-            <div class="flex-shrink-0">
-                <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-1-8a1 1 0 012 0v3a1 1 0 01-2 0V10zm1-4a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd" />
-                </svg>
-            </div>
-            <div class="ml-3">
-                <h3 class="text-base font-semibold text-blue-700 mb-2">Payment</h3>
-                <p class="text-sm text-blue-700 mb-2">
-                    At Kingjoy Dental Clinic, we currently accept <strong>cash payments only</strong> for all dental services. This helps us keep our operations simple and provide affordable, transparent pricing to our patients.
-                </p>
-                <p class="text-sm text-blue-700 mb-2">
-                    <strong>Please note:</strong><br>
-                    We do not accept credit or debit cards, GCash, Maya, or HMO/health cards (such as Maxicare, Medicard, or Intellicare).
-                </p>
-                <p class="text-sm text-blue-700">
-                    For any payment-related inquiries, feel free to contact Kingjoy Dental Clinic—we’re happy to assist and ensure a smooth experience for you.
-                </p>
+    <div class="max-w-3xl mt-12 mx-auto mb-6">
+        <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-1-8a1 1 0 012 0v3a1 1 0 01-2 0V10zm1-4a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-base font-semibold text-blue-700 mb-2">Payment</h3>
+                    <p class="text-sm text-blue-700 mb-2">
+                        At Kingjoy Dental Clinic, we currently accept <strong>cash payments only</strong> for all dental services. This helps us keep our operations simple and provide affordable, transparent pricing to our patients.
+                    </p>
+                    <p class="text-sm text-blue-700 mb-2">
+                        <strong>Please note:</strong><br>
+                        We do not accept credit or debit cards, GCash, Maya, or HMO/health cards (such as Maxicare, Medicard, or Intellicare).
+                    </p>
+                    <p class="text-sm text-blue-700">
+                        For any payment-related inquiries, feel free to contact Kingjoy Dental Clinic—we're happy to assist and ensure a smooth experience for you.
+                    </p>
+                </div>
             </div>
         </div>
     </div>
-</div>
 </div>
 
 <style>
@@ -607,6 +662,11 @@
     .calendar-day.selected {
         background-color: #3b82f6;
         color: white;
+    }
+    
+    /* Smooth transitions */
+    .calendar-day {
+        transition: all 0.2s ease;
     }
 </style>
 
@@ -629,7 +689,19 @@
         }
     });
 
-    // appointment booking logic
+    // User-friendly error messages
+    const USER_MESSAGES = {
+        otp_email_required: 'Please enter your email address',
+        otp_email_invalid: 'We couldn\'t find an account with this email. Please check and try again.',
+        otp_code_invalid: 'The code you entered is incorrect or has expired. Please request a new code.',
+        otp_code_expired: 'Your code expired. Please request a new one.',
+        service_required: 'Please choose a service',
+        date_required: 'Please pick a date',
+        period_required: 'Please select morning or afternoon',
+        terms_required: 'Please agree to our terms to continue',
+        no_slots_selected_date: 'Unfortunately, there are no available slots on this date. Please choose another date.',
+    };
+
     const servicesData = {{ services_json|safe }};
     const csrfToken = '{{ csrf_token }}';
     
@@ -640,6 +712,7 @@
             submitted: false,
             referenceNumber: '',
             errorMessage: '',
+            loadingSlots: false,
             
             errors: {},
             services: servicesData || [],
@@ -652,7 +725,7 @@
                 verified: false,
                 sending: false,
                 verifying: false,
-                selectingPatient: false,  // NEW - prevent multiple calls
+                selectingPatient: false,
                 canResend: true,
                 remainingAttempts: null,
                 accessCodeId: null,
@@ -714,7 +787,6 @@
             
             handlePatientTypeChange() {
                 this.clearErrors();
-                // Reset OTP state when switching patient type
                 this.otp = {
                     email: '',
                     code: '',
@@ -722,6 +794,7 @@
                     verified: false,
                     sending: false,
                     verifying: false,
+                    selectingPatient: false,
                     canResend: true,
                     remainingAttempts: null,
                     accessCodeId: null,
@@ -737,7 +810,7 @@
                 this.clearErrors('otp_email');
                 
                 if (!this.otp.email || !this.otp.email.trim()) {
-                    this.errors.otp_email = 'Please enter your email address.';
+                    this.errors.otp_email = USER_MESSAGES.otp_email_required;
                     return;
                 }
                 
@@ -761,13 +834,12 @@
                         this.otp.remainingAttempts = data.remaining_attempts;
                         this.errorMessage = '';
                         
-                        // Enable resend after 60 seconds
                         setTimeout(() => {
                             this.otp.canResend = true;
                         }, 60000);
                         
                     } else {
-                        this.errors.otp_email = data.error;
+                        this.errors.otp_email = data.error || USER_MESSAGES.otp_email_invalid;
                     }
                 } catch (error) {
                     console.error('Error sending OTP:', error);
@@ -779,14 +851,14 @@
             
             async verifyOTPCode() {
                 this.clearErrors('otp_code');
-                
+
                 if (!this.otp.code || this.otp.code.length !== 6) {
                     this.errors.otp_code = 'Please enter the 6-digit verification code.';
                     return;
                 }
-                
+
                 this.otp.verifying = true;
-                
+
                 try {
                     const response = await fetch('/api/booking/verify-otp/', {
                         method: 'POST',
@@ -799,23 +871,17 @@
                             code: this.otp.code
                         })
                     });
-                    
+
                     const data = await response.json();
-                    
+
                     if (data.success && data.verified) {
-                        this.otp.verified = true;
-                        this.otp.accessCodeId = data.access_code_id;
-                        this.otp.patientOptions = data.patients;
-                        this.otp.showPatientSelection = data.multiple_patients;
-                        
-                        if (!data.multiple_patients && data.patients.length === 1) {
-                            // Single patient - auto-select
-                            await this.selectPatient(data.patients[0].id);
-                        }
-                        
-                        this.errorMessage = '';
+                        // ...existing code...
                     } else {
-                        this.errors.otp_code = data.error;
+                        if (data.error_code === 'MISSING_PATIENT_ID') {
+                            this.errors.patient_selection = 'Please complete the verification step above.';
+                        } else {
+                            this.errors.otp_code = data.error || USER_MESSAGES.otp_code_invalid;
+                        }
                     }
                 } catch (error) {
                     console.error('Error verifying OTP:', error);
@@ -826,7 +892,6 @@
             },
             
             async selectPatient(patientId) {
-                // Prevent multiple simultaneous calls
                 if (this.otp.selectingPatient) {
                     return;
                 }
@@ -852,12 +917,10 @@
                         this.otp.verifiedPatientData = data.patient;
                         this.otp.verifiedPatientName = data.patient.name;
                         this.form.patient_id = data.patient.id;
-                        this.otp.selectedPatientId = data.patient.id; // Update for visual feedback
+                        this.otp.selectedPatientId = data.patient.id;
                         this.clearErrors('patient_selection');
-                        console.log('Patient selected successfully:', data.patient.name);
                     } else {
                         this.errorMessage = data.error;
-                        console.error('Error selecting patient:', data.error);
                     }
                 } catch (error) {
                     console.error('Error selecting patient:', error);
@@ -912,15 +975,15 @@
                         
                     case 2:
                         if (!this.form.service) {
-                            this.errors.service = 'Please select a service';
+                            this.errors.service = USER_MESSAGES.service_required;
                             isValid = false;
                         }
                         if (!this.form.appointment_date) {
-                            this.errors.appointment_date = 'Please select an appointment date';
+                            this.errors.appointment_date = USER_MESSAGES.date_required;
                             isValid = false;
                         }
                         if (!this.form.period) {
-                            this.errors.period = 'Please select a time period (AM or PM)';
+                            this.errors.period = USER_MESSAGES.period_required;
                             isValid = false;
                         }
                         
@@ -932,7 +995,7 @@
                         
                     case 3:
                         if (!this.form.agreed_to_terms) {
-                            this.errors.agreed_to_terms = 'Please agree to the terms and conditions';
+                            this.errors.agreed_to_terms = USER_MESSAGES.terms_required;
                             isValid = false;
                         }
                         break;
@@ -979,7 +1042,9 @@
                         isEmpty: currentDate.getMonth() !== this.currentMonth,
                         available: false,
                         isToday: this.isToday(currentDate),
-                        isSelected: this.form.appointment_date === this.formatDateForAPI(currentDate)
+                        isSelected: this.form.appointment_date === this.formatDateForAPI(currentDate),
+                        amSlots: 0,
+                        pmSlots: 0
                     };
                     
                     if (this.isDateAvailable(currentDate)) {
@@ -1032,15 +1097,20 @@
                     return;
                 }
                 
-                if (day.hasSlots === false || (day.amSlots === 0 && day.pmSlots === 0)) {
+                if (day.amSlots === 0 && day.pmSlots === 0) {
                     this.errorMessage = `No appointment slots available for ${this.formatDate(day.date)}`;
                     return;
                 }
                 
                 this.form.appointment_date = day.date;
                 this.form.period = '';
+                this.loadingSlots = true;
+                this.loadSlotAvailability().then(() => {
+                    this.loadingSlots = false;
+                }).catch(() => {
+                    this.loadingSlots = false;
+                });
                 
-                this.loadSlotAvailability();
                 this.generateCalendar();
             },
             
@@ -1060,8 +1130,8 @@
                         classes.push('bg-blue-50', 'text-blue-600', 'font-semibold');
                     }
                     
-                    if (day.hasSlots === false || (day.amSlots === 0 && day.pmSlots === 0)) {
-                        classes.push('ring-2', 'ring-red-200');
+                    if (day.amSlots === 0 && day.pmSlots === 0) {
+                        classes.push('ring-2', 'ring-orange-300', 'opacity-75');
                     } else if (day.amSlots > 0 || day.pmSlots > 0) {
                         classes.push('ring-2', 'ring-green-200');
                     }
@@ -1082,7 +1152,7 @@
                     );
                     
                     if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        throw new Error(`HTTP ${response.status}`);
                     }
                     
                     const data = await response.json();
@@ -1098,7 +1168,6 @@
                                 return {
                                     ...day,
                                     available: hasSlots,
-                                    hasSlots: hasSlots,
                                     amSlots: daySlots.am_slots.available,
                                     pmSlots: daySlots.pm_slots.available
                                 };
@@ -1115,7 +1184,7 @@
             async loadSlotAvailability() {
                 if (!this.form.appointment_date) {
                     this.availableSlots = { AM: 0, PM: 0 };
-                    return;
+                    return Promise.resolve();
                 }
                 
                 if (this.slotData[this.form.appointment_date]) {
@@ -1124,7 +1193,7 @@
                         AM: dayData.am_slots?.available || 0,
                         PM: dayData.pm_slots?.available || 0
                     };
-                    return;
+                    return Promise.resolve();
                 }
                 
                 try {
@@ -1136,7 +1205,7 @@
                     );
                     
                     if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                        throw new Error(`HTTP ${response.status}`);
                     }
                     
                     const data = await response.json();
@@ -1156,6 +1225,8 @@
                     console.error('Error loading slot availability:', error);
                     this.availableSlots = { AM: 0, PM: 0 };
                 }
+                
+                return Promise.resolve();
             },
             
             async submitForm() {
@@ -1167,7 +1238,6 @@
                 this.clearErrors();
                 
                 try {
-                    // Prepare submission data
                     let submissionData = {
                         service: this.form.service,
                         appointment_date: this.form.appointment_date,

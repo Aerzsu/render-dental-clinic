@@ -3,9 +3,8 @@ import json
 from django.shortcuts import redirect
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
-from django.views.generic import TemplateView, ListView
+from django.views.generic import TemplateView, ListView, FormView
 from django.utils import timezone
-from django.views.generic import FormView
 from django.db.models import Q
 from django.http import JsonResponse
 from datetime import datetime
@@ -13,6 +12,7 @@ from django.db import transaction
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.urls import reverse_lazy
+from django.views import View
 import re
 import pytz
 
@@ -27,6 +27,17 @@ from core.forms import SystemSettingsForm
 import logging
 
 logger = logging.getLogger(__name__)
+
+class ThemeToggleView(LoginRequiredMixin, View):
+    """Toggle between light and dark theme."""
+    
+    def post(self, request):
+        current_theme = request.session.get('theme', 'light')
+        new_theme = 'dark' if current_theme == 'light' else 'light'
+        request.session['theme'] = new_theme
+        
+        # Redirect back to the page they came from
+        return redirect(request.META.get('HTTP_REFERER', 'core:dashboard'))
 
 class HomeView(TemplateView):
     """Public landing page"""
@@ -261,7 +272,8 @@ class BookAppointmentView(TemplateView):
         if not patient_id:
             return JsonResponse({
                 'success': False, 
-                'error': 'Patient verification required. Please verify your email.'
+                'error': 'Patient verification required. Please verify your email.',
+                'error_code': 'MISSING_PATIENT_ID'  # For client-side handling
             }, status=400), None
         
         # Get the patient by ID
@@ -523,6 +535,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             am_percentage = (am_available / am_total * 100) if am_total > 0 else 0
             pm_percentage = (pm_available / pm_total * 100) if pm_total > 0 else 0
             
+            # Check if fully booked
+            is_fully_booked = am_available == 0 and pm_available == 0
+            
             context['todays_slot_summary'] = {
                 'am_available': am_available,
                 'am_total': am_total,
@@ -530,38 +545,22 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 'pm_available': pm_available,
                 'pm_total': pm_total,
                 'pm_percentage': round(pm_percentage, 1),
+                'slots_not_configured': False,
+                'is_fully_booked': is_fully_booked,
             }
             
         except DailySlots.DoesNotExist:
-            # Try to create default slots for today
-            daily_slots, created = DailySlots.get_or_create_for_date(today)
-            if daily_slots:
-                am_available = daily_slots.get_available_am_slots()
-                am_total = daily_slots.am_slots
-                pm_available = daily_slots.get_available_pm_slots()
-                pm_total = daily_slots.pm_slots
-                
-                am_percentage = (am_available / am_total * 100) if am_total > 0 else 0
-                pm_percentage = (pm_available / pm_total * 100) if pm_total > 0 else 0
-                
-                context['todays_slot_summary'] = {
-                    'am_available': am_available,
-                    'am_total': am_total,
-                    'am_percentage': round(am_percentage, 1),
-                    'pm_available': pm_available,
-                    'pm_total': pm_total,
-                    'pm_percentage': round(pm_percentage, 1),
-                }
-            else:
-                context['todays_slot_summary'] = {
-                    'am_available': 0,
-                    'am_total': 0,
-                    'am_percentage': 0,
-                    'pm_available': 0,
-                    'pm_total': 0,
-                    'pm_percentage': 0,
-                }
-        
+            # If admin hasn't set up slots for today
+            context['todays_slot_summary'] = {
+                'am_available': 0,
+                'am_total': 0,
+                'am_percentage': 0,
+                'pm_available': 0,
+                'pm_total': 0,
+                'pm_percentage': 0,
+                'slots_not_configured': True,
+                'is_fully_booked': False,
+            }
         return context
 
 @require_http_methods(["POST"])

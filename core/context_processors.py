@@ -14,3 +14,9 @@ def clinic_settings(request):
         'PM_PERIOD_DISPLAY': SystemSetting.get_setting('pm_period_display', '1:00 PM - 6:00 PM'),
         'GOOGLE_MAPS_EMBED': SystemSetting.get_setting('google_maps_embed', ''),
     }
+
+def theme_mode(request):
+    """Add current theme to template context."""
+    return {
+        'current_theme': request.session.get('theme', 'light')
+    }

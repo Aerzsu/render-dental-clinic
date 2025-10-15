@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="{{ current_theme }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,9 +20,15 @@
         main {
             padding-bottom: 6rem;
         }
+
+        /* Smooth theme transition */
+        * {
+            transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+        }
     </style>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
@@ -45,21 +51,36 @@
         }
     </script>
 </head>
-<body class="bg-gray-50 h-screen overflow-hidden" x-data="{ sidebarOpen: false, isMobile: window.innerWidth < 768 }" @resize.window="isMobile = window.innerWidth < 768">
+<body class="bg-gray-50 dark:bg-gray-900 h-screen overflow-hidden" x-data="{ sidebarOpen: false, isMobile: window.innerWidth < 768 }" @resize.window="isMobile = window.innerWidth < 768">
     {% if user.is_authenticated %}
         {% load user_tags %}
         {% load appointment_tags %}
         <!-- Top Navigation Bar -->
-        <nav class="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 shadow-sm z-40 h-16">
+        <nav class="fixed top-0 left-0 right-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm z-40 h-16">
             <div class="flex items-center justify-between h-full px-4">
                 <!-- Left side - empty for now, could add breadcrumbs later -->
                 <div class="flex-1"></div>
                 
-                <!-- Right side - Notifications and User Profile -->
+                <!-- Right side - Theme Toggle, Notifications and User Profile -->
                 <div class="flex items-center space-x-4">
+                    <!-- Theme Toggle -->
+                    <form method="post" action="{% url 'core:theme_toggle' %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="p-2 text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors duration-150" title="Toggle theme">
+                            <!-- Sun icon (shown in dark mode) -->
+                            <svg class="w-6 h-6 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                            </svg>
+                            <!-- Moon icon (shown in light mode) -->
+                            <svg class="w-6 h-6 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                            </svg>
+                        </button>
+                    </form>
+
                     <!-- Notifications -->
                     <div class="relative" x-data="{ notificationOpen: false }">
-                        <button @click="notificationOpen = !notificationOpen" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors duration-150">
+                        <button @click="notificationOpen = !notificationOpen" class="p-2 text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors duration-150">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                             </svg>
@@ -68,12 +89,12 @@
                         </button>
                         
                         <!-- Notifications Dropdown -->
-                        <div x-show="notificationOpen" @click.away="notificationOpen = false" x-transition class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+                        <div x-show="notificationOpen" @click.away="notificationOpen = false" x-transition class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-50">
                             <div class="p-4">
-                                <h3 class="text-lg font-medium text-gray-900 mb-3">Notifications</h3>
+                                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">Notifications</h3>
                                 <div class="space-y-3">
                                     <!-- Placeholder notification items -->
-                                    <div class="text-sm text-gray-500 text-center py-8">
+                                    <div class="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
                                         No new notifications
                                     </div>
                                 </div>
@@ -83,13 +104,13 @@
                     
                     <!-- User Profile -->
                     <div class="relative" x-data="{ profileOpen: false }">
-                        <button @click="profileOpen = !profileOpen" class="flex items-center space-x-3 p-2 text-gray-700 hover:bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors duration-150">
+                        <button @click="profileOpen = !profileOpen" class="flex items-center space-x-3 p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors duration-150">
                             <div class="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center">
                                 <span class="text-sm font-medium text-white">{{ user.first_name|first|default:user.username|first }}</span>
                             </div>
                             <div class="hidden sm:block text-left">
-                                <p class="text-sm font-medium text-gray-900">{{ user.get_full_name|default:user.username }}</p>
-                                <p class="text-xs text-gray-500">{{ user.role.display_name|default:"Staff" }}</p>
+                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ user.get_full_name|default:user.username }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ user.role.display_name|default:"Staff" }}</p>
                             </div>
                             <svg class="hidden sm:block w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -97,19 +118,19 @@
                         </button>
                         
                         <!-- Profile Dropdown -->
-                        <div x-show="profileOpen" @click.away="profileOpen = false" x-transition class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50">
-                            <div class="p-4 border-b border-gray-100">
-                                <p class="text-sm font-medium text-gray-900">{{ user.get_full_name|default:user.username }}</p>
-                                <p class="text-xs text-gray-500">{{ user.role.display_name|default:"Staff" }}</p>
+                        <div x-show="profileOpen" @click.away="profileOpen = false" x-transition class="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-50">
+                            <div class="p-4 border-b border-gray-100 dark:border-gray-700">
+                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ user.get_full_name|default:user.username }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ user.role.display_name|default:"Staff" }}</p>
                             </div>
                             <div class="py-2">
-                                <a href="{% url 'users:password_change' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150">
+                                <a href="{% url 'users:password_change' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150">
                                     <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
                                     </svg>
                                     Change Password
                                 </a>
-                                <a href="{% url 'users:logout' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-150">
+                                <a href="{% url 'users:logout' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-150">
                                     <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013 3v1"></path>
                                     </svg>
@@ -126,17 +147,17 @@
         <div class="hidden md:flex md:flex-shrink-0 md:fixed md:inset-y-0 md:left-0 md:z-30 md:top-16">
             <div class="flex flex-col">
                 <!-- Sidebar component -->
-                <div class="flex flex-col h-full pt-5 pb-4 overflow-y-auto bg-white border-r border-gray-200 shadow-sm" :class="{ 'w-64': !collapsed, 'w-16': collapsed }" x-data="{ collapsed: false }">
+                <div class="flex flex-col h-full pt-5 pb-4 overflow-y-auto bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 shadow-sm" :class="{ 'w-64': !collapsed, 'w-16': collapsed }" x-data="{ collapsed: false }">
                     <div class="flex items-center flex-shrink-0 px-4" :class="{ 'px-4': !collapsed, 'px-2': collapsed }">
                         <div class="flex items-center">
                             <div class="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
                                 <span class="text-white font-bold text-lg">🦷</span>
                             </div>
-                            <h1 class="ml-3 text-xl font-bold text-gray-900 transition-opacity duration-200" :class="{ 'opacity-100': !collapsed, 'opacity-0 w-0 overflow-hidden': collapsed }" x-show="!collapsed">
+                            <h1 class="ml-3 text-xl font-bold text-gray-900 dark:text-gray-100 transition-opacity duration-200" :class="{ 'opacity-100': !collapsed, 'opacity-0 w-0 overflow-hidden': collapsed }" x-show="!collapsed">
                                 KingJoy
                             </h1>
                         </div>
-                        <button @click="collapsed = !collapsed" class="ml-auto p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        <button @click="collapsed = !collapsed" class="ml-auto p-1 rounded-md text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500">
                             <svg class="w-5 h-5 transform transition-transform duration-200" :class="{ 'rotate-180': collapsed }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
                             </svg>
@@ -148,7 +169,7 @@
                         <!-- Dashboard -->
                         {% if user.is_superuser or user|has_permission:"dashboard" %}
                         <a href="{% url 'core:dashboard' %}" 
-                        class="{% if 'core' in request.resolver_match.namespace and request.resolver_match.url_name == 'dashboard' %}bg-primary-50 border-r-2 border-primary-600 text-primary-700{% else %}text-gray-700 hover:bg-gray-50{% endif %} group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150">
+                        class="{% if 'core' in request.resolver_match.namespace and request.resolver_match.url_name == 'dashboard' %}bg-primary-50 dark:bg-primary-900/20 border-r-2 border-primary-600 text-primary-700 dark:text-primary-400{% else %}text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700{% endif %} group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150">
                             <span class="mr-3 text-lg">📊</span>
                             <span :class="{ 'opacity-100': !collapsed, 'opacity-0 w-0 overflow-hidden': collapsed }" x-show="!collapsed">Dashboard</span>
                         </a>
@@ -156,7 +177,7 @@
                         
                         <!-- Patients -->
                         {% if user.is_superuser or user|has_permission:"patients" %}
-                        <a href="{% url 'patients:patient_list' %}" class="{% if 'patients' in request.resolver_match.namespace %}bg-primary-50 border-r-2 border-primary-600 text-primary-700{% else %}text-gray-700 hover:bg-gray-50{% endif %} group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150">
+                        <a href="{% url 'patients:patient_list' %}" class="{% if 'patients' in request.resolver_match.namespace %}bg-primary-50 dark:bg-primary-900/20 border-r-2 border-primary-600 text-primary-700 dark:text-primary-400{% else %}text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700{% endif %} group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150">
                             <span class="mr-3 text-lg">👥</span>
                             <span :class="{ 'opacity-100': !collapsed, 'opacity-0 w-0 overflow-hidden': collapsed }" x-show="!collapsed">Patients</span>
                         </a>
@@ -166,7 +187,7 @@
                         {% if user.is_superuser or user|has_permission:"appointments" %}
                         <div x-data="{ open: {% if 'appointments' in request.resolver_match.namespace and request.resolver_match.url_name != 'payment_list' %}true{% else %}false{% endif %} }">
                             {% get_pending_appointments_count as pending_count %}
-                            <button @click="open = !open" class="{% if 'appointments' in request.resolver_match.namespace and request.resolver_match.url_name != 'payment_list' %}bg-primary-50 border-r-2 border-primary-600 text-primary-700{% else %}text-gray-700 hover:bg-gray-50{% endif %} group w-full flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150 relative">
+                            <button @click="open = !open" class="{% if 'appointments' in request.resolver_match.namespace and request.resolver_match.url_name != 'payment_list' %}bg-primary-50 dark:bg-primary-900/20 border-r-2 border-primary-600 text-primary-700 dark:text-primary-400{% else %}text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700{% endif %} group w-full flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150 relative">
                                 <span class="mr-3 text-lg">📅</span>
                                 <span :class="{ 'opacity-100': !collapsed, 'opacity-0 w-0 overflow-hidden': collapsed }" x-show="!collapsed">Appointments</span>
                                 {% if pending_count > 0 %}
@@ -177,20 +198,20 @@
                                 </svg>
                             </button>
                             <div x-show="open && !collapsed" x-collapse class="ml-6 space-y-1">
-                                <a href="{% url 'appointments:appointment_calendar' %}" class="group flex items-center px-2 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md relative">
+                                <a href="{% url 'appointments:appointment_calendar' %}" class="group flex items-center px-2 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md relative">
                                     <span>Calendar View</span>
                                     {% if pending_count > 0 %}
                                     <span class="ml-1 inline-flex h-2 w-2 rounded-full bg-red-500" data-badge="calendar-count"></span>
                                     {% endif %}
                                 </a>
-                                <a href="{% url 'appointments:daily_slots_list' %}" class="group flex items-center px-2 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">Slot List</a>
+                                <a href="{% url 'appointments:daily_slots_list' %}" class="group flex items-center px-2 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md">Slot List</a>
                             </div>
                         </div>
                         {% endif %}
                         
                         <!-- Billing -->
                         {% if user.is_superuser or user|has_permission:"billing" %}
-                        <a href="{% url 'appointments:payment_list' %}" class="{% if request.resolver_match.url_name == 'payment_list' %}bg-primary-50 border-r-2 border-primary-600 text-primary-700{% else %}text-gray-700 hover:bg-gray-50{% endif %} group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150">
+                        <a href="{% url 'appointments:payment_list' %}" class="{% if request.resolver_match.url_name == 'payment_list' %}bg-primary-50 dark:bg-primary-900/20 border-r-2 border-primary-600 text-primary-700 dark:text-primary-400{% else %}text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700{% endif %} group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150">
                             <span class="mr-3 text-lg">💳</span>
                             <span :class="{ 'opacity-100': !collapsed, 'opacity-0 w-0 overflow-hidden': collapsed }" x-show="!collapsed">Billing</span>
                         </a>
@@ -198,7 +219,7 @@
 
                         <!-- Reports -->
                         {% if user.is_superuser or user|has_permission:"reports" %}
-                        <a href="{% url 'reports:dashboard' %}" class="{% if 'reports' in request.resolver_match.namespace %}bg-primary-50 border-r-2 border-primary-600 text-primary-700{% else %}text-gray-700 hover:bg-gray-50{% endif %} group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150">
+                        <a href="{% url 'reports:dashboard' %}" class="{% if 'reports' in request.resolver_match.namespace %}bg-primary-50 dark:bg-primary-900/20 border-r-2 border-primary-600 text-primary-700 dark:text-primary-400{% else %}text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700{% endif %} group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150">
                             <span class="mr-3 text-lg">📈</span>
                             <span :class="{ 'opacity-100': !collapsed, 'opacity-0 w-0 overflow-hidden': collapsed }" x-show="!collapsed">Reports</span>
                         </a>
@@ -207,7 +228,7 @@
                         <!-- Maintenance -->
                         {% if user.is_superuser or user|has_permission:"maintenance" %}
                         <div x-data="{ open: {% if 'users' in request.resolver_match.namespace or 'services' in request.resolver_match.namespace or 'core' in request.resolver_match.namespace and request.resolver_match.url_name != 'dashboard' %}true{% else %}false{% endif %} }">
-                            <button @click="open = !open" class="{% if 'users' in request.resolver_match.namespace or 'services' in request.resolver_match.namespace or 'core' in request.resolver_match.namespace and request.resolver_match.url_name != 'dashboard' %}bg-primary-50 border-r-2 border-primary-600 text-primary-700{% else %}text-gray-700 hover:bg-gray-50{% endif %} group w-full flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150">
+                            <button @click="open = !open" class="{% if 'users' in request.resolver_match.namespace or 'services' in request.resolver_match.namespace or 'core' in request.resolver_match.namespace and request.resolver_match.url_name != 'dashboard' %}bg-primary-50 dark:bg-primary-900/20 border-r-2 border-primary-600 text-primary-700 dark:text-primary-400{% else %}text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700{% endif %} group w-full flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150">
                                 <span class="mr-3 text-lg">⚙️</span>
                                 <span :class="{ 'opacity-100': !collapsed, 'opacity-0 w-0 overflow-hidden': collapsed }" x-show="!collapsed">Maintenance</span>
                                 <svg class="ml-auto h-4 w-4 transform transition-transform duration-200" :class="{ 'rotate-90': open, 'opacity-100': !collapsed, 'opacity-0': collapsed }" x-show="!collapsed" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -215,11 +236,11 @@
                                 </svg>
                             </button>
                             <div x-show="open && !collapsed" x-collapse class="ml-6 space-y-1">
-                                <a href="{% url 'users:user_list' %}" class="group flex items-center px-2 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">Users & Roles</a>
-                                <a href="{% url 'services:service_list' %}" class="group flex items-center px-2 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">Services</a>
-                                <a href="{% url 'services:discount_list' %}" class="group flex items-center px-2 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">Discounts</a>
-                                <a href="{% url 'core:audit_logs' %}" class="group flex items-center px-2 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">Audit Logs</a>
-                                <a href="{% url 'core:settings' %}" class="group flex items-center px-2 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">Settings</a>
+                                <a href="{% url 'users:user_list' %}" class="group flex items-center px-2 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md">Users & Roles</a>
+                                <a href="{% url 'services:service_list' %}" class="group flex items-center px-2 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md">Services</a>
+                                <a href="{% url 'services:discount_list' %}" class="group flex items-center px-2 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md">Discounts</a>
+                                <a href="{% url 'core:audit_logs' %}" class="group flex items-center px-2 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md">Audit Logs</a>
+                                <a href="{% url 'core:settings' %}" class="group flex items-center px-2 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md">Settings</a>
                             </div>
                         </div>
                         {% endif %}
@@ -227,7 +248,7 @@
                         <!-- No Access Message -->
                         {% if not user.is_superuser and not user|has_permission:"dashboard" and not user|has_permission:"patients" and not user|has_permission:"appointments" and not user|has_permission:"billing" and not user|has_permission:"maintenance" %}
                         <div class="px-2 py-4 text-center">
-                            <div class="text-gray-400 text-sm">
+                            <div class="text-gray-400 dark:text-gray-500 text-sm">
                                 <div class="mb-2">🔒</div>
                                 <p class="text-xs leading-relaxed">No access to any modules. Please contact your administrator.</p>
                             </div>
@@ -239,30 +260,43 @@
         </div>
         
         <!-- Mobile Header -->
-        <div class="md:hidden bg-white shadow-sm border-b px-4 py-3 flex items-center justify-between flex-shrink-0 fixed top-0 left-0 right-0 z-40 h-16">
+        <div class="md:hidden bg-white dark:bg-gray-800 shadow-sm border-b dark:border-gray-700 px-4 py-3 flex items-center justify-between flex-shrink-0 fixed top-0 left-0 right-0 z-40 h-16">
             <div class="flex items-center">
                 <div class="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
                     <span class="text-white font-bold text-lg">🦷</span>
                 </div>
-                <h1 class="ml-3 text-xl font-bold text-gray-900">KingJoy</h1>
+                <h1 class="ml-3 text-xl font-bold text-gray-900 dark:text-gray-100">KingJoy</h1>
             </div>
             
             <!-- Mobile Top Right Controls -->
             <div class="flex items-center space-x-2">
+                <!-- Mobile Theme Toggle -->
+                <form method="post" action="{% url 'core:theme_toggle' %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="p-2 text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500" title="Toggle theme">
+                        <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                        <svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                        </svg>
+                    </button>
+                </form>
+
                 <!-- Mobile Notifications -->
                 <div class="relative" x-data="{ mobileNotificationOpen: false }">
-                    <button @click="mobileNotificationOpen = !mobileNotificationOpen" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    <button @click="mobileNotificationOpen = !mobileNotificationOpen" class="p-2 text-gray-400 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
                         </svg>
                         <span class="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-400"></span>
                     </button>
                     
-                    <div x-show="mobileNotificationOpen" @click.away="mobileNotificationOpen = false" x-transition class="absolute right-0 mt-2 w-72 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+                    <div x-show="mobileNotificationOpen" @click.away="mobileNotificationOpen = false" x-transition class="absolute right-0 mt-2 w-72 bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-50">
                         <div class="p-4">
-                            <h3 class="text-lg font-medium text-gray-900 mb-3">Notifications</h3>
+                            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-3">Notifications</h3>
                             <div class="space-y-3">
-                                <div class="text-sm text-gray-500 text-center py-8">
+                                <div class="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
                                     No new notifications
                                 </div>
                             </div>
@@ -272,25 +306,25 @@
                 
                 <!-- Mobile User Profile -->
                 <div class="relative" x-data="{ mobileProfileOpen: false }">
-                    <button @click="mobileProfileOpen = !mobileProfileOpen" class="p-2 text-gray-700 hover:bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    <button @click="mobileProfileOpen = !mobileProfileOpen" class="p-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500">
                         <div class="w-6 h-6 rounded-full bg-primary-600 flex items-center justify-center">
                             <span class="text-xs font-medium text-white">{{ user.first_name|first|default:user.username|first }}</span>
                         </div>
                     </button>
                     
-                    <div x-show="mobileProfileOpen" @click.away="mobileProfileOpen = false" x-transition class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50">
-                        <div class="p-4 border-b border-gray-100">
-                            <p class="text-sm font-medium text-gray-900">{{ user.get_full_name|default:user.username }}</p>
-                            <p class="text-xs text-gray-500">{{ user.role.display_name|default:"Staff" }}</p>
+                    <div x-show="mobileProfileOpen" @click.away="mobileProfileOpen = false" x-transition class="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-50">
+                        <div class="p-4 border-b border-gray-100 dark:border-gray-700">
+                            <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ user.get_full_name|default:user.username }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ user.role.display_name|default:"Staff" }}</p>
                         </div>
                         <div class="py-2">
-                            <a href="{% url 'users:password_change' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <a href="{% url 'users:password_change' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                                 <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path>
                                 </svg>
                                 Change Password
                             </a>
-                            <a href="{% url 'users:logout' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <a href="{% url 'users:logout' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                                 <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013 3v1"></path>
                                 </svg>
@@ -303,17 +337,17 @@
         </div>
 
         <!-- Mobile Bottom Navigation -->
-        <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 safe-area-inset-bottom">
+        <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 z-50 safe-area-inset-bottom">
             <div class="flex overflow-x-auto">
                 {% if user.is_superuser or user|has_permission:"dashboard" %}
-                <a href="{% url 'core:dashboard' %}" class="{% if 'core' in request.resolver_match.namespace and request.resolver_match.url_name == 'dashboard' %}text-primary-600 bg-primary-50{% else %}text-gray-600{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
+                <a href="{% url 'core:dashboard' %}" class="{% if 'core' in request.resolver_match.namespace and request.resolver_match.url_name == 'dashboard' %}text-primary-600 bg-primary-50 dark:bg-primary-900/20{% else %}text-gray-600 dark:text-gray-400{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
                     <span class="text-lg mb-1">📊</span>
                     <span class="truncate">Dashboard</span>
                 </a>
                 {% endif %}
                 
                 {% if user.is_superuser or user|has_permission:"patients" %}
-                <a href="{% url 'patients:patient_list' %}" class="{% if 'patients' in request.resolver_match.namespace %}text-primary-600 bg-primary-50{% else %}text-gray-600{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
+                <a href="{% url 'patients:patient_list' %}" class="{% if 'patients' in request.resolver_match.namespace %}text-primary-600 bg-primary-50 dark:bg-primary-900/20{% else %}text-gray-600 dark:text-gray-400{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
                     <span class="text-lg mb-1">👥</span>
                     <span class="truncate">Patients</span>
                 </a>
@@ -321,7 +355,7 @@
                 
                 {% if user.is_superuser or user|has_permission:"appointments" %}
                 {% get_pending_appointments_count as pending_count %}
-                <a href="{% url 'appointments:appointment_calendar' %}" class="{% if 'appointments' in request.resolver_match.namespace and request.resolver_match.url_name != 'payment_list' %}text-primary-600 bg-primary-50{% else %}text-gray-600{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20 relative">
+                <a href="{% url 'appointments:appointment_calendar' %}" class="{% if 'appointments' in request.resolver_match.namespace and request.resolver_match.url_name != 'payment_list' %}text-primary-600 bg-primary-50 dark:bg-primary-900/20{% else %}text-gray-600 dark:text-gray-400{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20 relative">
                     <span class="text-lg mb-1">📅</span>
                     <span class="truncate">Appointments</span>
                     {% if pending_count > 0 %}
@@ -331,21 +365,21 @@
                 {% endif %}
                 
                 {% if user.is_superuser or user|has_permission:"billing" %}
-                <a href="{% url 'appointments:payment_list' %}" class="{% if request.resolver_match.url_name == 'payment_list' %}text-primary-600 bg-primary-50{% else %}text-gray-600{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
+                <a href="{% url 'appointments:payment_list' %}" class="{% if request.resolver_match.url_name == 'payment_list' %}text-primary-600 bg-primary-50 dark:bg-primary-900/20{% else %}text-gray-600 dark:text-gray-400{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
                     <span class="text-lg mb-1">💳</span>
                     <span class="truncate">Billing</span>
                 </a>
                 {% endif %}
 
                 {% if user.is_superuser or user|has_permission:"reports" %}
-                <a href="{% url 'reports:dashboard' %}" class="{% if 'reports' in request.resolver_match.namespace %}text-primary-600 bg-primary-50{% else %}text-gray-600{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
+                <a href="{% url 'reports:dashboard' %}" class="{% if 'reports' in request.resolver_match.namespace %}text-primary-600 bg-primary-50 dark:bg-primary-900/20{% else %}text-gray-600 dark:text-gray-400{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
                     <span class="text-lg mb-1">📈</span>
                     <span class="truncate">Reports</span>
                 </a>
                 {% endif %}
                 
                 {% if user.is_superuser or user|has_permission:"maintenance" %}
-                <a href="{% url 'core:maintenance_hub' %}" class="{% if 'users' in request.resolver_match.namespace or 'core' in request.resolver_match.namespace and request.resolver_match.url_name != 'dashboard' %}text-primary-600 bg-primary-50{% else %}text-gray-600{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
+                <a href="{% url 'core:maintenance_hub' %}" class="{% if 'users' in request.resolver_match.namespace or 'core' in request.resolver_match.namespace and request.resolver_match.url_name != 'dashboard' %}text-primary-600 bg-primary-50 dark:bg-primary-900/20{% else %}text-gray-600 dark:text-gray-400{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
                     <span class="text-lg mb-1">⚙️</span>
                     <span class="truncate">Maintenance</span>
                 </a>
@@ -353,7 +387,7 @@
 
                 <!-- No Access Message for Mobile -->
                 {% if not user.is_superuser and not user|has_permission:"dashboard" and not user|has_permission:"patients" and not user|has_permission:"appointments" and not user|has_permission:"billing" and not user|has_permission:"maintenance" %}
-                <div class="flex-1 flex flex-col items-center justify-center px-3 py-2 text-xs text-gray-500">
+                <div class="flex-1 flex flex-col items-center justify-center px-3 py-2 text-xs text-gray-500 dark:text-gray-500">
                     <span class="text-lg mb-1">🔒</span>
                     <span class="truncate text-center">No Access</span>
                 </div>
@@ -366,8 +400,8 @@
             <!-- Mobile Maintenance Breadcrumb -->
             {% if user.is_superuser or user|has_permission:"maintenance" %}
                 {% if 'users' in request.resolver_match.namespace or 'services' in request.resolver_match.namespace or 'core' in request.resolver_match.namespace and request.resolver_match.url_name != 'dashboard' and request.resolver_match.url_name != 'maintenance_hub' %}
-                <div class="md:hidden px-4 py-3 bg-gray-50 border-b border-gray-200 flex-shrink-0">
-                    <a href="{% url 'core:maintenance_hub' %}" class="flex items-center text-sm text-gray-600 hover:text-gray-900">
+                <div class="md:hidden px-4 py-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+                    <a href="{% url 'core:maintenance_hub' %}" class="flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                         </svg>
@@ -382,7 +416,7 @@
             {% if messages %}
                 <div class="px-4 sm:px-6 lg:px-8 pt-4 flex-shrink-0">
                     {% for message in messages %}
-                        <div class="rounded-lg p-4 mb-4 {% if message.tags == 'error' %}bg-red-50 text-red-800 border border-red-200{% elif message.tags == 'warning' %}bg-yellow-50 text-yellow-800 border border-yellow-200{% elif message.tags == 'success' %}bg-green-50 text-green-800 border border-green-200{% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %} shadow-sm">
+                        <div class="rounded-lg p-4 mb-4 {% if message.tags == 'error' %}bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-400 border border-red-200 dark:border-red-800{% elif message.tags == 'warning' %}bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800{% elif message.tags == 'success' %}bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-400 border border-green-200 dark:border-green-800{% else %}bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-400 border border-blue-200 dark:border-blue-800{% endif %} shadow-sm">
                             <div class="flex items-center">
                                 <span class="mr-2">
                                     {% if message.tags == 'error' %}⚠️{% elif message.tags == 'warning' %}⚠️{% elif message.tags == 'success' %}✅{% else %}ℹ️{% endif %}
