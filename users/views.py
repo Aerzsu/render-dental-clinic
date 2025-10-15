@@ -10,7 +10,20 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.db.models import Q
 from .models import User, Role
 from core.models import AuditLog
-from .forms import UserForm, RoleForm  # Import forms from forms.py
+from .forms import UserForm, RoleForm
+from django.contrib.auth.views import PasswordChangeView
+
+class CustomPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
+    """Custom password change view that stays on the same page with success message"""
+    template_name = 'registration/password_change_form.html'
+    success_url = reverse_lazy('users:password_change')
+    
+    def form_valid(self, form):
+        messages.success(
+            self.request, 
+            'Your password has been changed successfully.'
+        )
+        return super().form_valid(form)
 
 class UserListView(LoginRequiredMixin, ListView):
     """List all users with search and filtering functionality"""

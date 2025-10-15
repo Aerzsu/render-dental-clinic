@@ -83,7 +83,7 @@ class Discount(models.Model):
     @property
     def display_value(self):
         if self.is_percentage:
-            return f"{self.amount}%"
+            return f"{self.amount}% off"
         return f"₱{self.amount:,.2f}"
     
     def calculate_discount(self, original_amount):

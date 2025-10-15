@@ -222,29 +222,45 @@
             <form id="bulkCreateForm" onsubmit="handleBulkPreview(event)" class="flex flex-col flex-1">
                 {% csrf_token %}
                 <div class="px-6 py-4 space-y-4 overflow-y-auto flex-1">
+                    <!-- Error display area -->
+                    <div id="modalError" class="hidden rounded-lg p-3 bg-red-50 text-red-800 border border-red-200">
+                        <div class="flex items-center">
+                            <span class="mr-2">⚠️</span>
+                            <span id="modalErrorText"></span>
+                        </div>
+                    </div>
+
                     <div>
-                        <label for="bulk_start_date" class="block text-sm font-medium text-gray-700">Start Date *</label>
+                        <label for="bulk_start_date" class="block text-sm font-medium text-gray-700">
+                            Start Date <span class="text-red-600">*</span>
+                        </label>
                         <input type="date" id="bulk_start_date" name="start_date" required
                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500">
                     </div>
                     <div>
-                        <label for="bulk_end_date" class="block text-sm font-medium text-gray-700">End Date *</label>
+                        <label for="bulk_end_date" class="block text-sm font-medium text-gray-700">
+                            End Date <span class="text-red-600">*</span>
+                        </label>
                         <input type="date" id="bulk_end_date" name="end_date" required
                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500">
                     </div>
                     <div>
-                        <label for="bulk_am_slots" class="block text-sm font-medium text-gray-700">AM Slots per Day *</label>
+                        <label for="bulk_am_slots" class="block text-sm font-medium text-gray-700">
+                            AM Slots per Day <span class="text-red-600">*</span>
+                        </label>
                         <input type="number" id="bulk_am_slots" name="am_slots" value="6" min="0" max="20" required
                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500">
                     </div>
                     <div>
-                        <label for="bulk_pm_slots" class="block text-sm font-medium text-gray-700">PM Slots per Day *</label>
+                        <label for="bulk_pm_slots" class="block text-sm font-medium text-gray-700">
+                            PM Slots per Day <span class="text-red-600">*</span>
+                        </label>
                         <input type="number" id="bulk_pm_slots" name="pm_slots" value="8" min="0" max="20" required
                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500">
                     </div>
                     <div class="text-sm text-gray-500 bg-gray-50 p-3 rounded">
-                        <p class="mb-1">Sundays will be skipped automatically</p>
-                        <p>Existing dates will be skipped</p>
+                        <p class="mb-1">ℹ️ Sundays will be skipped automatically</p>
+                        <p>ℹ️ Existing dates will be skipped</p>
                     </div>
                 </div>
                 <div class="px-6 py-4 bg-gray-50 flex justify-end space-x-3 border-t border-gray-200 flex-shrink-0">
@@ -271,9 +287,9 @@
             <div class="px-6 py-4 bg-gray-50 flex justify-end space-x-3 border-t border-gray-200 flex-shrink-0">
                 <button type="button" onclick="backToForm()"
                         class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                    Back
+                        Back
                 </button>
-                <button type="button" onclick="confirmBulkCreate()"
+                <button type="button" onclick="confirmBulkCreate()" id="confirmBtn"
                         class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700">
                     Confirm & Create
                 </button>
@@ -289,7 +305,6 @@
         document.getElementById('bulkCreateModal').classList.remove('hidden');
         resetBulkForm();
 
-        // Set default dates
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         const twoMonthsLater = new Date();
@@ -308,19 +323,34 @@
         document.getElementById('bulkCreateForm').reset();
         document.getElementById('bulkStep1').classList.remove('hidden');
         document.getElementById('bulkStep2').classList.add('hidden');
+        hideModalError();
         bulkCreateData = null;
     }
 
     function backToForm() {
         document.getElementById('bulkStep1').classList.remove('hidden');
         document.getElementById('bulkStep2').classList.add('hidden');
+        hideModalError();
+    }
+
+    function showModalError(message) {
+        const errorDiv = document.getElementById('modalError');
+        const errorText = document.getElementById('modalErrorText');
+        errorText.textContent = message;
+        errorDiv.classList.remove('hidden');
+    }
+
+    function hideModalError() {
+        document.getElementById('modalError').classList.add('hidden');
     }
 
     async function handleBulkPreview(event) {
         event.preventDefault();
+        hideModalError();
 
         const formData = new FormData(document.getElementById('bulkCreateForm'));
         const previewBtn = document.getElementById('previewBtn');
+        const originalText = previewBtn.textContent;
         previewBtn.disabled = true;
         previewBtn.textContent = 'Generating preview...';
 
@@ -335,8 +365,8 @@
 
             const data = await response.json();
 
-            if (!data.success) {
-                alert('Error: ' + data.error);
+            if (!response.ok || !data.success) {
+                showModalError(data.error || 'Failed to generate preview. Please try again.');
                 return;
             }
 
@@ -346,10 +376,11 @@
             document.getElementById('bulkStep2').classList.remove('hidden');
 
         } catch (error) {
-            alert('Failed to generate preview: ' + error.message);
+            showModalError('Network error. Please check your connection and try again.');
+            console.error('Preview error:', error);
         } finally {
             previewBtn.disabled = false;
-            previewBtn.textContent = 'Preview';
+            previewBtn.textContent = originalText;
         }
     }
 
@@ -368,8 +399,8 @@
                             <span class="font-medium">${data.start_date} → ${data.end_date}</span>
                         </div>
                         <div class="flex justify-between">
-                            <span class="text-gray-600">Total days (skipped sunday):</span>
-                            <span class="font-medium">${summary.total_days_in_range}</span>
+                            <span class="text-gray-600">Total days (excluding Sundays):</span>
+                            <span class="font-medium">${summary.total_days_in_range - summary.skipped_sundays}</span>
                         </div>
                         <div class="flex justify-between pt-2 border-t border-blue-100">
                             <span class="text-green-700 font-semibold">Days with slots to create:</span>
@@ -383,40 +414,60 @@
                 </div>
         `;
 
-        // Will Create section
         if (summary.will_create > 0 && data.to_create.length > 0) {
             const first = data.to_create[0];
             const last = data.to_create[data.to_create.length - 1];
             
             html += `
-                <div class="bg-green-50 border border-green-200 rounded-lg p-2">
-                    <h4 class="font-semibold text-green-900 mb-2">Create Slots</h4>
-                    <div class="text-sm text-green-800">
-                        <p class="inline-block"><strong>${first.date}</strong> (${first.day_name})</p>
-                        <p class="inline-block text-center text-gray-500">→</p>
-                        <p class="inline-block"><strong>${last.date}</strong> (${last.day_name})</p>
-                        <p class="text-xs text-green-700 mt-4">
-                            ${data.to_create[0].am_slots} AM + ${data.to_create[0].pm_slots} PM = ${data.to_create[0].total} slots/day
-                        </p>
+                <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <h4 class="font-semibold text-green-900 mb-2">✅ Will Create Slots</h4>
+                    <div class="text-sm text-green-800 space-y-1">
+                        <div class="flex justify-between">
+                            <span>First:</span>
+                            <span class="font-medium">${first.date} (${first.day_name})</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Last:</span>
+                            <span class="font-medium">${last.date} (${last.day_name})</span>
+                        </div>
+                        <div class="pt-2 border-t border-green-300">
+                            <p class="text-xs">
+                                ${first.am_slots} AM + ${first.pm_slots} PM = ${first.total} slots per day
+                            </p>
+                        </div>
                     </div>
                 </div>
             `;
         }
 
-        // Will Skip section
         if (summary.will_skip > 0 && data.to_skip.length > 0) {
             const first = data.to_skip[0];
             const last = data.to_skip[data.to_skip.length - 1];
             
             html += `
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-2">
-                    <h4 class="font-semibold text-yellow-900 mb-2">Skip Existing Slots</h4>
-                    <div class="text-sm text-yellow-800">
-                        <p class="inline-block"><strong>${first.date}</strong> (${first.day_name})</p>
-                        <p class="inline-block text-center text-gray-500">→</p>
-                        <p class="inline-block"><strong>${last.date}</strong> (${last.day_name})</p>
-                        <p class="text-xs text-yellow-700 mt-4">${data.to_skip.length} existing records</p>
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    <h4 class="font-semibold text-yellow-900 mb-2">⚠️ Will Skip (Already Exist)</h4>
+                    <div class="text-sm text-yellow-800 space-y-1">
+                        <div class="flex justify-between">
+                            <span>First:</span>
+                            <span class="font-medium">${first.date} (${first.day_name})</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Last:</span>
+                            <span class="font-medium">${last.date} (${last.day_name})</span>
+                        </div>
+                        <div class="pt-2 border-t border-yellow-300">
+                            <p class="text-xs">${data.to_skip.length} existing records will be preserved</p>
+                        </div>
                     </div>
+                </div>
+            `;
+        }
+
+        if (summary.will_create === 0) {
+            html += `
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                    <p class="text-gray-600">ℹ️ No new slots will be created. All dates in this range already exist or fall on Sundays.</p>
                 </div>
             `;
         }
@@ -428,7 +479,8 @@
     async function confirmBulkCreate() {
         if (!bulkCreateData) return;
 
-        const confirmBtn = event.target;
+        const confirmBtn = document.getElementById('confirmBtn');
+        const originalText = confirmBtn.textContent;
         confirmBtn.disabled = true;
         confirmBtn.textContent = 'Creating...';
 
@@ -442,21 +494,25 @@
 
             const response = await fetch('{% url "appointments:bulk_create_confirm" %}', {
                 method: 'POST',
-                body: formData
+                body: formData,
+                redirect: 'manual'
             });
 
-            if (response.ok) {
-                closeBulkCreateModal();
-                window.location.reload();
+            if (response.ok || response.type === 'opaqueredirect') {
+                // Redirect normally to preserve Django messages
+                window.location.href = '{% url "appointments:daily_slots_list" %}';
             } else {
-                alert('Error creating slots. Please try again.');
+                showModalError('Failed to create slots. Please try again.');
+                backToForm();
             }
 
         } catch (error) {
-            alert('Failed to create slots: ' + error.message);
+            showModalError('Network error. Please try again.');
+            console.error('Confirm error:', error);
+            backToForm();
         } finally {
             confirmBtn.disabled = false;
-            confirmBtn.textContent = 'Confirm & Create';
+            confirmBtn.textContent = originalText;
         }
     }
 

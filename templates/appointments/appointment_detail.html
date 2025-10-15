@@ -77,9 +77,11 @@
                                     class="rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm"
                                     onchange="this.form.submit()">
                                 <option value="confirmed" {% if appointment.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
-                                <option value="completed" {% if appointment.status == 'completed' %}selected{% endif %}>Completed</option>
+                                {% if appointment.is_past_or_today %}
+                                    <option value="completed" {% if appointment.status == 'completed' %}selected{% endif %}>Completed</option>
+                                    <option value="did_not_arrive" {% if appointment.status == 'did_not_arrive' %}selected{% endif %}>Did Not Arrive</option>
+                                {% endif %}
                                 <option value="cancelled" {% if appointment.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
-                                <option value="did_not_arrive" {% if appointment.status == 'did_not_arrive' %}selected{% endif %}>Did Not Arrive</option>
                             </select>
                         </form>
                     </div>
@@ -96,13 +98,13 @@
                                 {% if appointment.status != 'confirmed' %}
                                     <option value="confirmed">Confirmed</option>
                                 {% endif %}
-                                {% if appointment.status != 'completed' %}
+                                {% if appointment.status != 'completed' and appointment.is_past_or_today %}
                                     <option value="completed">Completed</option>
                                 {% endif %}
                                 {% if appointment.status != 'cancelled' %}
                                     <option value="cancelled">Cancelled</option>
                                 {% endif %}
-                                {% if appointment.status != 'did_not_arrive' %}
+                                {% if appointment.status != 'did_not_arrive' and appointment.is_past_or_today %}
                                     <option value="did_not_arrive">Did Not Arrive</option>
                                 {% endif %}
                             </select>

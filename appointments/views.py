@@ -1024,12 +1024,31 @@ def find_patient_api(request):
     
     # AUTOCOMPLETE MODE: Return list of matching patients
     if search_type == 'autocomplete':
-        patients = Patient.objects.filter(
-            is_active=True
-        ).filter(
-            Q(first_name__icontains=identifier) |
-            Q(last_name__icontains=identifier)
-        ).select_related().order_by('last_name', 'first_name')[:10]
+        # Split search query into words for full name search
+        search_words = identifier.lower().split()
+        
+        if len(search_words) == 1:
+            # Single word: search in first name OR last name
+            patients = Patient.objects.filter(
+                is_active=True
+            ).filter(
+                Q(first_name__icontains=identifier) |
+                Q(last_name__icontains=identifier)
+            ).select_related().order_by('last_name', 'first_name')[:10]
+        else:
+            # Multiple words: search for full name combinations
+            # Support both "first last" and "last first" order
+            first_word = search_words[0]
+            second_word = search_words[1]
+            
+            patients = Patient.objects.filter(
+                is_active=True
+            ).filter(
+                # Match "first last" order
+                (Q(first_name__icontains=first_word) & Q(last_name__icontains=second_word)) |
+                # Match "last first" order (reversed)
+                (Q(last_name__icontains=first_word) & Q(first_name__icontains=second_word))
+            ).select_related().order_by('last_name', 'first_name')[:10]
         
         patient_list = [{
             'id': p.id,
@@ -1071,7 +1090,6 @@ def find_patient_api(request):
         })
     else:
         return JsonResponse({'found': False})
-
 
 # UPDATED approve_appointment function
 @login_required
@@ -1268,6 +1286,18 @@ def update_appointment_status(request, pk):
         with transaction.atomic():
             appointment = get_object_or_404(Appointment.objects.select_for_update(), pk=pk)
             new_status = request.POST.get('status')
+            
+            # NEW: Date validation for completed and did_not_arrive statuses
+            today = timezone.now().date()
+            if new_status in ['completed', 'did_not_arrive']:
+                if appointment.appointment_date > today:
+                    status_display = dict(Appointment.STATUS_CHOICES).get(new_status, new_status)
+                    messages.error(
+                        request,
+                        f'Cannot mark appointment as "{status_display}" for future dates. '
+                        f'This appointment is scheduled for {appointment.appointment_date.strftime("%B %d, %Y")}.'
+                    )
+                    return redirect('appointments:appointment_detail', pk=pk)
             
             # Status validation rules
             valid_transitions = {

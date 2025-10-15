@@ -147,7 +147,8 @@
                     <nav class="mt-8 flex-1 px-2 space-y-1 pb-4">
                         <!-- Dashboard -->
                         {% if user.is_superuser or user|has_permission:"dashboard" %}
-                        <a href="{% url 'core:dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}bg-primary-50 border-r-2 border-primary-600 text-primary-700{% else %}text-gray-700 hover:bg-gray-50{% endif %} group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150">
+                        <a href="{% url 'core:dashboard' %}" 
+                        class="{% if 'core' in request.resolver_match.namespace and request.resolver_match.url_name == 'dashboard' %}bg-primary-50 border-r-2 border-primary-600 text-primary-700{% else %}text-gray-700 hover:bg-gray-50{% endif %} group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150">
                             <span class="mr-3 text-lg">📊</span>
                             <span :class="{ 'opacity-100': !collapsed, 'opacity-0 w-0 overflow-hidden': collapsed }" x-show="!collapsed">Dashboard</span>
                         </a>
@@ -163,17 +164,14 @@
                         
                         <!-- Appointments -->
                         {% if user.is_superuser or user|has_permission:"appointments" %}
-                        <div x-data="{ open: {% if 'appointments' in request.resolver_match.namespace %}true{% else %}false{% endif %} }">
+                        <div x-data="{ open: {% if 'appointments' in request.resolver_match.namespace and request.resolver_match.url_name != 'payment_list' %}true{% else %}false{% endif %} }">
                             {% get_pending_appointments_count as pending_count %}
-                            <button @click="open = !open" class="{% if 'appointments' in request.resolver_match.namespace %}bg-primary-50 border-r-2 border-primary-600 text-primary-700{% else %}text-gray-700 hover:bg-gray-50{% endif %} group w-full flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150 relative">
+                            <button @click="open = !open" class="{% if 'appointments' in request.resolver_match.namespace and request.resolver_match.url_name != 'payment_list' %}bg-primary-50 border-r-2 border-primary-600 text-primary-700{% else %}text-gray-700 hover:bg-gray-50{% endif %} group w-full flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150 relative">
                                 <span class="mr-3 text-lg">📅</span>
                                 <span :class="{ 'opacity-100': !collapsed, 'opacity-0 w-0 overflow-hidden': collapsed }" x-show="!collapsed">Appointments</span>
-                                
-                                <!-- Badge - Small red dot -->
                                 {% if pending_count > 0 %}
                                 <span class="absolute top-1 right-2 h-2 w-2 rounded-full bg-red-500" data-badge="appointments-dot" :class="{ 'opacity-100': !collapsed, 'opacity-100': collapsed }"></span>
                                 {% endif %}
-                                
                                 <svg class="ml-auto h-4 w-4 transform transition-transform duration-200" :class="{ 'rotate-90': open, 'opacity-100': !collapsed, 'opacity-0': collapsed }" x-show="!collapsed" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                                 </svg>
@@ -181,7 +179,6 @@
                             <div x-show="open && !collapsed" x-collapse class="ml-6 space-y-1">
                                 <a href="{% url 'appointments:appointment_calendar' %}" class="group flex items-center px-2 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md relative">
                                     <span>Calendar View</span>
-                                    <!-- Badge - Small red dot positioned at top right of text -->
                                     {% if pending_count > 0 %}
                                     <span class="ml-1 inline-flex h-2 w-2 rounded-full bg-red-500" data-badge="calendar-count"></span>
                                     {% endif %}
@@ -193,15 +190,15 @@
                         
                         <!-- Billing -->
                         {% if user.is_superuser or user|has_permission:"billing" %}
-                        <a href="{% url 'appointments:payment_list' %}" class="text-gray-700 hover:bg-gray-50 group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150">
+                        <a href="{% url 'appointments:payment_list' %}" class="{% if request.resolver_match.url_name == 'payment_list' %}bg-primary-50 border-r-2 border-primary-600 text-primary-700{% else %}text-gray-700 hover:bg-gray-50{% endif %} group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150">
                             <span class="mr-3 text-lg">💳</span>
                             <span :class="{ 'opacity-100': !collapsed, 'opacity-0 w-0 overflow-hidden': collapsed }" x-show="!collapsed">Billing</span>
                         </a>
                         {% endif %}
 
                         <!-- Reports -->
-                         {% if user.is_superuser or user|has_permission:"reports" %}
-                        <a href="{% url 'reports:dashboard' %}" class="text-gray-700 hover:bg-gray-50 group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150">
+                        {% if user.is_superuser or user|has_permission:"reports" %}
+                        <a href="{% url 'reports:dashboard' %}" class="{% if 'reports' in request.resolver_match.namespace %}bg-primary-50 border-r-2 border-primary-600 text-primary-700{% else %}text-gray-700 hover:bg-gray-50{% endif %} group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150">
                             <span class="mr-3 text-lg">📈</span>
                             <span :class="{ 'opacity-100': !collapsed, 'opacity-0 w-0 overflow-hidden': collapsed }" x-show="!collapsed">Reports</span>
                         </a>
@@ -309,7 +306,7 @@
         <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 safe-area-inset-bottom">
             <div class="flex overflow-x-auto">
                 {% if user.is_superuser or user|has_permission:"dashboard" %}
-                <a href="{% url 'core:dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}text-primary-600 bg-primary-50{% else %}text-gray-600{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
+                <a href="{% url 'core:dashboard' %}" class="{% if 'core' in request.resolver_match.namespace and request.resolver_match.url_name == 'dashboard' %}text-primary-600 bg-primary-50{% else %}text-gray-600{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
                     <span class="text-lg mb-1">📊</span>
                     <span class="truncate">Dashboard</span>
                 </a>
@@ -324,7 +321,7 @@
                 
                 {% if user.is_superuser or user|has_permission:"appointments" %}
                 {% get_pending_appointments_count as pending_count %}
-                <a href="{% url 'appointments:appointment_calendar' %}" class="{% if 'appointments' in request.resolver_match.namespace %}text-primary-600 bg-primary-50{% else %}text-gray-600{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20 relative">
+                <a href="{% url 'appointments:appointment_calendar' %}" class="{% if 'appointments' in request.resolver_match.namespace and request.resolver_match.url_name != 'payment_list' %}text-primary-600 bg-primary-50{% else %}text-gray-600{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20 relative">
                     <span class="text-lg mb-1">📅</span>
                     <span class="truncate">Appointments</span>
                     {% if pending_count > 0 %}
@@ -334,14 +331,14 @@
                 {% endif %}
                 
                 {% if user.is_superuser or user|has_permission:"billing" %}
-                <a href="{% url 'appointments:payment_list' %}" class="text-gray-600 flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
+                <a href="{% url 'appointments:payment_list' %}" class="{% if request.resolver_match.url_name == 'payment_list' %}text-primary-600 bg-primary-50{% else %}text-gray-600{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
                     <span class="text-lg mb-1">💳</span>
                     <span class="truncate">Billing</span>
                 </a>
                 {% endif %}
 
                 {% if user.is_superuser or user|has_permission:"reports" %}
-                <a href="{% url 'reports:dashboard' %}" class="text-gray-600 flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
+                <a href="{% url 'reports:dashboard' %}" class="{% if 'reports' in request.resolver_match.namespace %}text-primary-600 bg-primary-50{% else %}text-gray-600{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
                     <span class="text-lg mb-1">📈</span>
                     <span class="truncate">Reports</span>
                 </a>

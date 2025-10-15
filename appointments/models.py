@@ -336,6 +336,12 @@ class Appointment(models.Model):
         else:
             return self.temp_contact_number
     
+    @property
+    def is_past_or_today(self):
+        """Check if appointment date is today or in the past (Asia/Manila timezone)"""
+        today = timezone.now().date()
+        return self.appointment_date <= today
+    
     def create_patient_from_temp_data(self):
         """
         Create NEW patient from temp data - NEVER updates existing patients
@@ -357,7 +363,6 @@ class Appointment(models.Model):
         )
         
         return patient
-
 
     def approve(self, approved_by_user, assigned_dentist=None):
         """
@@ -399,7 +404,6 @@ class Appointment(models.Model):
         self.temp_address = ''
         self.save(update_fields=['temp_first_name', 'temp_last_name', 'temp_email', 'temp_contact_number', 'temp_address'])
     
-    # Rest of the methods remain the same
     @property
     def appointment_datetime(self):
         """Returns timezone-aware datetime for appointment"""
@@ -447,6 +451,7 @@ class Appointment(models.Model):
         self.save()
     
     def clean(self):
+        """Model-level validation"""
         # Validate appointment date is not in the past
         if self.appointment_date and self.appointment_date < timezone.now().date():
             raise ValidationError('Appointment date cannot be in the past.')
@@ -458,8 +463,16 @@ class Appointment(models.Model):
         # Validate that either patient is linked OR temp data is provided
         if not self.patient and not (self.temp_first_name and self.temp_last_name and self.temp_email):
             raise ValidationError('Either patient must be linked or temporary patient data must be provided.')
+        
+        # NEW: Validate date-restricted statuses
+        if self.status in ['completed', 'did_not_arrive']:
+            if not self.is_past_or_today:
+                status_display = dict(self.STATUS_CHOICES).get(self.status, self.status)
+                raise ValidationError(
+                    f'Cannot mark appointment as "{status_display}" for future dates. '
+                    f'The appointment is scheduled for {self.appointment_date.strftime("%B %d, %Y")}.'
+                )
     
-    # Keep all the existing class methods unchanged
     @classmethod
     def check_slot_availability(cls, appointment_date, period):
         """Check if slots are available for a specific date and period"""
