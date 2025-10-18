@@ -29,7 +29,7 @@ class PaymentListView(LoginRequiredMixin, ListView):
     model = Payment
     template_name = 'payment/payment_list.html'
     context_object_name = 'payments'
-    paginate_by = 15
+    paginate_by = 10
     
     def dispatch(self, request, *args, **kwargs):
         if not hasattr(request.user, 'has_permission') or not request.user.has_permission('billing'):

@@ -3,6 +3,7 @@ from django.urls import path
 from . import views
 from appointments import views as appointment_views
 from core.views import BookAppointmentView
+from core.health_check import health_check
 
 app_name = 'core'
 
@@ -26,5 +27,7 @@ urlpatterns = [
     path('api/booking/send-otp/', views.send_booking_otp, name='send_booking_otp'),
     path('api/booking/verify-otp/', views.verify_booking_otp, name='verify_booking_otp'),
     path('api/booking/select-patient/', views.select_booking_patient, name='select_booking_patient'),
-    path('api/booking/submit/', views.submit_booking_appointment, name='submit_booking_appointment'),  # NEW
+    path('api/booking/submit/', views.submit_booking_appointment, name='submit_booking_appointment'),
+
+    path('health/', health_check, name='health_check'),
 ]

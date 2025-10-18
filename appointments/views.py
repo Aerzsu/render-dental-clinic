@@ -348,7 +348,7 @@ class AppointmentListView(LoginRequiredMixin, ListView):
     model = Appointment
     template_name = 'appointments/appointment_list.html'
     context_object_name = 'appointments'
-    paginate_by = 20
+    paginate_by = 15
     
     def dispatch(self, request, *args, **kwargs):
         if not request.user.has_permission('appointments'):
@@ -361,48 +361,64 @@ class AppointmentListView(LoginRequiredMixin, ListView):
             'patient', 'assigned_dentist', 'service'
         )
         
-        # Status filtering
-        status = self.request.GET.get('status')
-        if status:
-            queryset = queryset.filter(status=status)
+        # Determine if user has applied custom filters
+        has_custom_filters = any([
+            self.request.GET.get('status'),
+            self.request.GET.get('assigned_dentist'),
+            self.request.GET.get('period'),
+            self.request.GET.get('date_from'),
+            self.request.GET.get('date_to'),
+            self.request.GET.get('search'),
+        ])
         
-        # Assigned dentist filtering
-        assigned_dentist = self.request.GET.get('assigned_dentist')
-        if assigned_dentist:
-            queryset = queryset.filter(assigned_dentist_id=assigned_dentist)
+        # Apply default filters if no custom filters are set
+        if not has_custom_filters:
+            queryset = queryset.filter(status='confirmed')
+            queryset = queryset.filter(appointment_date__gte=date.today())
+        else:
+            # Apply custom filters if provided
+            status = self.request.GET.get('status')
+            if status:
+                queryset = queryset.filter(status=status)
+            
+            # Assigned dentist filtering
+            assigned_dentist = self.request.GET.get('assigned_dentist')
+            if assigned_dentist:
+                queryset = queryset.filter(assigned_dentist_id=assigned_dentist)
+            
+            # Period filtering
+            period = self.request.GET.get('period')
+            if period and period in ['AM', 'PM']:
+                queryset = queryset.filter(period=period)
+            
+            # Date range filtering
+            date_from = self.request.GET.get('date_from')
+            date_to = self.request.GET.get('date_to')
+            
+            if date_from:
+                try:
+                    date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+                    queryset = queryset.filter(appointment_date__gte=date_from_obj)
+                except ValueError:
+                    pass
+            
+            if date_to:
+                try:
+                    date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+                    queryset = queryset.filter(appointment_date__lte=date_to_obj)
+                except ValueError:
+                    pass
+            
+            # Patient name search
+            search = self.request.GET.get('search')
+            if search:
+                queryset = queryset.filter(
+                    Q(patient__first_name__icontains=search) |
+                    Q(patient__last_name__icontains=search)
+                )
         
-        # Period filtering
-        period = self.request.GET.get('period')
-        if period and period in ['AM', 'PM']:
-            queryset = queryset.filter(period=period)
-        
-        # Date range filtering
-        date_from = self.request.GET.get('date_from')
-        date_to = self.request.GET.get('date_to')
-        
-        if date_from:
-            try:
-                date_from = datetime.strptime(date_from, '%Y-%m-%d').date()
-                queryset = queryset.filter(appointment_date__gte=date_from)
-            except ValueError:
-                pass
-        
-        if date_to:
-            try:
-                date_to = datetime.strptime(date_to, '%Y-%m-%d').date()
-                queryset = queryset.filter(appointment_date__lte=date_to)
-            except ValueError:
-                pass
-        
-        # Patient name search
-        search = self.request.GET.get('search')
-        if search:
-            queryset = queryset.filter(
-                Q(patient__first_name__icontains=search) |
-                Q(patient__last_name__icontains=search)
-            )
-        
-        return queryset.order_by('-appointment_date', '-period')
+        # Ordering: today's appointments with AM before PM, then future dates
+        return queryset.order_by('appointment_date', 'period')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
