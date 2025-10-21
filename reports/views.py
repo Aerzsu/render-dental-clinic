@@ -141,11 +141,11 @@ class ReportsView(LoginRequiredMixin, TemplateView):
         total_outstanding = outstanding_data['total_outstanding'] or Decimal('0')
         
         # 3. OVERDUE PAYMENTS - Installments past due date
-        overdue_payments = Payment.objects.filter(
+        overdue_payments = list(Payment.objects.filter(
             status__in=['pending', 'partially_paid'],
             next_due_date__isnull=False,
             next_due_date__lt=date.today()
-        ).select_related('patient', 'appointment__service').order_by('next_due_date')[:10]
+        ).select_related('patient', 'appointment__service').order_by('next_due_date')[:10])
         
         overdue_count = Payment.objects.filter(
             status__in=['pending', 'partially_paid'],

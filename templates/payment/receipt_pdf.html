@@ -165,7 +165,7 @@
             <div class="clinic-name">{{ clinic_name }}</div>
             <div class="clinic-address">54 Obanic St., Quezon City</div>
             <div class="clinic-phone">{{ clinic_phone }}</div>
-            <div class="receipt-title">OFFICIAL RECEIPT</div>
+            <div class="receipt-title">DIGITAL RECEIPT</div>
             <div class="receipt-number">{{ transaction.receipt_number }}</div>
         </div>
         
@@ -200,7 +200,7 @@
             <div class="item">
                 <div class="item-name">{{ item.service.name }}</div>
                 <div class="item-detail">
-                    <span>Qty: {{ item.quantity }}</span>
+                    <span>&nbsp;</span>
                     <span style="font-weight: bold;">P {{ item.total|floatformat:2 }}</span>
                 </div>
             </div>

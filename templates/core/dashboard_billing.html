@@ -41,7 +41,7 @@
                     </div>
                     <div class="ml-5 w-0 flex-1">
                         <dl>
-                            <dt class="text-sm font-medium text-gray-500 truncate">Today's Appointments</dt>
+                            <dt class="text-sm font-medium text-gray-500 truncate">Today's Appointments — {{ today|date:"F j" }}</dt>
                             <dd class="text-lg font-medium text-gray-900">{{ stats.todays_appointments_count }}</dd>
                         </dl>
                     </div>
@@ -197,7 +197,7 @@
         <!-- Today's Slot Availability -->
         <div class="bg-white shadow rounded-lg">
             <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-medium text-gray-900">Today's Slot Availability</h3>
+                <h3 class="text-lg font-medium text-gray-900">Today's Slot Availability — {{ today|date:"F j" }}</h3>
             </div>
             <div class="px-6 py-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -237,7 +237,7 @@
         <div class="lg:col-span-2 bg-white shadow rounded-lg overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-200">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-medium text-gray-900">Today's Appointments</h3>
+                    <h3 class="text-lg font-medium text-gray-900">Today's Appointments — {{ today|date:"F j" }}</h3>
                     {% if user|has_permission:'appointments' %}
                     <a href="{% url 'appointments:appointment_calendar' %}" 
                        class="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-150">

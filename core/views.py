@@ -451,6 +451,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         ).select_related('patient', 'assigned_dentist', 'service').order_by('period', 'requested_at')
         
         context['todays_appointments'] = todays_appointments
+        context['today'] = today
         
         # Pending appointment requests
         context['pending_requests'] = Appointment.objects.filter(

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>{% block title %}KingJoy Dental Appointment System{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
@@ -10,16 +10,39 @@
     <!-- Chart.js - only load on pages that need it -->
     {% block extra_head %}{% endblock %}
     <style>
-        /* Safe area support for mobile devices with notches */
-        @supports (padding: max(0px)) {
+        /* Mobile viewport height fix */
+        :root {
+            --bottom-nav-height: 64px; /* Your mobile nav height */
+        }
+        
+        /* Mobile bottom navigation with safe area support */
+        .mobile-bottom-nav {
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        
+        /* CRITICAL FIX: Aggressive bottom padding for mobile */
+        @media (max-width: 767px) {
             main {
-                padding-bottom: max(6rem, calc(env(safe-area-inset-bottom) + 6rem));
+                /* Much more aggressive padding to account for:
+                - Bottom nav (64px)
+                - Safe area insets
+                - Mobile browser UI (address bar, navigation)
+                - Extra breathing room
+                */
+                padding-bottom: 180px !important;
+            }
+            
+            /* Also ensure the inner content div has proper spacing */
+            main > div {
+                padding-bottom: 2rem;
             }
         }
         
-        /* Fallback for browsers that don't support @supports or max() */
-        main {
-            padding-bottom: 6rem;
+        /* Desktop - minimal padding */
+        @media (min-width: 768px) {
+            main {
+                padding-bottom: 1.5rem !important;
+            }
         }
 
         .scrollbar-hide::-webkit-scrollbar {
@@ -336,7 +359,7 @@
         </div>
 
         <!-- Mobile Bottom Navigation -->
-        <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 safe-area-inset-bottom">
+        <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 mobile-bottom-nav">
             <div class="flex overflow-x-auto scrollbar-hide" style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch;">
                 {% if user.is_superuser or user|has_permission:"dashboard" %}
                 <a href="{% url 'core:dashboard' %}" class="{% if 'core' in request.resolver_match.namespace and request.resolver_match.url_name == 'dashboard' %}text-primary-600 bg-primary-50{% else %}text-gray-600{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
@@ -451,7 +474,7 @@
             {% endif %}
             
             <!-- Page Content -->
-            <main class="flex-1 overflow-y-auto pb-24 md:pb-0">
+            <main class="flex-1 overflow-y-auto">
                 <div class="px-4 sm:px-6 lg:px-8 py-6">
                     {% block content %}
                     {% endblock %}

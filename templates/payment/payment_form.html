@@ -108,13 +108,13 @@
                                     <div class="flex items-center">
                                         {{ form.discount_application.0 }}
                                         <label for="{{ form.discount_application.0.id_for_label }}" class="ml-3 text-sm font-medium text-gray-900">
-                                            
+                                            Apply to Individual Services
                                         </label>
                                     </div>
                                     <div class="flex items-center">
                                         {{ form.discount_application.1 }}
                                         <label for="{{ form.discount_application.1.id_for_label }}" class="ml-3 text-sm font-medium text-gray-900">
-                                            
+                                            Apply to Total Bill
                                         </label>
                                     </div>
                                 </div>
@@ -172,13 +172,13 @@
                                         <div class="flex items-center">
                                             {{ form.payment_type.0 }}
                                             <label for="{{ form.payment_type.0.id_for_label }}" class="ml-3 text-sm font-medium text-gray-900">
-                                                
+                                                Full Payment
                                             </label>
                                         </div>
                                         <div class="flex items-center">
                                             {{ form.payment_type.1 }}
                                             <label for="{{ form.payment_type.1.id_for_label }}" class="ml-3 text-sm font-medium text-gray-900">
-                                                
+                                                Installment
                                             </label>
                                         </div>
                                     </div>
@@ -495,7 +495,7 @@ function createServiceItemHtml(item, index) {
     
     return `
         <div class="service-item border border-gray-200 rounded-lg p-4" data-index="${index}">
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div class="sm:col-span-2">
                     <label class="block text-sm font-medium text-gray-700">Service</label>
                     <select class="service-select mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" data-index="${index}">
@@ -505,15 +505,9 @@ function createServiceItemHtml(item, index) {
                 </div>
                 
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Quantity</label>
-                    <input type="number" class="quantity-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
-                           value="${item.quantity || 1}" min="1" data-index="${index}">
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Unit Price (₱)</label>
+                    <label class="block text-sm font-medium text-gray-700">Service Fee (₱)</label>
                     <input type="number" class="price-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
-                           value="${item.unit_price || ''}" step="0.01" min="0.01" data-index="${index}" placeholder="0.00">
+                           value="${item.price || ''}" step="0.01" min="0.01" data-index="${index}" placeholder="0.00">
                     <p class="text-xs text-gray-500 mt-1">Range: ₱<span class="min-price">${roundAmount(item.min_price || 0)}</span> - ₱<span class="max-price">${roundAmount(item.max_price || 999999)}</span></p>
                 </div>
                 
@@ -525,9 +519,9 @@ function createServiceItemHtml(item, index) {
                     </select>
                 </div>
                 
-                <div class="sm:col-span-2 lg:col-span-3 flex justify-between items-center pt-2 border-t border-gray-200">
+                <div class="sm:col-span-2 flex justify-between items-center pt-2 border-t border-gray-200">
                     <div class="text-sm">
-                        <span class="text-gray-600">Subtotal: </span><span class="subtotal font-medium">₱0</span>
+                        <span class="text-gray-600">Service Fee: </span><span class="subtotal font-medium">₱0</span>
                         <span class="discount-amount text-green-600 ml-4 hidden">Discount: ₱0</span>
                         <span class="total font-semibold ml-4">Total: ₱0</span>
                     </div>
@@ -552,17 +546,10 @@ function attachServiceItemListeners(index) {
         updateServicePriceRange(index);
     });
     
-    // Quantity change
-    const quantityInput = item.querySelector('.quantity-input');
-    quantityInput.addEventListener('input', function() {
-        updateServiceItem(index, 'quantity', parseInt(this.value) || 1);
-        updateItemCalculations(index);
-    });
-    
     // Price change
     const priceInput = item.querySelector('.price-input');
     priceInput.addEventListener('input', function() {
-        updateServiceItem(index, 'unit_price', parseFloat(this.value) || 0);
+        updateServiceItem(index, 'price', parseFloat(this.value) || 0);
         updateItemCalculations(index);
     });
     
@@ -624,9 +611,7 @@ function updateItemCalculations(index) {
     
     if (!item || !itemElement) return;
     
-    const quantity = parseInt(item.quantity) || 0;
-    const unitPrice = parseFloat(item.unit_price) || 0;
-    const subtotal = quantity * unitPrice;
+    const price = parseFloat(item.price) || 0;
     
     let discountAmount = 0;
     const discountApplicationType = document.querySelector('input[name="discount_application"]:checked')?.value;
@@ -634,20 +619,19 @@ function updateItemCalculations(index) {
     if (discountApplicationType === 'per_item' && item.discount_id) {
         const discount = availableDiscounts.find(d => d.id == item.discount_id);
         if (discount) {
-            // FIXED: Use 'amount' field instead of 'value'
             if (discount.is_percentage) {
-                discountAmount = subtotal * (discount.amount / 100);
+                discountAmount = price * (discount.amount / 100);
             } else {
                 discountAmount = discount.amount;
             }
-            discountAmount = Math.min(discountAmount, subtotal);
+            discountAmount = Math.min(discountAmount, price);
         }
     }
     
-    const total = subtotal - discountAmount;
+    const total = price - discountAmount;
     
     // Update display with rounded values
-    itemElement.querySelector('.subtotal').textContent = formatCurrency(subtotal);
+    itemElement.querySelector('.subtotal').textContent = formatCurrency(price);
     itemElement.querySelector('.total').textContent = formatCurrency(total);
     
     const discountElement = itemElement.querySelector('.discount-amount');
@@ -665,8 +649,7 @@ function addServiceItem() {
     const newItem = {
         service_id: '',
         service_name: '',
-        quantity: 1,
-        unit_price: '',
+        price: '',
         discount_id: '',
         min_price: 0,
         max_price: 999999
@@ -691,22 +674,19 @@ function updatePaymentSummary() {
     
     // Calculate subtotal and per-item discounts
     serviceItems.forEach(item => {
-        const quantity = parseInt(item.quantity) || 0;
-        const unitPrice = parseFloat(item.unit_price) || 0;
-        const itemSubtotal = quantity * unitPrice;
-        subtotal += itemSubtotal;
+        const price = parseFloat(item.price) || 0;
+        subtotal += price;
         
         if (discountApplicationType === 'per_item' && item.discount_id) {
             const discount = availableDiscounts.find(d => d.id == item.discount_id);
             if (discount) {
                 let discountAmount = 0;
-                // FIXED: Use 'amount' field instead of 'value'
                 if (discount.is_percentage) {
-                    discountAmount = itemSubtotal * (discount.amount / 100);
+                    discountAmount = price * (discount.amount / 100);
                 } else {
                     discountAmount = discount.amount;
                 }
-                totalDiscount += Math.min(discountAmount, itemSubtotal);
+                totalDiscount += Math.min(discountAmount, price);
             }
         }
     });
@@ -719,7 +699,6 @@ function updatePaymentSummary() {
         if (totalDiscountId) {
             const discount = availableDiscounts.find(d => d.id == totalDiscountId);
             if (discount) {
-                // FIXED: Use 'amount' field instead of 'value'
                 if (discount.is_percentage) {
                     totalDiscount = subtotal * (discount.amount / 100);
                 } else {
@@ -755,15 +734,15 @@ function handleFormSubmission(e) {
     // Check for price violations
     const violations = [];
     serviceItems.forEach((item, index) => {
-        const unitPrice = parseFloat(item.unit_price) || 0;
+        const price = parseFloat(item.price) || 0;
         const minPrice = item.min_price || 0;
         const maxPrice = item.max_price || 999999;
         
-        if (unitPrice < minPrice || unitPrice > maxPrice) {
+        if (price < minPrice || price > maxPrice) {
             violations.push({
                 index: index,
                 serviceName: item.service_name || 'Unknown Service',
-                unitPrice: unitPrice,
+                price: price,
                 minPrice: minPrice,
                 maxPrice: maxPrice
             });
@@ -791,7 +770,7 @@ function showAdminOverrideModal(violations) {
         const violationHtml = `
             <div class="mb-2 p-2 bg-yellow-100 rounded">
                 <strong>${violation.serviceName}</strong><br>
-                Price: ${formatCurrency(violation.unitPrice)} (Range: ${formatCurrency(violation.minPrice)} - ${formatCurrency(violation.maxPrice)})
+                Price: ${formatCurrency(violation.price)} (Range: ${formatCurrency(violation.minPrice)} - ${formatCurrency(violation.maxPrice)})
             </div>
         `;
         violationsContainer.insertAdjacentHTML('beforeend', violationHtml);

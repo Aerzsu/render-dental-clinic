@@ -126,6 +126,7 @@ class AppointmentForm(forms.ModelForm):
         cleaned_data = super().clean()
         appointment_date = cleaned_data.get('appointment_date')
         period = cleaned_data.get('period')
+        patient = cleaned_data.get('patient')
         
         # Set default status for new appointments
         if self.is_creating and self.user and self.user.has_permission('appointments'):
@@ -143,6 +144,28 @@ class AppointmentForm(forms.ModelForm):
             
             if not can_book:
                 raise ValidationError(f'This time slot is not available. {message}')
+        
+        # NEW: Check for double-booking (same patient, same date)
+        if patient and appointment_date:
+            # Build query to find conflicting appointments
+            conflicting_appointments = Appointment.objects.filter(
+                patient=patient,
+                appointment_date=appointment_date,
+                status__in=Appointment.BLOCKING_STATUSES  # pending, confirmed, completed
+            )
+            
+            # Exclude current appointment if editing
+            if self.instance.id:
+                conflicting_appointments = conflicting_appointments.exclude(id=self.instance.id)
+            
+            if conflicting_appointments.exists():
+                existing = conflicting_appointments.first()
+                formatted_date = appointment_date.strftime('%B %d, %Y')
+                raise ValidationError(
+                    f'This patient already has an appointment on {formatted_date} '
+                    f'({existing.period} - {existing.service.name}). '
+                    f'Please choose a different date.'
+                )
         
         return cleaned_data
     
@@ -584,7 +607,6 @@ class PaymentForm(forms.ModelForm):
         model = Payment
         fields = ['payment_type', 'installment_months', 'next_due_date', 'notes']
         widgets = {
-            # FIX: Add RadioSelect widget for payment_type
             'payment_type': forms.RadioSelect(attrs={
                 'class': 'focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300'
             }),
@@ -614,26 +636,23 @@ class PaymentForm(forms.ModelForm):
         # Set up discount queryset
         self.fields['total_discount'].queryset = Discount.objects.filter(is_active=True).order_by('name')
         
-        # FORMAT DISCOUNT LABELS - Add this new code block
+        # FORMAT DISCOUNT LABELS
         discount_choices = [('', 'No discount')]
         for discount in Discount.objects.filter(is_active=True).order_by('name'):
             if discount.is_percentage:
                 label = f"{discount.name} - {discount.amount}% off"
             else:
-                # Round the amount to remove decimals
                 label = f"{discount.name} - ₱{int(round(discount.amount))} off"
             discount_choices.append((discount.id, label))
         
         self.fields['total_discount'].choices = discount_choices
-        # END OF NEW CODE BLOCK
         
         # Initialize service items data with appointment service
         if self.appointment and not self.instance.pk:
             initial_service_data = {
                 'service_id': self.appointment.service.id,
                 'service_name': self.appointment.service.name,
-                'quantity': 1,
-                'unit_price': '',
+                'price': '',
                 'discount_id': '',
                 'notes': '',
                 'min_price': float(self.appointment.service.min_price or 0),
@@ -662,11 +681,8 @@ class PaymentForm(forms.ModelForm):
             if not item.get('service_id'):
                 raise ValidationError(f'Service is required for item {i+1}.')
             
-            if not item.get('quantity') or int(item.get('quantity', 0)) <= 0:
-                raise ValidationError(f'Valid quantity is required for item {i+1}.')
-            
-            if not item.get('unit_price'):
-                raise ValidationError(f'Unit price is required for item {i+1}.')
+            if not item.get('price'):
+                raise ValidationError(f'Service fee is required for item {i+1}.')
             
             # Validate service exists
             try:
@@ -674,20 +690,20 @@ class PaymentForm(forms.ModelForm):
             except Service.DoesNotExist:
                 raise ValidationError(f'Invalid service for item {i+1}.')
             
-            # Validate unit price
+            # Validate price
             try:
-                unit_price = Decimal(str(item['unit_price']))
+                price = Decimal(str(item['price']))
             except (ValueError, TypeError):
-                raise ValidationError(f'Invalid unit price for item {i+1}.')
+                raise ValidationError(f'Invalid service fee for item {i+1}.')
             
             # Check price range (unless admin override is requested)
             min_price = getattr(service, 'min_price', None) or 0
             max_price = getattr(service, 'max_price', None) or 999999
             
-            if unit_price < min_price or unit_price > max_price:
+            if price < min_price or price > max_price:
                 # Flag for admin override check
                 item['requires_admin_override'] = True
-                item['price_violation'] = f'Price ₱{unit_price} is outside allowed range ₱{min_price} - ₱{max_price}'
+                item['price_violation'] = f'Price ₱{price} is outside allowed range ₱{min_price} - ₱{max_price}'
             
             # Validate discount if specified
             discount = None
@@ -699,8 +715,7 @@ class PaymentForm(forms.ModelForm):
             
             validated_items.append({
                 'service': service,
-                'quantity': int(item['quantity']),
-                'unit_price': unit_price,
+                'price': price,
                 'discount': discount,
                 'notes': item.get('notes', ''),
                 'requires_admin_override': item.get('requires_admin_override', False),
@@ -729,20 +744,16 @@ class PaymentItemForm(forms.ModelForm):
     
     class Meta:
         model = PaymentItem
-        fields = ['service', 'quantity', 'unit_price', 'discount', 'notes']
+        fields = ['service', 'price', 'discount', 'notes']
         widgets = {
             'service': forms.Select(attrs={
                 'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
                 'onchange': 'updateServicePrice(this)'
             }),
-            'quantity': forms.NumberInput(attrs={
+            'price': forms.NumberInput(attrs={
                 'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
-                'min': 1
-            }),
-            'unit_price': forms.NumberInput(attrs={
-                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
-                'step': '0.01',
-                'min': '0.01'
+                'step': '1',
+                'min': '1'
             }),
             'discount': forms.Select(attrs={
                 'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500'
@@ -750,6 +761,9 @@ class PaymentItemForm(forms.ModelForm):
             'notes': forms.TextInput(attrs={
                 'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500'
             }),
+        }
+        labels = {
+            'price': 'Service Fee',
         }
     
     def __init__(self, *args, **kwargs):
@@ -759,7 +773,7 @@ class PaymentItemForm(forms.ModelForm):
         self.fields['service'].queryset = Service.objects.filter(is_archived=False).order_by('name')
         self.fields['discount'].queryset = Discount.objects.filter(is_active=True).order_by('name')
         
-        # FORMAT DISCOUNT LABELS - Add this
+        # FORMAT DISCOUNT LABELS
         discount_choices = [('', 'No discount')]
         for discount in Discount.objects.filter(is_active=True).order_by('name'):
             if discount.is_percentage:
@@ -770,23 +784,104 @@ class PaymentItemForm(forms.ModelForm):
         
         self.fields['discount'].choices = discount_choices
     
-    def clean_unit_price(self):
-        unit_price = self.cleaned_data.get('unit_price')
+    def clean_price(self):
+        price = self.cleaned_data.get('price')
         service = self.cleaned_data.get('service')
         
-        if service and unit_price:
+        if service and price:
             # Check against service price range if available
-            if service.min_price and unit_price < service.min_price:
+            if service.min_price and price < service.min_price:
                 raise ValidationError(
                     f'Price cannot be below ₱{service.min_price} for {service.name}'
                 )
             
-            if service.max_price and unit_price > service.max_price:
+            if service.max_price and price > service.max_price:
                 raise ValidationError(
                     f'Price cannot exceed ₱{service.max_price} for {service.name}'
                 )
         
-        return unit_price
+        return price
+
+
+class PaymentTransactionForm(forms.ModelForm):
+    """Form for adding payment transactions"""
+    
+    payment_type_choice = forms.ChoiceField(
+        choices=[('full', 'Full Payment'), ('partial', 'Partial Payment')],
+        widget=forms.RadioSelect(attrs={
+            'class': 'focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300'
+        }),
+        initial='partial'
+    )
+    
+    installment_months = forms.IntegerField(
+        required=False,
+        min_value=1,
+        max_value=24,
+        widget=forms.NumberInput(attrs={
+            'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
+            'min': 1,
+            'max': 24
+        }),
+        help_text='Required only for first installment payment'
+    )
+    
+    class Meta:
+        model = PaymentTransaction
+        fields = ['amount', 'payment_date', 'notes']
+        widgets = {
+            'amount': forms.NumberInput(attrs={
+                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
+                'step': '1',
+                'min': '1'
+            }),
+            'payment_date': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500'
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
+                'rows': 2,
+                'placeholder': 'Optional notes about this payment...'
+            }),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.payment = kwargs.pop('payment', None)
+        super().__init__(*args, **kwargs)
+        
+        # Set default payment date to today
+        self.fields['payment_date'].initial = date.today()
+        
+        if self.payment:
+            # Set maximum amount to outstanding balance
+            self.fields['amount'].widget.attrs['max'] = str(self.payment.outstanding_balance)
+            
+            # If payment is already set up for installments, hide installment months
+            if self.payment.payment_type == 'installment':
+                self.fields['installment_months'].widget = forms.HiddenInput()
+    
+    def clean_amount(self):
+        amount = self.cleaned_data.get('amount')
+        
+        if self.payment and amount:
+            if amount > self.payment.outstanding_balance:
+                raise ValidationError(
+                    f'Payment amount cannot exceed outstanding balance of ₱{self.payment.outstanding_balance}'
+                )
+            
+            if amount <= 0:
+                raise ValidationError('Payment amount must be greater than zero.')
+        
+        return amount
+    
+    def clean_payment_date(self):
+        payment_date = self.cleaned_data.get('payment_date')
+        
+        if payment_date and payment_date > date.today():
+            raise ValidationError('Payment date cannot be in the future.')
+        
+        return payment_date
 
 
 class PaymentTransactionForm(forms.ModelForm):

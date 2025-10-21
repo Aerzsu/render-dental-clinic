@@ -5,6 +5,9 @@ This allows signals to access the current user when models are saved
 """
 
 import threading
+from django.shortcuts import redirect
+from django.urls import reverse
+from django.contrib.auth.views import redirect_to_login
 
 # Thread-local storage for the current user
 _thread_locals = threading.local()
@@ -59,3 +62,42 @@ class AuditMixin:
             self._current_user = current_user
         
         return super().save(*args, **kwargs)
+    
+
+class SessionExpiredMiddleware:
+    """
+    Middleware to handle expired sessions gracefully.
+    Redirects unauthenticated users to login page with next parameter.
+    """
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+        return response
+
+    def process_exception(self, request, exception):
+        """
+        Catch authentication-related exceptions and redirect to login.
+        """
+        # If user is not authenticated and trying to access protected view
+        if not request.user.is_authenticated:
+            # Check if the request path requires authentication
+            protected_paths = [
+                '/dashboard/',
+                '/appointments/',
+                '/patients/',
+                '/users/',
+                '/services/',
+                '/reports/',
+            ]
+            
+            # Check if current path is protected
+            if any(request.path.startswith(path) for path in protected_paths):
+                # Redirect to login with next parameter
+                return redirect_to_login(
+                    request.get_full_path(),
+                    login_url=reverse('users:login')
+                )
+        
+        return None

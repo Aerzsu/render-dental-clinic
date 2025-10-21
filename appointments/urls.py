@@ -56,4 +56,6 @@ urlpatterns = [
 
     # API endpoint for pending appointments count (for notification badge)
     path('api/pending-count/', views.pending_count_api, name='pending_count_api'),
+
+    path('api/check-double-booking/', views.check_double_booking_api, name='check_double_booking_api'),
 ]

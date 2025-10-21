@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from decouple import config
 import dj_database_url
+from django.urls import reverse_lazy
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -43,6 +44,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.SessionExpiredMiddleware',
     'core.middleware.AuditMiddleware',
 ]
 
@@ -142,9 +144,10 @@ CRISPY_ALLOWED_TEMPLATE_PACKS = "tailwind"
 CRISPY_TEMPLATE_PACK = "tailwind"
 
 # Login/logout URLs
-LOGIN_URL = '/users/login/'
-LOGIN_REDIRECT_URL = '/dashboard/'
-LOGOUT_REDIRECT_URL = '/'
+LOGIN_URL = 'users:login'
+LOGIN_REDIRECT_URL = 'core:dashboard'
+LOGOUT_REDIRECT_URL = 'users:login'
+SESSION_SAVE_EVERY_REQUEST = True
 
 # Session settings
 SESSION_COOKIE_AGE = 8 * 60 * 60  # 8 hours

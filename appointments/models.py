@@ -710,12 +710,14 @@ class Payment(models.Model):
 
 
 class PaymentItem(models.Model):
-    """Enhanced Payment item model with price validation"""
+    """Payment item model for dental services"""
     payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name='items')
     service = models.ForeignKey('services.Service', on_delete=models.PROTECT)
-    quantity = models.PositiveIntegerField(default=1)
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2,
-                                   help_text="Price per unit (must be within service price range)")
+    price = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2,
+        help_text="Service fee (must be within service price range)"
+    )
     discount = models.ForeignKey('services.Discount', on_delete=models.SET_NULL, null=True, blank=True)
     notes = models.TextField(blank=True)
     
@@ -726,35 +728,30 @@ class PaymentItem(models.Model):
         ]
     
     def __str__(self):
-        return f"{self.service.name} x{self.quantity} - ₱{self.unit_price}"
-    
-    @property
-    def subtotal(self):
-        """Calculate subtotal before discount"""
-        return self.unit_price * self.quantity
+        return f"{self.service.name} - ₱{self.price}"
     
     @property
     def discount_amount(self):
         """Calculate discount amount"""
         if not self.discount:
             return Decimal('0')
-        return self.discount.calculate_discount(self.subtotal)
+        return self.discount.calculate_discount(self.price)
     
     @property
     def total(self):
         """Calculate total after discount"""
-        return self.subtotal - self.discount_amount
+        return self.price - self.discount_amount
     
     def clean(self):
-        """Validate unit price against service price range"""
+        """Validate price against service price range"""
         if self.service and hasattr(self.service, 'min_price') and hasattr(self.service, 'max_price'):
-            if self.unit_price < self.service.min_price:
+            if self.price < self.service.min_price:
                 raise ValidationError(
-                    f"Price ₱{self.unit_price} is below minimum price ₱{self.service.min_price} for {self.service.name}"
+                    f"Price ₱{self.price} is below minimum price ₱{self.service.min_price} for {self.service.name}"
                 )
-            if self.unit_price > self.service.max_price:
+            if self.price > self.service.max_price:
                 raise ValidationError(
-                    f"Price ₱{self.unit_price} is above maximum price ₱{self.service.max_price} for {self.service.name}"
+                    f"Price ₱{self.price} is above maximum price ₱{self.service.max_price} for {self.service.name}"
                 )
 
 

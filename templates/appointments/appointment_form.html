@@ -579,6 +579,105 @@ function appointmentForm() {
         }
     });
 })();
+
+// Double-booking check - Add this after the patient autocomplete script
+(function() {
+    const dateInput = document.querySelector('[name="appointment_date"]');
+    const patientIdInput = document.getElementById('patient-id');
+    const doubleBookingWarning = document.createElement('div');
+    
+    // Create warning element
+    doubleBookingWarning.id = 'double-booking-warning';
+    doubleBookingWarning.className = 'hidden mt-3 p-4 bg-red-50 border border-red-200 rounded-md';
+    doubleBookingWarning.innerHTML = `
+        <div class="flex items-start">
+            <span class="text-red-600 mr-2 text-lg">⚠</span>
+            <div class="flex-1">
+                <p class="text-sm font-medium text-red-800">Double Booking Alert</p>
+                <p class="text-sm text-red-700 mt-1" id="double-booking-message"></p>
+            </div>
+        </div>
+    `;
+    
+    // Insert warning after date input
+    if (dateInput && dateInput.parentElement) {
+        dateInput.parentElement.appendChild(doubleBookingWarning);
+    }
+    
+    let checkTimeout;
+    
+    function checkDoubleBooking() {
+        const patientId = patientIdInput.value;
+        const date = dateInput.value;
+        
+        // Only check if both patient and date are selected
+        if (!patientId || !date) {
+            doubleBookingWarning.classList.add('hidden');
+            return;
+        }
+        
+        // Clear previous timeout
+        clearTimeout(checkTimeout);
+        
+        // Debounce the API call
+        checkTimeout = setTimeout(() => {
+            const excludeId = '{% if appointment %}{{ appointment.id }}{% endif %}';
+            let url = `/appointments/api/check-double-booking/?patient_id=${patientId}&date=${date}`;
+            
+            if (excludeId) {
+                url += `&exclude_id=${excludeId}`;
+            }
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.has_conflict) {
+                        document.getElementById('double-booking-message').textContent = data.message;
+                        doubleBookingWarning.classList.remove('hidden');
+                        
+                        // Optionally disable submit button
+                        const submitBtn = document.getElementById('submit-btn');
+                        if (submitBtn) {
+                            submitBtn.disabled = true;
+                            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                        }
+                    } else {
+                        doubleBookingWarning.classList.add('hidden');
+                        
+                        // Re-enable submit button
+                        const submitBtn = document.getElementById('submit-btn');
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking double booking:', error);
+                    doubleBookingWarning.classList.add('hidden');
+                });
+        }, 500); // 500ms debounce
+    }
+    
+    // Attach event listeners
+    if (dateInput) {
+        dateInput.addEventListener('change', checkDoubleBooking);
+    }
+    
+    if (patientIdInput) {
+        // Use MutationObserver to detect when patient is selected
+        const observer = new MutationObserver(checkDoubleBooking);
+        observer.observe(patientIdInput, { attributes: true, attributeFilter: ['value'] });
+        
+        // Also listen for input events
+        patientIdInput.addEventListener('change', checkDoubleBooking);
+    }
+    
+    // Check on page load if editing
+    {% if appointment %}
+    checkDoubleBooking();
+    {% endif %}
+})();
 </script>
 
 <style>

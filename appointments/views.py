@@ -947,7 +947,77 @@ def bulk_create_daily_slots_confirm(request):
 
 
 # API ENDPOINTS
-
+@login_required
+@require_http_methods(["GET"])
+def check_double_booking_api(request):
+    """
+    AJAX API: Check if patient already has an appointment on the given date
+    Query params:
+        - patient_id: ID of the patient
+        - date: Appointment date (YYYY-MM-DD)
+        - exclude_id: (optional) Appointment ID to exclude when editing
+    """
+    patient_id = request.GET.get('patient_id')
+    date_str = request.GET.get('date')
+    exclude_id = request.GET.get('exclude_id')
+    
+    if not patient_id or not date_str:
+        return JsonResponse({
+            'error': 'Missing required parameters'
+        }, status=400)
+    
+    try:
+        # Parse date
+        appointment_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        
+        # Get patient
+        patient = Patient.objects.get(id=patient_id, is_active=True)
+        
+        # Check for existing appointments on this date
+        conflicting_appointments = Appointment.objects.filter(
+            patient=patient,
+            appointment_date=appointment_date,
+            status__in=Appointment.BLOCKING_STATUSES
+        )
+        
+        # Exclude current appointment if editing
+        if exclude_id:
+            conflicting_appointments = conflicting_appointments.exclude(id=exclude_id)
+        
+        if conflicting_appointments.exists():
+            existing = conflicting_appointments.first()
+            formatted_date = appointment_date.strftime('%B %d, %Y')
+            
+            return JsonResponse({
+                'has_conflict': True,
+                'message': f'This patient already has an appointment on {formatted_date} ({existing.period} - {existing.service.name}). Please choose a different date.',
+                'existing_appointment': {
+                    'id': existing.id,
+                    'date': existing.appointment_date.isoformat(),
+                    'period': existing.period,
+                    'service': existing.service.name,
+                    'status': existing.get_status_display()
+                }
+            })
+        else:
+            return JsonResponse({
+                'has_conflict': False,
+                'message': 'No conflicts found'
+            })
+            
+    except Patient.DoesNotExist:
+        return JsonResponse({
+            'error': 'Patient not found'
+        }, status=404)
+    except ValueError:
+        return JsonResponse({
+            'error': 'Invalid date format'
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            'error': str(e)
+        }, status=500)
+    
 @require_http_methods(["GET"])
 def get_slot_availability_api(request):
     """
@@ -1129,6 +1199,7 @@ def approve_appointment(request, pk):
                 messages.error(request, 'Only pending appointments can be approved.')
                 return redirect('appointments:appointment_detail', pk=pk)
             
+            # Check slot availability
             can_book, message = Appointment.can_book_appointment(
                 appointment_date=appointment.appointment_date,
                 period=appointment.period,
@@ -1141,6 +1212,51 @@ def approve_appointment(request, pk):
                     return HttpResponse(f'<div class="text-red-600">{message}</div>')
                 messages.error(request, f'Cannot approve: {message}')
                 return redirect('appointments:appointment_detail', pk=pk)
+            
+            # NEW: Check for double-booking
+            # For pending appointments with patient already linked (returning patients)
+            if appointment.patient:
+                conflicting = Appointment.objects.filter(
+                    patient=appointment.patient,
+                    appointment_date=appointment.appointment_date,
+                    status__in=Appointment.BLOCKING_STATUSES
+                ).exclude(id=appointment.id)
+                
+                if conflicting.exists():
+                    existing = conflicting.first()
+                    formatted_date = appointment.appointment_date.strftime('%B %d, %Y')
+                    error_msg = (
+                        f'Cannot approve: Patient already has an appointment on {formatted_date} '
+                        f'({existing.period} - {existing.service.name}). '
+                        f'Please reschedule or cancel the other appointment first.'
+                    )
+                    
+                    if request.headers.get('HX-Request'):
+                        return HttpResponse(f'<div class="text-red-600">{error_msg}</div>')
+                    messages.error(request, error_msg)
+                    return redirect('appointments:appointment_detail', pk=pk)
+            
+            # For new patients, check by temp_email to prevent duplicates
+            elif appointment.temp_email:
+                conflicting = Appointment.objects.filter(
+                    temp_email=appointment.temp_email,
+                    appointment_date=appointment.appointment_date,
+                    status__in=Appointment.BLOCKING_STATUSES
+                ).exclude(id=appointment.id)
+                
+                if conflicting.exists():
+                    existing = conflicting.first()
+                    formatted_date = appointment.appointment_date.strftime('%B %d, %Y')
+                    error_msg = (
+                        f'Cannot approve: This patient (email: {appointment.temp_email}) already has '
+                        f'an appointment on {formatted_date} ({existing.period} - {existing.service.name}). '
+                        f'Please reschedule or reject one of the requests.'
+                    )
+                    
+                    if request.headers.get('HX-Request'):
+                        return HttpResponse(f'<div class="text-red-600">{error_msg}</div>')
+                    messages.error(request, error_msg)
+                    return redirect('appointments:appointment_detail', pk=pk)
             
             assigned_dentist_id = request.POST.get('assigned_dentist')
             if assigned_dentist_id:

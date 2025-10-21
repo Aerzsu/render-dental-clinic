@@ -175,6 +175,9 @@ class PaymentDetailView(LoginRequiredMixin, DetailView):
         # Available discounts
         context['available_discounts'] = Discount.objects.filter(is_active=True).order_by('name')
         
+        # NEW: Add today's date for date validation
+        context['today'] = timezone.now().date()
+        
         return context
 
 
@@ -447,14 +450,14 @@ def add_payment_item(request, payment_pk):
             
             service = get_object_or_404(Service, pk=data['service_id'])
             
-            # Validate unit price against service price range
-            unit_price = Decimal(str(data['unit_price']))
-            if service.min_price and unit_price < service.min_price:
+            # Validate price against service price range
+            price = Decimal(str(data['price']))
+            if service.min_price and price < service.min_price:
                 return JsonResponse({
                     'error': f'Price must be at least ₱{service.min_price}'
                 }, status=400)
             
-            if service.max_price and unit_price > service.max_price:
+            if service.max_price and price > service.max_price:
                 return JsonResponse({
                     'error': f'Price cannot exceed ₱{service.max_price}'
                 }, status=400)
@@ -469,8 +472,7 @@ def add_payment_item(request, payment_pk):
                 item = PaymentItem.objects.create(
                     payment=payment,
                     service=service,
-                    quantity=int(data['quantity']),
-                    unit_price=unit_price,
+                    price=price,
                     discount=discount,
                     notes=data.get('notes', '')
                 )
@@ -488,9 +490,7 @@ def add_payment_item(request, payment_pk):
                 'item': {
                     'id': item.id,
                     'service_name': service.name,
-                    'quantity': item.quantity,
-                    'unit_price': float(item.unit_price),
-                    'subtotal': float(item.subtotal),
+                    'price': float(item.price),
                     'discount_amount': float(item.discount_amount),
                     'total': float(item.total),
                 },
@@ -532,7 +532,7 @@ def delete_payment_item(request, pk):
 
 @login_required
 def add_payment_transaction(request, payment_pk):
-    """Add cash payment transaction"""
+    """Add cash payment transaction with date validation"""
     if not hasattr(request.user, 'has_permission') or not request.user.has_permission('billing'):
         return JsonResponse({'error': 'Permission denied'}, status=403)
     
@@ -545,11 +545,33 @@ def add_payment_transaction(request, payment_pk):
             payment_date = datetime.strptime(data['payment_date'], '%Y-%m-%d').date()
             payment_type = data.get('payment_type', 'full')
             
+            # Get today's date
+            today = timezone.now().date()
+            appointment_date = payment.appointment.appointment_date
+            
+            # Validate amount
             if amount <= 0:
-                return JsonResponse({'error': 'Payment amount must be greater than 0'}, status=400)
+                return JsonResponse({
+                    'error': 'Payment amount must be greater than zero.'
+                }, status=400)
             
             if amount > payment.outstanding_balance:
-                return JsonResponse({'error': 'Payment amount cannot exceed outstanding balance'}, status=400)
+                return JsonResponse({
+                    'error': f'Payment amount cannot exceed the outstanding balance of ₱{payment.outstanding_balance:,.2f}.'
+                }, status=400)
+            
+            # NEW: Validate payment date is not before appointment date
+            if payment_date < appointment_date:
+                formatted_appointment_date = appointment_date.strftime('%B %d, %Y')
+                return JsonResponse({
+                    'error': f'Payment date cannot be before the appointment date ({formatted_appointment_date}).'
+                }, status=400)
+            
+            # NEW: Validate payment date is not in the future
+            if payment_date > today:
+                return JsonResponse({
+                    'error': 'Payment date cannot be in the future. Please select today or an earlier date.'
+                }, status=400)
             
             with transaction.atomic():
                 # Handle installment setup
@@ -562,7 +584,7 @@ def add_payment_transaction(request, payment_pk):
                     payment=payment,
                     amount=amount,
                     payment_date=payment_date,
-                    notes=data.get('notes', f'Cash payment - P{amount}'),
+                    notes=data.get('notes', f'Cash payment - ₱{amount}'),
                     created_by=request.user  # Track who processed this payment
                 )
                 
@@ -592,8 +614,14 @@ def add_payment_transaction(request, payment_pk):
                 'next_due_date': payment.next_due_date.strftime('%Y-%m-%d') if payment.next_due_date else None
             })
             
+        except ValueError as e:
+            return JsonResponse({
+                'error': 'Invalid date format. Please use a valid date.'
+            }, status=400)
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
+            return JsonResponse({
+                'error': f'An error occurred: {str(e)}'
+            }, status=400)
     
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
