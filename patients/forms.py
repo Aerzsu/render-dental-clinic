@@ -2,7 +2,50 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from datetime import date
+import re
 from .models import Patient
+
+
+def clean_name(name, field_name="name"):
+    """
+    Utility function to clean and validate names.
+    
+    Args:
+        name: The name string to clean
+        field_name: Name of the field for error messages
+    
+    Returns:
+        Cleaned name string
+        
+    Raises:
+        ValidationError: If name format is invalid
+    """
+    if not name:
+        raise ValidationError(f'Please enter a {field_name}.')
+    
+    # Strip whitespace and remove extra spaces
+    name = ' '.join(name.split())
+    
+    # Check length
+    if len(name) < 2:
+        raise ValidationError(f'{field_name.capitalize()} must be at least 2 characters long.')
+    
+    if len(name) > 50:
+        raise ValidationError(f'{field_name.capitalize()} must not exceed 50 characters.')
+    
+    # Validate characters - allow letters (including accented), spaces, hyphens, and apostrophes
+    # \p{L} would be ideal but not supported in re, so using a comprehensive character class
+    pattern = r'^[a-zA-ZÀ-ÿ\s\'\-]+$'
+    if not re.match(pattern, name):
+        raise ValidationError(
+            f'{field_name.capitalize()} can only contain letters, spaces, hyphens, and apostrophes.'
+        )
+    
+    # Additional check: name cannot be only spaces/special characters
+    if not any(c.isalpha() for c in name):
+        raise ValidationError(f'{field_name.capitalize()} must contain at least one letter.')
+    
+    return name
 
 
 def clean_philippine_phone_number(phone, field_name="phone number"):
@@ -14,7 +57,7 @@ def clean_philippine_phone_number(phone, field_name="phone number"):
         field_name: Name of the field for error messages
     
     Returns:
-        Cleaned phone number string or empty string if invalid/empty
+        Cleaned phone number string in +639XXXXXXXXX format or empty string if invalid/empty
         
     Raises:
         ValidationError: If phone number format is invalid
@@ -22,24 +65,38 @@ def clean_philippine_phone_number(phone, field_name="phone number"):
     if not phone:
         return ''
     
-    # Strip whitespace and handle None values
-    phone = phone.strip()
+    # Strip all whitespace, spaces, and dashes
+    phone = phone.strip().replace(' ', '').replace('-', '')
+    
     if not phone:
         return ''
-        
-    # Remove spaces and dashes
-    phone = phone.replace(' ', '').replace('-', '')
     
-    # Convert local format to international
+    # Reject numbers starting with 0 but not 09
+    if phone.startswith('0') and not phone.startswith('09'):
+        raise ValidationError('Please enter a valid phone number.')
+    
+    # Convert various formats to international format
     if phone.startswith('09'):
+        # 09XXXXXXXXX -> +639XXXXXXXXX
         phone = '+63' + phone[1:]
+    elif phone.startswith('639'):
+        # 639XXXXXXXXX -> +639XXXXXXXXX
+        phone = '+' + phone
     elif phone.startswith('9') and len(phone) == 10:
+        # 9XXXXXXXXX -> +639XXXXXXXXX
         phone = '+63' + phone
     
-    # Validate format
+    # Validate final format: must be +639XXXXXXXXX (exactly 13 characters)
     if not phone.startswith('+63') or len(phone) != 13:
-        if not (phone.startswith('09') and len(phone) == 11):
-            raise ValidationError(f'Please enter a valid Philippine {field_name} (e.g., +639123456789 or 09123456789)')
+        raise ValidationError('Please enter a valid phone number.')
+    
+    # Ensure all characters after +63 are digits
+    if not phone[3:].isdigit():
+        raise ValidationError('Please enter a valid phone number.')
+    
+    # Ensure it starts with 9 after +63
+    if not phone.startswith('+639'):
+        raise ValidationError('Please enter a valid phone number.')
     
     return phone
 
@@ -98,8 +155,15 @@ class PatientForm(forms.ModelForm):
         self.fields['address'].label = 'Address'
         self.fields['date_of_birth'].label = 'Date of Birth'
     
-    # REMOVED: clean_email method that checked for uniqueness
-    # Email duplicates are now allowed for family members sharing emails
+    def clean_first_name(self):
+        """Clean and validate first name"""
+        first_name = self.cleaned_data.get('first_name')
+        return clean_name(first_name, "first name")
+    
+    def clean_last_name(self):
+        """Clean and validate last name"""
+        last_name = self.cleaned_data.get('last_name')
+        return clean_name(last_name, "last name")
     
     def clean_contact_number(self):
         """Clean and validate contact number using utility function"""
@@ -110,16 +174,20 @@ class PatientForm(forms.ModelForm):
         """Validate date of birth"""
         dob = self.cleaned_data.get('date_of_birth')
         if dob:
+            # Check if date is in the future
             if dob > date.today():
                 raise ValidationError('Date of birth cannot be in the future.')
             
-            # Check if too old (e.g., over 120 years)
+            # Check if person is 120 years or older
             age = date.today().year - dob.year
-            if age > 120:
+            # Adjust if birthday hasn't occurred this year yet
+            if (date.today().month, date.today().day) < (dob.month, dob.day):
+                age -= 1
+            
+            if age >= 120:
                 raise ValidationError('Please enter a valid date of birth.')
         
         return dob
-
     
     def clean(self):
         """Cross-field validation"""
@@ -145,6 +213,7 @@ class PatientSearchForm(forms.Form):
     
     query = forms.CharField(
         max_length=100,
+        required=False,
         widget=forms.TextInput(attrs={
             'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
             'placeholder': 'Search patients...'
@@ -155,6 +224,7 @@ class PatientSearchForm(forms.Form):
     search_type = forms.ChoiceField(
         choices=SEARCH_TYPE_CHOICES,
         initial='all',
+        required=False,
         widget=forms.Select(attrs={
             'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500'
         }),

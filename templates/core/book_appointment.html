@@ -666,6 +666,7 @@
     }
 </style>
 
+
 <script>
     // Modal control for terms and condition - UPDATED with keyboard support
     function openTermsModal() {
@@ -690,7 +691,7 @@
         }
     });
 
-    // ADDED: User-friendly error messages
+    // User-friendly error messages
     const USER_MESSAGES = {
         // Patient type & selection
         patient_type_required: 'Please select whether you are a new or existing patient',
@@ -706,13 +707,17 @@
         otp_verify_failed: 'Failed to verify code. Please try again.',
         
         // New patient fields
-        first_name_required: 'First Name is required',
-        first_name_invalid: 'First name should only contain letters, spaces, hyphens, and apostrophes',
-        last_name_required: 'Last Name is required',
-        last_name_invalid: 'Last name should only contain letters, spaces, hyphens, and apostrophes',
+        first_name_required: 'First name is required',
+        first_name_too_short: 'First name must be at least 2 characters long',
+        first_name_too_long: 'First name cannot exceed 50 characters',
+        first_name_invalid: 'First name can only contain letters, spaces, hyphen, and apostrophe',
+        last_name_required: 'Last name is required',
+        last_name_too_short: 'Last name must be at least 2 characters long',
+        last_name_too_long: 'Last name cannot exceed 50 characters',
+        last_name_invalid: 'Last name can only contain letters, spaces, hyphen, and apostrophe',
         email_required: 'Email is required',
         email_invalid: 'Please enter a valid email address',
-        contact_number_invalid: 'Please enter a valid Philippine mobile number',
+        contact_number_invalid: 'Please enter a valid Philippine mobile number (e.g., +639123456789 or 09123456789)',
         
         // Appointment details
         service_required: 'Please choose a service',
@@ -732,7 +737,7 @@
     // appointment booking logic
     const servicesData = {{ services_json|safe }};
     const csrfToken = '{{ csrf_token }}';
-    const todayDate = '{{ today_date }}';  // ADDED: Server timezone
+    const todayDate = '{{ today_date }}';  // Server timezone (Asia/Manila)
     
     function appointmentBooking() {
         return {
@@ -745,7 +750,7 @@
             errors: {},
             services: servicesData || [],
             
-            // ADDED: Loading state for slot checking
+            // Loading state for slot checking
             loadingSlots: false,
             loadingTimeout: null,
             
@@ -836,6 +841,34 @@
                     verifiedPatientName: '',
                     verifiedPatientData: null
                 };
+            },
+            
+            // Name validation helper
+            validateName(name, fieldName) {
+                const trimmedName = name.trim();
+                
+                if (!trimmedName) {
+                    return USER_MESSAGES[`${fieldName}_required`];
+                }
+                
+                // Remove extra spaces
+                const normalizedName = trimmedName.replace(/\s+/g, ' ');
+                
+                if (normalizedName.length < 2) {
+                    return USER_MESSAGES[`${fieldName}_too_short`];
+                }
+                
+                if (normalizedName.length > 50) {
+                    return USER_MESSAGES[`${fieldName}_too_long`];
+                }
+                
+                // Check valid characters (letters, spaces, hyphen, apostrophe)
+                const namePattern = /^[a-zA-Z\s\-']+$/;
+                if (!namePattern.test(normalizedName)) {
+                    return USER_MESSAGES[`${fieldName}_invalid`];
+                }
+                
+                return null;
             },
             
             async sendOTPCode() {
@@ -994,19 +1027,36 @@
                                 isValid = false;
                             }
                         } else if (this.form.patient_type === 'new') {
-                            const requiredFields = ['first_name', 'last_name', 'email'];
-                            for (const field of requiredFields) {
-                                if (!this.form[field]?.trim()) {
-                                    this.errors[field] = USER_MESSAGES[`${field}_required`];
-                                    isValid = false;
-                                }
+                            // Validate first name
+                            const firstNameError = this.validateName(this.form.first_name, 'first_name');
+                            if (firstNameError) {
+                                this.errors.first_name = firstNameError;
+                                isValid = false;
+                            } else {
+                                // Normalize the name by removing extra spaces
+                                this.form.first_name = this.form.first_name.trim().replace(/\s+/g, ' ');
                             }
                             
-                            if (this.form.email && !this.isValidEmail(this.form.email)) {
+                            // Validate last name
+                            const lastNameError = this.validateName(this.form.last_name, 'last_name');
+                            if (lastNameError) {
+                                this.errors.last_name = lastNameError;
+                                isValid = false;
+                            } else {
+                                // Normalize the name by removing extra spaces
+                                this.form.last_name = this.form.last_name.trim().replace(/\s+/g, ' ');
+                            }
+                            
+                            // Validate email
+                            if (!this.form.email?.trim()) {
+                                this.errors.email = USER_MESSAGES.email_required;
+                                isValid = false;
+                            } else if (!this.isValidEmail(this.form.email)) {
                                 this.errors.email = USER_MESSAGES.email_invalid;
                                 isValid = false;
                             }
                             
+                            // Validate contact number (optional but must be valid if provided)
                             if (this.form.contact_number && !this.isValidPhoneNumber(this.form.contact_number)) {
                                 this.errors.contact_number = USER_MESSAGES.contact_number_invalid;
                                 isValid = false;
@@ -1113,12 +1163,12 @@
                 return date.toDateString() === today.toDateString();
             },
             
-            // UPDATED: Use server timezone for date validation
             isDateAvailable(date) {
-                const dateISO = date.toISOString().split('T')[0];
+                // Format date as YYYY-MM-DD in local timezone
+                const dateStr = this.formatDateForAPI(date);
                 
                 // Check if date is in the past or today
-                if (dateISO <= todayDate) {
+                if (dateStr <= todayDate) {
                     return false;
                 }
                 
@@ -1130,7 +1180,6 @@
                 return true;
             },
             
-            // UPDATED: Added loading state with threshold
             selectDate(day) {
                 if (!day.available || day.isEmpty) {
                     return;
@@ -1363,8 +1412,12 @@
             },
             
             isValidPhoneNumber(phone) {
-                const phoneRegex = /^(\+63|0)?9\d{9}$/;
-                const cleanPhone = phone.replace(/[\s-]/g, '');
+                // Remove spaces for validation
+                const cleanPhone = phone.replace(/\s/g, '');
+                
+                // Philippine mobile number patterns:
+                // +639XXXXXXXXX or 639XXXXXXXXX or 09XXXXXXXXX
+                const phoneRegex = /^(\+63|63|0)9\d{9}$/;
                 return phoneRegex.test(cleanPhone);
             }
         };
