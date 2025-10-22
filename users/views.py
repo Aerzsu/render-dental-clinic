@@ -3,6 +3,7 @@ import secrets
 import string
 from django.shortcuts import get_object_or_404, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.urls import reverse_lazy, reverse
@@ -10,6 +11,8 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.db.models import Q
 from .models import User, Role
 from core.models import AuditLog
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_http_methods
 from .forms import UserForm, RoleForm
 from django.contrib.auth.views import PasswordChangeView
 
@@ -24,6 +27,25 @@ class CustomPasswordChangeView(LoginRequiredMixin, PasswordChangeView):
             'Your password has been changed successfully.'
         )
         return super().form_valid(form)
+    
+@never_cache
+@require_http_methods(["GET", "POST"])
+@login_required
+def custom_logout(request):
+    """
+    Custom logout view that properly clears session and prevents caching.
+    """
+    logout(request)
+    
+    # Create response with redirect to login
+    response = redirect('users:login')
+    
+    # Add aggressive cache control headers
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0, private'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    
+    return response
 
 class UserListView(LoginRequiredMixin, ListView):
     """List all users with search and filtering functionality"""

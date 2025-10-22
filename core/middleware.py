@@ -8,6 +8,7 @@ import threading
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.contrib.auth.views import redirect_to_login
+from django.utils.cache import add_never_cache_headers
 
 # Thread-local storage for the current user
 _thread_locals = threading.local()
@@ -48,7 +49,6 @@ class AuditMiddleware:
         return response
 
 
-# Mixin to add current user to model instances
 class AuditMixin:
     """
     Mixin for models to attach current user before save
@@ -101,3 +101,28 @@ class SessionExpiredMiddleware:
                 )
         
         return None
+
+
+class NoCacheMiddleware:
+    """
+    Middleware to prevent browser caching of authenticated pages.
+    This ensures that after logout, pressing back button won't show cached pages.
+    """
+    
+    def __init__(self, get_response):
+        self.get_response = get_response
+    
+    def __call__(self, request):
+        response = self.get_response(request)
+        
+        # Only apply no-cache headers to authenticated pages
+        if request.user.is_authenticated:
+            # Add headers to prevent caching
+            add_never_cache_headers(response)
+            
+            # Additional cache control headers for maximum compatibility
+            response['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+            response['Pragma'] = 'no-cache'
+            response['Expires'] = '0'
+        
+        return response

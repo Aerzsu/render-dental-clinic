@@ -1,4 +1,4 @@
-# reports/views.py - CORRECTED VERSION
+# reports/views.py - FIXED VERSION (quantity field removed)
 from django.shortcuts import render, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
@@ -8,7 +8,6 @@ from django.db.models import (
     Count, Sum, Q, F, DecimalField, Case, When, Value, IntegerField, 
     OuterRef, Subquery, Exists
 )
-from django.db.models import Count, Sum, Q, F, DecimalField, Case, When, Value
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.http import HttpResponse
@@ -33,6 +32,7 @@ class ReportsView(LoginRequiredMixin, TemplateView):
     - Revenue calculations use PaymentTransaction.payment_date (actual cash received)
     - Service revenue uses appointment_date (services performed in period)
     - All queries optimized with select_related/prefetch_related to avoid N+1
+    - Each PaymentItem = 1 service (no quantity field)
     """
     template_name = 'reports/reports_dashboard.html'
     
@@ -164,8 +164,7 @@ class ReportsView(LoginRequiredMixin, TemplateView):
         ).order_by('-payment_datetime')[:15]
         
         # 5. SERVICE REVENUE BREAKDOWN
-        # FIXED: Filter by appointment_date (when service was performed)
-        # NOT by payment_date (to avoid duplication from multiple transactions)
+        # FIXED: Each PaymentItem = 1 service, so just sum the price
         service_revenue = PaymentItem.objects.filter(
             payment__appointment__status='completed',
             payment__appointment__appointment_date__gte=start_date,
@@ -174,9 +173,9 @@ class ReportsView(LoginRequiredMixin, TemplateView):
             'service__id',
             'service__name'
         ).annotate(
-            # Calculate revenue: (unit_price * quantity) for each item
-            total_revenue=Sum(F('unit_price') * F('quantity'), output_field=DecimalField()),
-            service_count=Sum('quantity')
+            # Each PaymentItem = 1 service performed
+            total_revenue=Sum('price', output_field=DecimalField()),
+            service_count=Count('id')
         ).order_by('-total_revenue')[:10]
         
         # 6. CALCULATE METRICS
@@ -292,6 +291,7 @@ class ReportsView(LoginRequiredMixin, TemplateView):
         top_discounts_limit = SystemSetting.get_int_setting('reports_top_discounts_limit', 5)
         
         # 1. POPULAR SERVICES BY COUNT (most frequently performed)
+        # FIXED: Count PaymentItems instead of summing quantity
         popular_services_by_count = PaymentItem.objects.filter(
             payment__appointment__status='completed',
             payment__appointment__appointment_date__gte=start_date,
@@ -300,10 +300,11 @@ class ReportsView(LoginRequiredMixin, TemplateView):
             'service__id',
             'service__name'
         ).annotate(
-            service_count=Sum('quantity')
+            service_count=Count('id')  # Each PaymentItem = 1 service
         ).order_by('-service_count')[:top_services_limit]
         
         # 2. POPULAR SERVICES BY REVENUE (most income generated)
+        # FIXED: Sum price directly (no quantity multiplication)
         popular_services_by_revenue = PaymentItem.objects.filter(
             payment__appointment__status='completed',
             payment__appointment__appointment_date__gte=start_date,
@@ -312,11 +313,11 @@ class ReportsView(LoginRequiredMixin, TemplateView):
             'service__id',
             'service__name'
         ).annotate(
-            total_revenue=Sum(F('quantity') * F('unit_price'), output_field=DecimalField())
+            total_revenue=Sum('price', output_field=DecimalField())
         ).order_by('-total_revenue')[:top_services_limit]
         
         # 3. DISCOUNT USAGE ANALYSIS
-        # FIXED: Proper discount calculation matching PaymentItem.discount_amount logic
+        # FIXED: Discount calculation per PaymentItem (no quantity)
         discount_usage_qs = PaymentItem.objects.filter(
             payment__appointment__status='completed',
             payment__appointment__appointment_date__gte=start_date,
@@ -348,11 +349,11 @@ class ReportsView(LoginRequiredMixin, TemplateView):
             # Calculate total discount given (matching PaymentItem.discount_amount logic)
             total_discount = Decimal('0')
             for pi in items_with_discount:
-                subtotal = pi.unit_price * pi.quantity
+                # Each PaymentItem has only its price (no quantity)
                 if item['discount__is_percentage']:
-                    discount_amt = subtotal * (item['discount__amount'] / 100)
+                    discount_amt = pi.price * (item['discount__amount'] / 100)
                 else:
-                    discount_amt = min(item['discount__amount'], subtotal)
+                    discount_amt = min(item['discount__amount'], pi.price)
                 total_discount += discount_amt
             
             # Calculate average

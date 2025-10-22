@@ -8,7 +8,7 @@ app_name = 'users'
 urlpatterns = [
     # Authentication URLs
     path('login/', auth_views.LoginView.as_view(), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(next_page='/'), name='logout'),
+    path('logout/', views.custom_logout, name='logout'),
     path('password-change/', views.CustomPasswordChangeView.as_view(), name='password_change'),
     
     # User management (maintenance module)
