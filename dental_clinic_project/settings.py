@@ -12,6 +12,12 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = config('ALLOWED_HOSTS').split(',')
 
+# CSRF trusted origins for production (HTTPS)
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='https://kingjoy-dental-clinic.onrender.com'
+).split(',')
+
 # Application definition
 INSTALLED_APPS = [
     'django.contrib.admin',
