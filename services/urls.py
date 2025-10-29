@@ -1,4 +1,3 @@
-#services/urls.py
 from django.urls import path
 from . import views
 
@@ -18,4 +17,17 @@ urlpatterns = [
     path('discounts/<int:pk>/', views.DiscountDetailView.as_view(), name='discount_detail'),
     path('discounts/<int:pk>/edit/', views.DiscountUpdateView.as_view(), name='discount_update'),
     path('discounts/<int:pk>/toggle/', views.DiscountToggleView.as_view(), name='discount_toggle'),
+    
+    # Product Categories
+    path('products/categories/', views.ProductCategoryListView.as_view(), name='product_category_list'),
+    path('products/categories/create/', views.ProductCategoryCreateView.as_view(), name='product_category_create'),
+    path('products/categories/<int:pk>/edit/', views.ProductCategoryUpdateView.as_view(), name='product_category_update'),
+    path('products/categories/<int:pk>/delete/', views.ProductCategoryDeleteView.as_view(), name='product_category_delete'),
+    
+    # Products
+    path('products/', views.ProductListView.as_view(), name='product_list'),
+    path('products/create/', views.ProductCreateView.as_view(), name='product_create'),
+    path('products/<int:pk>/', views.ProductDetailView.as_view(), name='product_detail'),
+    path('products/<int:pk>/edit/', views.ProductUpdateView.as_view(), name='product_update'),
+    path('products/<int:pk>/toggle-active/', views.ProductToggleActiveView.as_view(), name='product_toggle_active'),
 ]

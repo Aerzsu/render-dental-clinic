@@ -1,0 +1,83 @@
+<!-- templates/core/partials/_booking_terms_modal.html -->
+<div id="termsModal" 
+     role="dialog" 
+     aria-modal="true" 
+     aria-labelledby="termsTitle"
+     class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4"
+     @click.self="closeTermsModal()">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col">
+        <!-- Header -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+            <h2 id="termsTitle" class="text-lg font-bold text-gray-900">Terms and Conditions</h2>
+            <button type="button" 
+                    aria-label="Close terms dialog"
+                    @click="closeTermsModal()" 
+                    class="text-gray-400 hover:text-gray-600 p-1 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        
+        <!-- Content -->
+        <div class="overflow-y-auto flex-1 px-6 py-4 text-sm text-gray-700 space-y-4">
+            <div>
+                <h3 class="font-bold text-gray-900 mb-2">1. Appointment Booking</h3>
+                <p>Online appointment requests are subject to availability and confirmation by KingJoy Dental Clinic. You must provide accurate and complete information when booking (name, contact number, email, and any relevant medical history). Appointment requests do not guarantee immediate confirmation. You will receive confirmation via email, SMS, or phone call once your appointment is approved.</p>
+            </div>
+            
+            <div>
+                <h3 class="font-bold text-gray-900 mb-2">2. Attendance and Cancellation</h3>
+                <p>Please arrive at least 10 minutes before your scheduled appointment time. Late arrivals may result in rescheduling at the clinic's discretion. To cancel or reschedule, please notify us at least 24 hours in advance by contacting the clinic directly or by accessing your patient portal on our homepage. Cancellations made less than 24 hours before the appointment may be subject to a cancellation fee.</p>
+            </div>
+            
+            <div>
+                <h3 class="font-bold text-gray-900 mb-2">3. No-Show Policy</h3>
+                <p>If you do not arrive for your scheduled appointment and do not notify the clinic beforehand, this will be considered a no-show. Please contact us as soon as possible if you are unable to attend.</p>
+            </div>
+            
+            <div>
+                <h3 class="font-bold text-gray-900 mb-2">4. Payment and Pricing</h3>
+                <p>Treatment costs are quoted during the consultation or as agreed upon. Payment is due at the time of service unless alternative arrangements have been made. Prices are subject to change without notice. Applicable taxes and additional fees will be communicated before treatment begins.</p>
+            </div>
+            
+            <div>
+                <h3 class="font-bold text-gray-900 mb-2">5. Patient Information and Privacy</h3>
+                <p>All personal and medical information provided through our booking system is kept confidential and used only for appointment scheduling and treatment purposes. Your data is protected in accordance with applicable data privacy laws. However, no online system is completely secure, and we cannot guarantee absolute data security.</p>
+            </div>
+            
+            <div>
+                <h3 class="font-bold text-gray-900 mb-2">6. Liability Disclaimer</h3>
+                <p>KingJoy Dental Clinic makes no warranties regarding the accuracy or completeness of information on this website. We are not liable for any direct, indirect, or consequential damages arising from the use of our booking system or website. Dental treatment carries inherent risks, which will be discussed during your consultation.</p>
+            </div>
+            
+            <div>
+                <h3 class="font-bold text-gray-900 mb-2">7. Medical Advice</h3>
+                <p>Information provided on our website is for educational purposes only and does not constitute medical advice. Always consult with a qualified dentist for professional medical advice. In case of dental emergencies, please contact the clinic immediately or visit the nearest emergency room.</p>
+            </div>
+            
+            <div>
+                <h3 class="font-bold text-gray-900 mb-2">8. Prohibited Activities</h3>
+                <p>You agree not to use this system for unlawful purposes, including submitting false information, attempting unauthorized access, or using automated tools (bots, scripts) to access the website.</p>
+            </div>
+            
+            <div>
+                <h3 class="font-bold text-gray-900 mb-2">9. Changes to Terms</h3>
+                <p>KingJoy Dental Clinic may update these Terms and Conditions at any time. Continued use of this system constitutes acceptance of any revised terms.</p>
+            </div>
+            
+            <div class="text-xs text-gray-500">
+                <p><strong>Last Updated:</strong> October 2025</p>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="border-t border-gray-200 px-6 py-4 flex-shrink-0">
+            <button type="button" 
+                    @click="closeTermsModal()" 
+                    class="w-full px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors font-medium">
+                I Understand
+            </button>
+        </div>
+    </div>
+</div>

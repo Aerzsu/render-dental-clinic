@@ -10,7 +10,7 @@ app_name = 'core'
 urlpatterns = [
     # Public pages
     path('', views.HomeView.as_view(), name='home'),
-    path('book-appointment/', BookAppointmentView.as_view(), name='book_appointment'),
+    path('book/', views.BookAppointmentView.as_view(), name='book_appointment'),
     # Authenticated pages
     path('dashboard/', views.DashboardView.as_view(), name='dashboard'),
     

@@ -9,8 +9,14 @@
     input,
     select,
     textarea {
-    padding: 0.5rem 0.75rem;
-}
+        padding: 0.5rem 0.75rem;
+    }
+    
+    /* Style for duration input to make it more prominent */
+    #id_duration_minutes {
+        font-weight: 500;
+        font-size: 1rem;
+    }
 </style>
 
 <div class="max-w-2xl mx-auto space-y-6">
@@ -104,9 +110,6 @@
                     {% if form.min_price.errors %}
                         <p class="mt-2 text-sm text-red-600">{{ form.min_price.errors.0 }}</p>
                     {% endif %}
-                    {% if form.min_price.help_text %}
-                        <p class="mt-2 text-sm text-gray-500">{{ form.min_price.help_text }}</p>
-                    {% endif %}
                 </div>
 
                 <!-- Maximum Price -->
@@ -117,9 +120,6 @@
                     {{ form.max_price }}
                     {% if form.max_price.errors %}
                         <p class="mt-2 text-sm text-red-600">{{ form.max_price.errors.0 }}</p>
-                    {% endif %}
-                    {% if form.max_price.help_text %}
-                        <p class="mt-2 text-sm text-gray-500">{{ form.max_price.help_text }}</p>
                     {% endif %}
                 </div>
             </div>
@@ -133,10 +133,9 @@
                 {% if form.duration_minutes.errors %}
                     <p class="mt-2 text-sm text-red-600">{{ form.duration_minutes.errors.0 }}</p>
                 {% endif %}
-                {% if form.duration_minutes.help_text %}
-                    <p class="mt-2 text-sm text-gray-500">{{ form.duration_minutes.help_text }}</p>
-                {% endif %}
-                <p class="mt-2 text-sm text-gray-500">Duration should include preparation and cleanup time</p>
+                <p class="mt-2 text-sm text-gray-500">
+                    Use the up/down arrows to adjust in 30-minute increments (30, 60, 90, 120, etc.)
+                </p>
             </div>
 
             <!-- Form Actions -->
@@ -153,4 +152,90 @@
         </form>
     </div>
 </div>
+
+<script>
+    // Duration input validation and snap to 30-minute increments
+    document.addEventListener('DOMContentLoaded', function() {
+        const durationInput = document.getElementById('id_duration_minutes');
+        
+        if (!durationInput) return;
+        
+        // Set default value if empty
+        if (!durationInput.value) {
+            durationInput.value = 30;
+        }
+        
+        // Function to snap to nearest 30-minute increment
+        function snapToIncrement(value) {
+            const numValue = parseInt(value) || 30;
+            if (numValue < 30) return 30;
+            return Math.round(numValue / 30) * 30;
+        }
+        
+        // Snap to increment on blur
+        durationInput.addEventListener('blur', function() {
+            const snappedValue = snapToIncrement(this.value);
+            this.value = snappedValue;
+        });
+        
+        // Handle keyboard up/down arrows for 30-minute increments
+        durationInput.addEventListener('keydown', function(e) {
+            const currentValue = parseInt(this.value) || 30;
+            
+            // Arrow Up - increment by 30
+            if (e.keyCode === 38) {
+                e.preventDefault();
+                this.value = currentValue + 30;
+                return;
+            }
+            
+            // Arrow Down - decrement by 30 (minimum 30)
+            if (e.keyCode === 40) {
+                e.preventDefault();
+                const newValue = currentValue - 30;
+                this.value = newValue < 30 ? 30 : newValue;
+                return;
+            }
+            
+            // Allow: backspace, delete, tab, escape, enter
+            if ([46, 8, 9, 27, 13].indexOf(e.keyCode) !== -1 ||
+                // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+                (e.keyCode === 65 && e.ctrlKey === true) ||
+                (e.keyCode === 67 && e.ctrlKey === true) ||
+                (e.keyCode === 86 && e.ctrlKey === true) ||
+                (e.keyCode === 88 && e.ctrlKey === true) ||
+                // Allow: home, end, left, right
+                (e.keyCode >= 35 && e.keyCode <= 39)) {
+                return;
+            }
+            // Ensure that it is a number and stop the keypress
+            if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && 
+                (e.keyCode < 96 || e.keyCode > 105)) {
+                e.preventDefault();
+            }
+        });
+        
+        // Validate on form submit
+        const form = durationInput.closest('form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const duration = parseInt(durationInput.value);
+                
+                if (!duration || duration < 30) {
+                    e.preventDefault();
+                    alert('Duration must be at least 30 minutes.');
+                    durationInput.focus();
+                    return false;
+                }
+                
+                if (duration % 30 !== 0) {
+                    e.preventDefault();
+                    alert('Duration must be in 30-minute increments (e.g., 30, 60, 90, 120 minutes).');
+                    durationInput.focus();
+                    return false;
+                }
+            });
+        }
+    });
+</script>
 {% endblock %}

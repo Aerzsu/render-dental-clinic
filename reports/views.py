@@ -1,4 +1,4 @@
-# reports/views.py - FIXED VERSION (quantity field removed)
+# reports/views.py - Updated for timeslot-based system
 from django.shortcuts import render, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
@@ -17,11 +17,10 @@ from decimal import Decimal
 
 from xhtml2pdf import pisa
 
-from appointments.models import Appointment, Payment, PaymentTransaction, PaymentItem
+from appointments.models import Appointment, Payment, PaymentTransaction, PaymentItem, TimeSlotConfiguration
 from patients.models import Patient
 from services.models import Service, Discount
 from core.models import SystemSetting
-from appointments.models import DailySlots
 
 
 class ReportsView(LoginRequiredMixin, TemplateView):
@@ -33,6 +32,7 @@ class ReportsView(LoginRequiredMixin, TemplateView):
     - Service revenue uses appointment_date (services performed in period)
     - All queries optimized with select_related/prefetch_related to avoid N+1
     - Each PaymentItem = 1 service (no quantity field)
+    - Updated for timeslot-based appointments (no AM/PM periods)
     """
     template_name = 'reports/reports_dashboard.html'
     
@@ -164,7 +164,7 @@ class ReportsView(LoginRequiredMixin, TemplateView):
         ).order_by('-payment_datetime')[:15]
         
         # 5. SERVICE REVENUE BREAKDOWN
-        # FIXED: Each PaymentItem = 1 service, so just sum the price
+        # Each PaymentItem = 1 service, so just sum the price
         service_revenue = PaymentItem.objects.filter(
             payment__appointment__status='completed',
             payment__appointment__appointment_date__gte=start_date,
@@ -173,7 +173,6 @@ class ReportsView(LoginRequiredMixin, TemplateView):
             'service__id',
             'service__name'
         ).annotate(
-            # Each PaymentItem = 1 service performed
             total_revenue=Sum('price', output_field=DecimalField()),
             service_count=Count('id')
         ).order_by('-total_revenue')[:10]
@@ -205,7 +204,10 @@ class ReportsView(LoginRequiredMixin, TemplateView):
         }
     
     def _get_operational_reports(self, start_date, end_date):
-        """Calculate operational metrics"""
+        """
+        Calculate operational metrics
+        Updated for timeslot-based system
+        """
         
         # Base queryset for appointments in date range
         appointments_in_range = Appointment.objects.filter(
@@ -239,34 +241,35 @@ class ReportsView(LoginRequiredMixin, TemplateView):
         pending_requests = Appointment.objects.filter(
             status='pending',
             appointment_date__gte=date.today()
-        ).select_related('service', 'patient').order_by('appointment_date', 'period')[:10]
+        ).select_related('service', 'patient').order_by('appointment_date', 'start_time')[:10]
         
-        # Daily appointment schedule
-        daily_schedule = appointments_in_range.filter(
+        # Daily appointment schedule with time groupings
+        # Group appointments by date and time ranges (Morning: before 1PM, Afternoon: 1PM onwards)
+        daily_schedule = []
+        for appt_date in appointments_in_range.filter(
             status__in=['confirmed', 'completed']
-        ).values('appointment_date').annotate(
-            am_count=Count('id', filter=Q(period='AM')),
-            pm_count=Count('id', filter=Q(period='PM')),
-            total_count=Count('id')
-        ).order_by('appointment_date')
-        
-        # Appointment utilization rate
-        total_slots_data = DailySlots.objects.filter(
-            date__gte=start_date,
-            date__lte=end_date
-        ).aggregate(
-            total_am=Coalesce(Sum('am_slots'), Value(0)),
-            total_pm=Coalesce(Sum('pm_slots'), Value(0))
-        )
-        
-        total_slots = (total_slots_data['total_am'] or 0) + (total_slots_data['total_pm'] or 0)
-        
-        # Slots actually used (confirmed + completed)
-        used_slots = appointments_in_range.filter(
-            status__in=['confirmed', 'completed']
-        ).count()
-        
-        utilization_rate = (used_slots / total_slots * 100) if total_slots > 0 else 0
+        ).values_list('appointment_date', flat=True).distinct().order_by('appointment_date'):
+            
+            # Count morning appointments (before 13:00)
+            morning_count = appointments_in_range.filter(
+                appointment_date=appt_date,
+                start_time__lt=datetime.strptime('13:00', '%H:%M').time(),
+                status__in=['confirmed', 'completed']
+            ).count()
+            
+            # Count afternoon appointments (13:00 onwards)
+            afternoon_count = appointments_in_range.filter(
+                appointment_date=appt_date,
+                start_time__gte=datetime.strptime('13:00', '%H:%M').time(),
+                status__in=['confirmed', 'completed']
+            ).count()
+            
+            daily_schedule.append({
+                'appointment_date': appt_date,
+                'morning_count': morning_count,
+                'afternoon_count': afternoon_count,
+                'total_count': morning_count + afternoon_count
+            })
         
         return {
             'total_appointments': total_appointments,
@@ -279,9 +282,6 @@ class ReportsView(LoginRequiredMixin, TemplateView):
             'no_show_rate': round(no_show_rate, 1),
             'pending_requests': pending_requests,
             'daily_schedule': daily_schedule,
-            'total_slots': total_slots,
-            'used_slots': used_slots,
-            'utilization_rate': round(utilization_rate, 1),
         }
     
     def _get_analytics_reports(self, start_date, end_date):
@@ -291,7 +291,7 @@ class ReportsView(LoginRequiredMixin, TemplateView):
         top_discounts_limit = SystemSetting.get_int_setting('reports_top_discounts_limit', 5)
         
         # 1. POPULAR SERVICES BY COUNT (most frequently performed)
-        # FIXED: Count PaymentItems instead of summing quantity
+        # Count PaymentItems instead of summing quantity
         popular_services_by_count = PaymentItem.objects.filter(
             payment__appointment__status='completed',
             payment__appointment__appointment_date__gte=start_date,
@@ -304,7 +304,7 @@ class ReportsView(LoginRequiredMixin, TemplateView):
         ).order_by('-service_count')[:top_services_limit]
         
         # 2. POPULAR SERVICES BY REVENUE (most income generated)
-        # FIXED: Sum price directly (no quantity multiplication)
+        # Sum price directly (no quantity multiplication)
         popular_services_by_revenue = PaymentItem.objects.filter(
             payment__appointment__status='completed',
             payment__appointment__appointment_date__gte=start_date,
@@ -317,7 +317,7 @@ class ReportsView(LoginRequiredMixin, TemplateView):
         ).order_by('-total_revenue')[:top_services_limit]
         
         # 3. DISCOUNT USAGE ANALYSIS
-        # FIXED: Discount calculation per PaymentItem (no quantity)
+        # Discount calculation per PaymentItem (no quantity)
         discount_usage_qs = PaymentItem.objects.filter(
             payment__appointment__status='completed',
             payment__appointment__appointment_date__gte=start_date,
@@ -368,7 +368,7 @@ class ReportsView(LoginRequiredMixin, TemplateView):
                 'avg_discount': avg_discount,
             })
         
-        # 4. NEW VS RETURNING PATIENTS
+        # 4. NEW VS EXISTING PATIENTS
         appointments_in_range = Appointment.objects.filter(
             appointment_date__gte=start_date,
             appointment_date__lte=end_date,
@@ -376,11 +376,11 @@ class ReportsView(LoginRequiredMixin, TemplateView):
         )
         
         new_patients = appointments_in_range.filter(patient_type='new').count()
-        returning_patients = appointments_in_range.filter(patient_type='returning').count()
+        existing_patients = appointments_in_range.filter(patient_type='existing').count()
         
-        total_patient_appointments = new_patients + returning_patients
+        total_patient_appointments = new_patients + existing_patients
         new_patient_percentage = (new_patients / total_patient_appointments * 100) if total_patient_appointments > 0 else 0
-        returning_patient_percentage = (returning_patients / total_patient_appointments * 100) if total_patient_appointments > 0 else 0
+        existing_patient_percentage = (existing_patients / total_patient_appointments * 100) if total_patient_appointments > 0 else 0
         
         # 5. AVERAGE TREATMENT VALUE
         completed_with_payment = Payment.objects.filter(
@@ -417,9 +417,9 @@ class ReportsView(LoginRequiredMixin, TemplateView):
             'popular_services_by_revenue': popular_services_by_revenue,
             'discount_usage': discount_usage,
             'new_patients': new_patients,
-            'returning_patients': returning_patients,
+            'existing_patients': existing_patients,
             'new_patient_percentage': round(new_patient_percentage, 1),
-            'returning_patient_percentage': round(returning_patient_percentage, 1),
+            'existing_patient_percentage': round(existing_patient_percentage, 1),
             'avg_treatment_value': avg_treatment_value,
             'collection_rate': round(collection_rate, 1),
             'total_billed': payment_stats['total_billed'] or Decimal('0'),

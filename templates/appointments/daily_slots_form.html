@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}
-    {% if object %}Edit Daily Slots{% else %}Create Daily Slots{% endif %} - Dental Clinic
+    {% if object %}Edit Time Slots{% else %}Create Time Slots{% endif %} - Dental Clinic
 {% endblock %}
 
 {% block content %}
@@ -9,33 +9,34 @@
     input,
     select,
     textarea {
-    padding: 0.5rem 0.75rem;
-}
+        padding: 0.5rem 0.75rem;
+    }
 </style>
+
 <div class="container mx-auto px-4 py-6">
     <!-- Header -->
     <div class="mb-6">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
                 <h1 class="text-2xl font-bold text-gray-900">
                     {% if object %}
-                        Edit Daily Slots for {{ object.date|date:"F d, Y" }}
+                        Edit Time Slots for {{ object.date|date:"F d, Y" }}
                     {% else %}
-                        Create Daily Slots
+                        Create Time Slots
                     {% endif %}
                 </h1>
-                <p class="text-gray-600">
+                <p class="text-gray-600 mt-1">
                     {% if object %}
-                        Update AM/PM slot allocations for this date
+                        Update operating hours and timeslot configuration for this date
                     {% else %}
-                        Set AM/PM slot allocations for a specific date
+                        Set operating hours to enable appointment bookings for a specific date
                     {% endif %}
                 </p>
             </div>
             <div>
                 <a href="{% url 'appointments:daily_slots_list' %}" 
-                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                    Back to Daily Slots
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                    ← Back to List
                 </a>
             </div>
         </div>
@@ -43,97 +44,88 @@
 
     <!-- Form -->
     <div class="bg-white shadow rounded-lg">
-        <form method="post">
+        <form method="post" class="divide-y divide-gray-200">
             {% csrf_token %}
             
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h3 class="text-lg font-medium text-gray-900">Slot Configuration</h3>
+            <!-- Section Header -->
+            <div class="px-6 py-4">
+                <h3 class="text-lg font-medium text-gray-900">Time Slot Configuration</h3>
+                <p class="mt-1 text-sm text-gray-500">Configure the clinic's operating hours. Appointments will be scheduled in 30-minute increments.</p>
             </div>
 
+            <!-- Form Fields -->
             <div class="px-6 py-6 space-y-6">
                 <!-- Date Field -->
                 <div>
                     <label for="{{ form.date.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                        Date *
+                        Date <span class="text-red-600">*</span>
                     </label>
                     {{ form.date }}
                     {% if form.date.errors %}
-                        <div class="mt-1 text-sm text-red-600">
+                        <div class="mt-2 text-sm text-red-600">
                             {% for error in form.date.errors %}
                                 <p>{{ error }}</p>
                             {% endfor %}
                         </div>
+                    {% else %}
+                        <p class="mt-2 text-sm text-gray-500">📅 Select the date for timeslot configuration. Sundays are not allowed.</p>
                     {% endif %}
-                    <p class="mt-1 text-sm text-gray-500">Select the date for slot allocation. Sundays are not allowed.</p>
                 </div>
 
-                <!-- Slot Configuration -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- AM Slots -->
-                    <div class="bg-blue-50 p-4 rounded-lg">
-                        <div class="flex items-center mb-3">
-                            <div class="text-2xl mr-2">🌅</div>
-                            <div>
-                                <h4 class="font-medium text-gray-900">Morning (AM) Slots</h4>
-                                <p class="text-sm text-gray-500">{{ AM_PERIOD_DISPLAY }}</p>
-                            </div>
-                        </div>
+                <!-- Time Configuration -->
+                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+                    <h4 class="text-base font-semibold text-gray-900 mb-4 flex items-center">
+                        <span class="text-xl mr-2">🕐</span>
+                        Operating Hours
+                    </h4>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Start Time -->
                         <div>
-                            <label for="{{ form.am_slots.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                                Number of AM Slots *
+                            <label for="{{ form.start_time.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Opening Time <span class="text-red-600">*</span>
                             </label>
-                            {{ form.am_slots }}
-                            {% if form.am_slots.errors %}
-                                <div class="mt-1 text-sm text-red-600">
-                                    {% for error in form.am_slots.errors %}
+                            {{ form.start_time }}
+                            {% if form.start_time.errors %}
+                                <div class="mt-2 text-sm text-red-600">
+                                    {% for error in form.start_time.errors %}
                                         <p>{{ error }}</p>
                                     {% endfor %}
                                 </div>
+                            {% else %}
+                                <p class="mt-2 text-sm text-gray-600">🌅 First appointment timeslot starts at this time</p>
                             {% endif %}
-                            <p class="mt-1 text-sm text-gray-500">Maximum 20 slots per period</p>
                         </div>
-                    </div>
 
-                    <!-- PM Slots -->
-                    <div class="bg-orange-50 p-4 rounded-lg">
-                        <div class="flex items-center mb-3">
-                            <div class="text-2xl mr-2">🌆</div>
-                            <div>
-                                <h4 class="font-medium text-gray-900">Afternoon (PM) Slots</h4>
-                                <p class="text-sm text-gray-500">{{ PM_PERIOD_DISPLAY }}</p>
-                            </div>
-                        </div>
+                        <!-- End Time -->
                         <div>
-                            <label for="{{ form.pm_slots.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                                Number of PM Slots *
+                            <label for="{{ form.end_time.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Closing Time <span class="text-red-600">*</span>
                             </label>
-                            {{ form.pm_slots }}
-                            {% if form.pm_slots.errors %}
-                                <div class="mt-1 text-sm text-red-600">
-                                    {% for error in form.pm_slots.errors %}
+                            {{ form.end_time }}
+                            {% if form.end_time.errors %}
+                                <div class="mt-2 text-sm text-red-600">
+                                    {% for error in form.end_time.errors %}
                                         <p>{{ error }}</p>
                                     {% endfor %}
                                 </div>
+                            {% else %}
+                                <p class="mt-2 text-sm text-gray-600">🌆 Last appointment must start before this time</p>
                             {% endif %}
-                            <p class="mt-1 text-sm text-gray-500">Maximum 20 slots per period</p>
                         </div>
                     </div>
-                </div>
 
-                <!-- Total Slots Preview -->
-                <div class="bg-gray-50 p-4 rounded-lg">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h4 class="font-medium text-gray-900">Total Daily Slots</h4>
-                            <p class="text-sm text-gray-500">Combined AM + PM capacity</p>
-                        </div>
-                        <div class="text-right">
-                            <div id="totalSlots" class="text-2xl font-bold text-primary-600">
-                                {% with am_value=form.am_slots.value|default:6 pm_value=form.pm_slots.value|default:8 %}
-                                    {{ am_value|add:pm_value }}
-                                {% endwith %}
+                    <!-- Time Slots Preview -->
+                    <div id="slotsPreview" class="mt-6 p-4 bg-white rounded-lg border border-blue-200">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h5 class="text-sm font-medium text-gray-900">Total 30-Minute Slots</h5>
+                                <p class="text-xs text-gray-500 mt-1">Available appointment timeslots per day</p>
                             </div>
-                            <div class="text-sm text-gray-500">appointments per day</div>
+                            <div class="text-right">
+                                <div id="totalSlots" class="text-3xl font-bold text-primary-600">--</div>
+                                <div class="text-xs text-gray-500">slots</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -141,34 +133,33 @@
                 <!-- Notes Field -->
                 <div>
                     <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                        Notes
+                        Notes (Optional)
                     </label>
                     {{ form.notes }}
                     {% if form.notes.errors %}
-                        <div class="mt-1 text-sm text-red-600">
+                        <div class="mt-2 text-sm text-red-600">
                             {% for error in form.notes.errors %}
                                 <p>{{ error }}</p>
                             {% endfor %}
                         </div>
+                    {% else %}
+                        <p class="mt-2 text-sm text-gray-500">💡 Add notes for special circumstances (e.g., "Holiday hours", "Reduced capacity")</p>
                     {% endif %}
-                    <p class="mt-1 text-sm text-gray-500">Optional notes for this date (e.g., special hours, reduced capacity, etc.)</p>
                 </div>
 
                 {% if object %}
-                <!-- Current Usage (for existing slots) -->
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <!-- Current Usage Warning -->
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
                     <div class="flex items-start">
-                        <div class="text-yellow-600 text-lg mr-3">⚠️</div>
-                        <div class="flex-1">
-                            <h4 class="font-medium text-yellow-800">Current Usage</h4>
-                            <div class="mt-2 text-sm text-yellow-700 space-y-1">
-                                {% with available_am=object.get_available_am_slots available_pm=object.get_available_pm_slots %}
-                                    <p>AM: {{ available_am }}/{{ object.am_slots }} available ({{ object.am_slots|add:available_am|add:'-'|add:available_am }} booked)</p>
-                                    <p>PM: {{ available_pm }}/{{ object.pm_slots }} available ({{ object.pm_slots|add:available_pm|add:'-'|add:available_pm }} booked)</p>
-                                    {% if object.am_slots > available_am or object.pm_slots > available_pm %}
-                                        <p class="font-medium">⚠️ Reducing slots below booked appointments may cause conflicts.</p>
-                                    {% endif %}
-                                {% endwith %}
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3 flex-1">
+                            <h4 class="text-sm font-medium text-yellow-800">Existing Appointments</h4>
+                            <div class="mt-2 text-sm text-yellow-700" id="currentUsage">
+                                <p>Loading current appointment data...</p>
                             </div>
                         </div>
                     </div>
@@ -177,12 +168,16 @@
 
                 <!-- General Form Errors -->
                 {% if form.non_field_errors %}
-                    <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="bg-red-50 border-l-4 border-red-400 p-4">
                         <div class="flex items-start">
-                            <div class="text-red-600 text-lg mr-3">❌</div>
-                            <div>
-                                <h4 class="font-medium text-red-800">Please fix the following errors:</h4>
-                                <ul class="mt-2 text-sm text-red-700 list-disc list-inside">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L10 10.586l1.707-1.707a1 1 0 011.414 1.414L11.414 12l1.707 1.707a1 1 0 01-1.414 1.414L10 11.414l-1.707 1.707a1 1 0 01-1.414-1.414L8.586 10 6.879 8.293a1 1 0 011.414-1.414L10 8.586z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h4 class="text-sm font-medium text-red-800">Please fix the following errors:</h4>
+                                <ul class="mt-2 text-sm text-red-700 list-disc list-inside space-y-1">
                                     {% for error in form.non_field_errors %}
                                         <li>{{ error }}</li>
                                     {% endfor %}
@@ -194,49 +189,109 @@
             </div>
 
             <!-- Form Actions -->
-            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-between">
-                <div class="flex space-x-3">
-                    <a href="{% url 'appointments:daily_slots_list' %}" 
-                       class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                        Cancel
-                    </a>
-                </div>
-                <div class="flex space-x-3">
+            <div class="px-6 py-4 bg-gray-50 flex flex-col sm:flex-row sm:justify-between gap-3">
+                <a href="{% url 'appointments:daily_slots_list' %}" 
+                   class="inline-flex justify-center items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                    Cancel
+                </a>
+                <div class="flex flex-col sm:flex-row gap-3">
                     {% if object %}
-                        <a href="{% url 'appointments:appointment_calendar' %}?date={{ object.date|date:'Y-m-d' }}" 
-                           class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                            View Calendar
+                        <a href="{% url 'appointments:appointment_calendar' %}?month={{ object.date.month }}&year={{ object.date.year }}" 
+                           class="inline-flex justify-center items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                            View in Calendar
                         </a>
                     {% endif %}
                     <button type="submit" 
-                            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                            class="inline-flex justify-center items-center px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 transition-colors">
                         {% if object %}
-                            Update Slots
+                            💾 Update Configuration
                         {% else %}
-                            Create Slots
+                            ✓ Create Configuration
                         {% endif %}
                     </button>
                 </div>
             </div>
         </form>
     </div>
-
 </div>
 
 <script>
-    // Update total slots when AM or PM values change
-    function updateTotalSlots() {
-        const amSlots = parseInt(document.getElementById('{{ form.am_slots.id_for_label }}').value) || 0;
-        const pmSlots = parseInt(document.getElementById('{{ form.pm_slots.id_for_label }}').value) || 0;
-        document.getElementById('totalSlots').textContent = amSlots + pmSlots;
+    // Calculate and display total slots
+    function calculateTotalSlots() {
+        const startTimeInput = document.getElementById('{{ form.start_time.id_for_label }}');
+        const endTimeInput = document.getElementById('{{ form.end_time.id_for_label }}');
+        const totalSlotsDisplay = document.getElementById('totalSlots');
+        
+        const startTime = startTimeInput.value;
+        const endTime = endTimeInput.value;
+        
+        if (!startTime || !endTime) {
+            totalSlotsDisplay.textContent = '--';
+            return;
+        }
+        
+        // Parse times
+        const [startHour, startMin] = startTime.split(':').map(Number);
+        const [endHour, endMin] = endTime.split(':').map(Number);
+        
+        // Calculate total minutes
+        const startMinutes = startHour * 60 + startMin;
+        const endMinutes = endHour * 60 + endMin;
+        const durationMinutes = endMinutes - startMinutes;
+        
+        if (durationMinutes <= 0) {
+            totalSlotsDisplay.textContent = '0';
+            totalSlotsDisplay.classList.add('text-red-600');
+            totalSlotsDisplay.classList.remove('text-primary-600');
+            return;
+        }
+        
+        // Calculate 30-minute slots
+        const slots = Math.floor(durationMinutes / 30);
+        totalSlotsDisplay.textContent = slots;
+        totalSlotsDisplay.classList.remove('text-red-600');
+        totalSlotsDisplay.classList.add('text-primary-600');
     }
-
+    
     // Add event listeners
-    document.getElementById('{{ form.am_slots.id_for_label }}').addEventListener('input', updateTotalSlots);
-    document.getElementById('{{ form.pm_slots.id_for_label }}').addEventListener('input', updateTotalSlots);
+    document.getElementById('{{ form.start_time.id_for_label }}').addEventListener('change', calculateTotalSlots);
+    document.getElementById('{{ form.end_time.id_for_label }}').addEventListener('change', calculateTotalSlots);
+    
+    // Initial calculation
+    calculateTotalSlots();
     
     // Set minimum date to today
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('{{ form.date.id_for_label }}').setAttribute('min', today);
+    
+    {% if object %}
+    // Load current usage data
+    const date = '{{ object.date|date:"Y-m-d" }}';
+    const currentUsageDiv = document.getElementById('currentUsage');
+    
+    // Simple display of existing appointments count
+    fetch(`/appointments/api/timeslot-availability/?start_date=${date}&end_date=${date}`)
+        .then(response => response.json())
+        .then(data => {
+            const dateData = data.availability[date];
+            if (dateData && dateData.has_config) {
+                const totalSlots = dateData.total_slots;
+                const availableCount = dateData.available_count;
+                const bookedCount = totalSlots - availableCount;
+                
+                currentUsageDiv.innerHTML = `
+                    <p class="mb-2"><strong>${bookedCount}</strong> appointment(s) currently scheduled for this date.</p>
+                    <p class="mb-1">Available slots: <strong>${availableCount}</strong> of <strong>${totalSlots}</strong></p>
+                    ${bookedCount > 0 ? '<p class="text-xs mt-2">⚠️ Modifying hours may affect existing appointments. Please ensure the new time range accommodates all scheduled appointments.</p>' : ''}
+                `;
+            } else {
+                currentUsageDiv.innerHTML = '<p>No appointments scheduled yet.</p>';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading usage data:', error);
+            currentUsageDiv.innerHTML = '<p class="text-gray-500">Unable to load appointment data.</p>';
+        });
+    {% endif %}
 </script>
 {% endblock %}

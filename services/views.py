@@ -4,10 +4,11 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, View
-from django.db.models import Q
+
+from django.db.models import Q, Count
 from users.templatetags.user_tags import has_permission
-from .models import Service, Discount
-from .forms import ServiceForm, DiscountForm
+from .models import Product, Service, Discount, ProductCategory
+from .forms import ServiceForm, DiscountForm, ProductCategoryForm, ProductForm
 
 class ServiceListView(LoginRequiredMixin, ListView):
     """List all services with search and filtering functionality"""
@@ -303,3 +304,310 @@ class DiscountToggleView(LoginRequiredMixin, View):
         messages.success(request, f'Discount "{discount.name}" has been {status} successfully.')
         
         return redirect('services:discount_detail', pk=discount.pk)
+    
+
+# Product Category Views
+class ProductCategoryListView(LoginRequiredMixin, ListView):
+    """List all product categories with search functionality"""
+    model = ProductCategory
+    template_name = 'services/product_category_list.html'
+    context_object_name = 'categories'
+    paginate_by = 15
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not has_permission(request.user, 'maintenance'):
+            messages.error(request, 'You do not have permission to access this page.')
+            return redirect('core:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_queryset(self):
+        queryset = ProductCategory.objects.annotate(
+            active_products_count=Count(
+                'products',
+                filter=Q(products__is_active=True)
+            ),
+            total_products_count=Count('products')
+        )
+        
+        # Search functionality
+        search_query = self.request.GET.get('search')
+        if search_query:
+            queryset = queryset.filter(
+                Q(name__icontains=search_query) |
+                Q(description__icontains=search_query)
+            )
+        
+        # Sorting
+        sort_by = self.request.GET.get('sort', 'display_order')
+        valid_sorts = ['display_order', 'name', '-name', 'created_at', '-created_at', '-updated_at']
+        if sort_by in valid_sorts:
+            queryset = queryset.order_by(sort_by)
+        else:
+            queryset = queryset.order_by('display_order', 'name')
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({
+            'search_query': self.request.GET.get('search', ''),
+            'sort_by': self.request.GET.get('sort', 'display_order'),
+        })
+        return context
+
+
+class ProductCategoryCreateView(LoginRequiredMixin, CreateView):
+    """Create new product category"""
+    model = ProductCategory
+    form_class = ProductCategoryForm
+    template_name = 'services/product_category_form.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not has_permission(request.user, 'maintenance'):
+            messages.error(request, 'You do not have permission to access this page.')
+            return redirect('core:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def form_valid(self, form):
+        messages.success(self.request, f'Category "{form.instance.name}" created successfully.')
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        return reverse_lazy('services:product_category_list')
+
+
+class ProductCategoryUpdateView(LoginRequiredMixin, UpdateView):
+    """Update product category"""
+    model = ProductCategory
+    form_class = ProductCategoryForm
+    template_name = 'services/product_category_form.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not has_permission(request.user, 'maintenance'):
+            messages.error(request, 'You do not have permission to access this page.')
+            return redirect('core:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def form_valid(self, form):
+        messages.success(self.request, f'Category "{form.instance.name}" updated successfully.')
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        return reverse_lazy('services:product_category_list')
+
+
+class ProductCategoryDeleteView(LoginRequiredMixin, View):
+    """Delete product category (only if no active products)"""
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not has_permission(request.user, 'maintenance'):
+            messages.error(request, 'You do not have permission to access this page.')
+            return redirect('core:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def post(self, request, pk):
+        category = get_object_or_404(ProductCategory, pk=pk)
+        
+        # Check if category has active products
+        if not category.can_be_deleted():
+            active_count = category.get_active_products_count()
+            messages.error(
+                request,
+                f'Cannot delete category "{category.name}" because it has {active_count} active product(s). '
+                f'Please deactivate or move all products before deleting this category.'
+            )
+            return redirect('services:product_category_list')
+        
+        # Check if category has any products (including inactive)
+        total_count = category.get_total_products_count()
+        if total_count > 0:
+            messages.error(
+                request,
+                f'Cannot delete category "{category.name}" because it has {total_count} product(s) (including inactive). '
+                f'Please remove or reassign all products before deleting this category.'
+            )
+            return redirect('services:product_category_list')
+        
+        # Safe to delete
+        category_name = category.name
+        category.delete()
+        messages.success(request, f'Category "{category_name}" deleted successfully.')
+        
+        return redirect('services:product_category_list')
+
+
+# Product Views
+class ProductListView(LoginRequiredMixin, ListView):
+    """List all products with search and filtering functionality"""
+    model = Product
+    template_name = 'services/product_list.html'
+    context_object_name = 'products'
+    paginate_by = 15
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not has_permission(request.user, 'maintenance'):
+            messages.error(request, 'You do not have permission to access this page.')
+            return redirect('core:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_queryset(self):
+        queryset = Product.objects.select_related('category', 'created_by')
+        
+        # Search functionality
+        search_query = self.request.GET.get('search')
+        if search_query:
+            queryset = queryset.filter(
+                Q(name__icontains=search_query) |
+                Q(description__icontains=search_query) |
+                Q(category__name__icontains=search_query)
+            )
+        
+        # Filter by active status
+        show_inactive = self.request.GET.get('show_inactive')
+        if not show_inactive:
+            queryset = queryset.filter(is_active=True)
+        
+        # Filter by category
+        category_id = self.request.GET.get('category')
+        if category_id:
+            queryset = queryset.filter(category_id=category_id)
+        
+        # Price range filter
+        price_range = self.request.GET.get('price_range')
+        if price_range:
+            if price_range == '0-50':
+                queryset = queryset.filter(price__lt=50)
+            elif price_range == '50-100':
+                queryset = queryset.filter(price__gte=50, price__lte=100)
+            elif price_range == '100-500':
+                queryset = queryset.filter(price__gte=100, price__lte=500)
+            elif price_range == '500+':
+                queryset = queryset.filter(price__gte=500)
+        
+        # Sorting
+        sort_by = self.request.GET.get('sort', 'category')
+        valid_sorts = ['name', '-name', 'price', '-price', 'category__name', 
+                      '-category__name', 'created_at', '-created_at', '-updated_at']
+        if sort_by in valid_sorts:
+            if sort_by == 'category':
+                queryset = queryset.order_by('category__name', 'name')
+            else:
+                queryset = queryset.order_by(sort_by)
+        else:
+            queryset = queryset.order_by('category__name', 'name')
+        
+        return queryset
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update({
+            'search_query': self.request.GET.get('search', ''),
+            'show_inactive': self.request.GET.get('show_inactive', False),
+            'selected_category': self.request.GET.get('category', ''),
+            'price_range': self.request.GET.get('price_range', ''),
+            'sort_by': self.request.GET.get('sort', 'category'),
+            'categories': ProductCategory.objects.all(),
+        })
+        return context
+
+
+class ProductDetailView(LoginRequiredMixin, DetailView):
+    """View product details"""
+    model = Product
+    template_name = 'services/product_detail.html'
+    context_object_name = 'product'
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not has_permission(request.user, 'maintenance'):
+            messages.error(request, 'You do not have permission to access this page.')
+            return redirect('core:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_queryset(self):
+        return Product.objects.select_related('category', 'created_by')
+
+
+class ProductCreateView(LoginRequiredMixin, CreateView):
+    """Create new product"""
+    model = Product
+    form_class = ProductForm
+    template_name = 'services/product_form.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not has_permission(request.user, 'maintenance'):
+            messages.error(request, 'You do not have permission to access this page.')
+            return redirect('core:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def form_valid(self, form):
+        # Set created_by to current user
+        form.instance.created_by = self.request.user
+        messages.success(self.request, f'Product "{form.instance.name}" created successfully.')
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        return reverse_lazy('services:product_detail', kwargs={'pk': self.object.pk})
+
+
+class ProductUpdateView(LoginRequiredMixin, UpdateView):
+    """Update product information"""
+    model = Product
+    form_class = ProductForm
+    template_name = 'services/product_form.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not has_permission(request.user, 'maintenance'):
+            messages.error(request, 'You do not have permission to access this page.')
+            return redirect('core:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def form_valid(self, form):
+        # Check if price changed - log for audit
+        if self.object.price != form.cleaned_data['price']:
+            old_price = self.object.price
+            new_price = form.cleaned_data['price']
+            
+            # Import here to avoid circular imports
+            from core.models import AuditLog
+            
+            # Create audit log for price change
+            AuditLog.objects.create(
+                user=self.request.user,
+                action='update',
+                model_name='Product',
+                object_id=str(self.object.pk),
+                object_repr=self.object.name,
+                changes={
+                    'price': {
+                        'old': float(old_price),
+                        'new': float(new_price)
+                    }
+                },
+                ip_address=self.request.META.get('REMOTE_ADDR')
+            )
+        
+        messages.success(self.request, f'Product "{form.instance.name}" updated successfully.')
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        return reverse_lazy('services:product_detail', kwargs={'pk': self.object.pk})
+
+
+class ProductToggleActiveView(LoginRequiredMixin, View):
+    """Toggle product active status"""
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not has_permission(request.user, 'maintenance'):
+            messages.error(request, 'You do not have permission to access this page.')
+            return redirect('core:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get(self, request, pk):
+        product = get_object_or_404(Product, pk=pk)
+        product.is_active = not product.is_active
+        product.save()
+        
+        status = 'activated' if product.is_active else 'deactivated'
+        messages.success(request, f'Product "{product.name}" has been {status} successfully.')
+        
+        return redirect('services:product_detail', pk=product.pk)

@@ -1,60 +1,40 @@
-# appointments/utils.py - Simplified for AM/PM slot system
-from datetime import time, timedelta, datetime
+# appointments/utils.py - Timeslot-based appointment system utilities
+from datetime import time, timedelta, datetime, date
 from django.db import transaction
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from core.models import SystemSetting
 
 
 class AppointmentConfig:
-    """Helper class for appointment-related configuration - SIMPLIFIED"""
+    """Helper class for appointment-related configuration"""
    
     @classmethod
     def get_buffer_minutes(cls):
-        """Get appointment buffer time in minutes"""
-        try:
-            return SystemSetting.get_int_setting('appointment_buffer_minutes', 15)
-        except:
-            return 15  # Default fallback
-   
-    @classmethod
-    def get_clinic_hours(cls):
-        """Get clinic operating hours"""
-        return time(8, 0), time(18, 0)  # 8 AM to 6 PM
-   
-    @classmethod
-    def get_lunch_break(cls):
-        """Get lunch break hours"""
-        return time(12, 0), time(13, 0)  # 12 PM to 1 PM
+        """Get appointment buffer time in minutes (deprecated for timeslot system)"""
+        # No longer needed - timeslots are managed per configuration
+        return 0
    
     @classmethod
     def get_minimum_booking_notice(cls):
         """Get minimum booking notice in hours"""
         try:
+            from core.models import SystemSetting
             return SystemSetting.get_int_setting('minimum_booking_notice_hours', 24)
         except:
             return 24  # Default fallback
-   
-    @classmethod
-    def is_same_day_booking_enabled(cls):
-        """Check if same-day booking is allowed"""
-        try:
-            return SystemSetting.get_bool_setting('enable_same_day_booking', False)
-        except:
-            return False  # Default fallback
 
 
 @transaction.atomic
-def create_appointment_simple(patient, service, appointment_date, period, patient_type, reason=''):
+def create_appointment_timeslot(patient, service, appointment_date, start_time, patient_type, reason=''):
     """
-    Simple appointment creation for AM/PM slot system
+    Create appointment with timeslot validation
     
     Args:
         patient: Patient instance
         service: Service instance
         appointment_date: date object
-        period: str ('AM' or 'PM')
-        patient_type: str ('new' or 'returning')
+        start_time: time object
+        patient_type: str ('new' or 'existing')
         reason: str (optional)
     
     Returns:
@@ -65,8 +45,12 @@ def create_appointment_simple(patient, service, appointment_date, period, patien
     """
     from .models import Appointment
     
-    # Check slot availability
-    can_book, message = Appointment.can_book_appointment(appointment_date, period)
+    # Check timeslot availability
+    can_book, message = Appointment.check_timeslot_availability(
+        appointment_date, 
+        start_time, 
+        service.duration_minutes
+    )
     
     if not can_book:
         raise ValidationError(message)
@@ -76,7 +60,7 @@ def create_appointment_simple(patient, service, appointment_date, period, patien
         patient=patient,
         service=service,
         appointment_date=appointment_date,
-        period=period,
+        start_time=start_time,
         patient_type=patient_type,
         reason=reason,
         status='pending'
@@ -85,60 +69,76 @@ def create_appointment_simple(patient, service, appointment_date, period, patien
     return appointment, True
 
 
-def get_available_slots_for_date(date_obj):
+def get_available_timeslots_for_date(date_obj, service_duration_minutes=30):
     """
-    Get available AM/PM slots for a specific date
+    Get available timeslots for a specific date and service duration
+    
+    Args:
+        date_obj: date object
+        service_duration_minutes: Duration in minutes (default 30)
+    
+    Returns:
+        list: List of available start times (time objects)
+    """
+    from .models import TimeSlotConfiguration
+    
+    # Don't allow Sundays or past dates
+    if date_obj.weekday() == 6 or date_obj < timezone.now().date():
+        return []
+    
+    config = TimeSlotConfiguration.get_for_date(date_obj)
+    
+    if not config:
+        return []
+    
+    return config.get_available_slots(
+        service_duration_minutes,
+        include_pending=True  # For public booking
+    )
+
+
+def get_timeslot_configuration_for_date(date_obj):
+    """
+    Get timeslot configuration for a specific date
     
     Args:
         date_obj: date object
     
     Returns:
-        dict: {
-            'am_available': int,
-            'pm_available': int,
-            'am_total': int,
-            'pm_total': int
-        }
+        dict: Configuration details or None if not configured
     """
-    from .models import DailySlots
+    from .models import TimeSlotConfiguration
     
-    # Don't allow Sundays or past dates
+    # Skip Sundays and past dates
     if date_obj.weekday() == 6 or date_obj < timezone.now().date():
-        return {
-            'am_available': 0,
-            'pm_available': 0,
-            'am_total': 0,
-            'pm_total': 0
-        }
+        return None
     
-    daily_slots, _ = DailySlots.get_or_create_for_date(date_obj)
+    config = TimeSlotConfiguration.get_for_date(date_obj)
     
-    if daily_slots:
-        return {
-            'am_available': daily_slots.get_available_am_slots(),
-            'pm_available': daily_slots.get_available_pm_slots(),
-            'am_total': daily_slots.am_slots,
-            'pm_total': daily_slots.pm_slots
-        }
-    else:
-        return {
-            'am_available': 0,
-            'pm_available': 0,
-            'am_total': 0,
-            'pm_total': 0
-        }
+    if not config:
+        return None
+    
+    return {
+        'date': date_obj,
+        'start_time': config.start_time,
+        'end_time': config.end_time,
+        'has_config': True
+    }
 
 
-def get_next_available_dates(days_ahead=30):
+def get_next_available_dates(days_ahead=30, service_duration_minutes=30):
     """
-    Get list of dates with available slots in the next N days
+    Get list of dates with available timeslots in the next N days
     
     Args:
         days_ahead: int (default 30)
+        service_duration_minutes: Duration to check for (default 30)
     
     Returns:
-        list: List of date objects with available slots
+        list: List of date objects with available timeslots
     """
+    from .models import TimeSlotConfiguration
+    
     available_dates = []
     start_date = timezone.now().date() + timedelta(days=1)  # Start from tomorrow
     
@@ -149,9 +149,14 @@ def get_next_available_dates(days_ahead=30):
         if check_date.weekday() == 6:
             continue
         
-        slots = get_available_slots_for_date(check_date)
-        if slots['am_available'] > 0 or slots['pm_available'] > 0:
-            available_dates.append(check_date)
+        config = TimeSlotConfiguration.get_for_date(check_date)
+        if config:
+            available_slots = config.get_available_slots(
+                service_duration_minutes,
+                include_pending=True
+            )
+            if available_slots:
+                available_dates.append(check_date)
     
     return available_dates
 
@@ -180,19 +185,237 @@ def validate_appointment_date(appointment_date):
     return True, "Date is valid"
 
 
-def get_period_display_time(period):
+def validate_appointment_time(appointment_date, start_time, duration_minutes):
     """
-    Get display time range for AM/PM period
+    Validate if an appointment time is acceptable
     
     Args:
-        period: str ('AM' or 'PM')
+        appointment_date: date object
+        start_time: time object
+        duration_minutes: int (service duration)
     
     Returns:
-        str: Time range display
+        tuple: (is_valid, error_message)
     """
-    if period == 'AM':
-        return "8:00 AM - 12:00 PM"
-    elif period == 'PM':
-        return "1:00 PM - 6:00 PM"
-    else:
-        return "Invalid period"
+    from .models import TimeSlotConfiguration
+    
+    if not start_time:
+        return False, "Start time is required"
+    
+    # Check if configuration exists
+    config = TimeSlotConfiguration.get_for_date(appointment_date)
+    if not config:
+        return False, f"No timeslots configured for {appointment_date.strftime('%B %d, %Y')}"
+    
+    # Check if timeslot is available
+    is_available, message = config.is_timeslot_available(
+        start_time,
+        duration_minutes,
+        include_pending=True
+    )
+    
+    return is_available, message
+
+
+def format_time_range(start_time, end_time):
+    """
+    Format time range for display
+    
+    Args:
+        start_time: time object
+        end_time: time object
+    
+    Returns:
+        str: Formatted time range (e.g., "10:00 AM - 12:00 PM")
+    """
+    if isinstance(start_time, str):
+        start_time = datetime.strptime(start_time, '%H:%M:%S').time()
+    if isinstance(end_time, str):
+        end_time = datetime.strptime(end_time, '%H:%M:%S').time()
+    
+    return f"{start_time.strftime('%I:%M %p')} - {end_time.strftime('%I:%M %p')}"
+
+
+def calculate_end_time(start_time, duration_minutes):
+    """
+    Calculate end time given start time and duration
+    
+    Args:
+        start_time: time object
+        duration_minutes: int
+    
+    Returns:
+        time object
+    """
+    start_dt = datetime.combine(date.today(), start_time)
+    end_dt = start_dt + timedelta(minutes=duration_minutes)
+    return end_dt.time()
+
+
+def generate_timeslot_choices(start_time, end_time, slot_duration=30):
+    """
+    Generate list of timeslot choices for forms
+    
+    Args:
+        start_time: time object (e.g., 10:00 AM)
+        end_time: time object (e.g., 6:00 PM)
+        slot_duration: int (minutes, default 30)
+    
+    Returns:
+        list: List of tuples (time_value, time_display)
+    """
+    choices = []
+    current_time = datetime.combine(date.today(), start_time)
+    end_datetime = datetime.combine(date.today(), end_time)
+    
+    while current_time < end_datetime:
+        time_value = current_time.time()
+        time_display = current_time.strftime('%I:%M %p')
+        choices.append((time_value.strftime('%H:%M:%S'), time_display))
+        current_time += timedelta(minutes=slot_duration)
+    
+    return choices
+
+
+def is_timeslot_available(appointment_date, start_time, duration_minutes, exclude_appointment_id=None):
+    """
+    Check if a specific timeslot is available
+    
+    Args:
+        appointment_date: date object
+        start_time: time object
+        duration_minutes: int
+        exclude_appointment_id: int (optional, for editing)
+    
+    Returns:
+        tuple: (is_available: bool, message: str)
+    """
+    from .models import TimeSlotConfiguration
+    
+    config = TimeSlotConfiguration.get_for_date(appointment_date)
+    
+    if not config:
+        return False, f"No timeslots configured for {appointment_date.strftime('%B %d, %Y')}"
+    
+    return config.is_timeslot_available(
+        start_time,
+        duration_minutes,
+        exclude_appointment_id=exclude_appointment_id,
+        include_pending=True
+    )
+
+
+def get_conflicting_appointments(appointment_date, start_time, duration_minutes, exclude_appointment_id=None):
+    """
+    Get appointments that conflict with the given timeslot
+    
+    Args:
+        appointment_date: date object
+        start_time: time object
+        duration_minutes: int
+        exclude_appointment_id: int (optional)
+    
+    Returns:
+        QuerySet: Conflicting appointments
+    """
+    from .models import Appointment
+    
+    return Appointment.get_conflicting_appointments(
+        appointment_date,
+        start_time,
+        duration_minutes,
+        exclude_appointment_id=exclude_appointment_id
+    )
+
+
+def bulk_create_timeslot_configurations(start_date, end_date, start_time, end_time, created_by=None):
+    """
+    Bulk create timeslot configurations for a date range
+    
+    Args:
+        start_date: date object
+        end_date: date object
+        start_time: time object
+        end_time: time object
+        created_by: User instance (optional)
+    
+    Returns:
+        dict: {
+            'created_count': int,
+            'skipped_count': int,
+            'skipped_sundays': int,
+            'skipped_existing': int
+        }
+    """
+    from .models import TimeSlotConfiguration
+    
+    created_count = 0
+    skipped_existing = 0
+    skipped_sundays = 0
+    
+    current_date = start_date
+    
+    with transaction.atomic():
+        while current_date <= end_date:
+            # Skip Sundays
+            if current_date.weekday() == 6:
+                skipped_sundays += 1
+            # Skip if configuration already exists
+            elif TimeSlotConfiguration.objects.filter(date=current_date).exists():
+                skipped_existing += 1
+            # Create new configuration
+            else:
+                TimeSlotConfiguration.objects.create(
+                    date=current_date,
+                    start_time=start_time,
+                    end_time=end_time,
+                    created_by=created_by
+                )
+                created_count += 1
+            
+            current_date += timedelta(days=1)
+    
+    return {
+        'created_count': created_count,
+        'skipped_count': skipped_existing + skipped_sundays,
+        'skipped_sundays': skipped_sundays,
+        'skipped_existing': skipped_existing
+    }
+
+
+def get_appointment_summary_for_date(date_obj):
+    """
+    Get appointment summary for a specific date
+    
+    Args:
+        date_obj: date object
+    
+    Returns:
+        dict: Summary with counts and lists
+    """
+    from .models import Appointment, TimeSlotConfiguration
+    
+    config = TimeSlotConfiguration.get_for_date(date_obj)
+    
+    if not config:
+        return {
+            'has_config': False,
+            'total_appointments': 0,
+            'pending': 0,
+            'confirmed': 0,
+            'completed': 0
+        }
+    
+    appointments = Appointment.objects.filter(
+        appointment_date=date_obj
+    ).select_related('patient', 'service', 'assigned_dentist')
+    
+    return {
+        'has_config': True,
+        'config': config,
+        'total_appointments': appointments.count(),
+        'pending': appointments.filter(status='pending').count(),
+        'confirmed': appointments.filter(status='confirmed').count(),
+        'completed': appointments.filter(status='completed').count(),
+        'appointments': appointments.order_by('start_time')
+    }

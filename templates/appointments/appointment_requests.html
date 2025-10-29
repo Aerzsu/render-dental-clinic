@@ -15,56 +15,72 @@
                 </span>
             </p>
         </div>
-        <div class="mt-4 sm:mt-0 flex space-x-3">
+        <div class="mt-4 sm:mt-0 flex flex-col sm:flex-row gap-2 sm:gap-3">
             <a href="{% url 'appointments:appointment_calendar' %}" 
-               class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                Calendar View
+               class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                <span class="hidden sm:inline">Calendar View</span>
+                <span class="sm:hidden">Calendar</span>
             </a>
             <a href="{% url 'appointments:appointment_create' %}" 
-               class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                New Appointment
+               class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                <span class="hidden sm:inline">New Appointment</span>
+                <span class="sm:hidden">New</span>
             </a>
         </div>
     </div>
 
     <!-- Filters -->
     <div class="bg-white shadow rounded-lg">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <form method="get" id="filter-form" class="space-y-4 sm:space-y-0 sm:flex sm:items-center sm:space-x-4">
-                <div class="flex-1 min-w-0">
-                    <input type="text" name="search" value="{{ filters.search }}" 
-                           placeholder="Search by patient name, email, or phone..." 
-                           class="block w-full px-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+        <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+            <form method="get" id="filter-form" class="space-y-4">
+                <!-- Search and Primary Filters -->
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <div class="flex-1 min-w-0">
+                        <input type="text" name="search" value="{{ filters.search }}" 
+                               placeholder="Search by patient name, email, or phone..." 
+                               class="block w-full px-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
+                    </div>
+                    <button type="submit" class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 sm:w-auto">
+                        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                        </svg>
+                        Search
+                    </button>
                 </div>
-                <div>
-                    <select name="patient_type" class="block w-full px-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                        <option value="">All Patient Types</option>
-                        {% for value, label in patient_types %}
-                            <option value="{{ value }}" {% if filters.patient_type == value %}selected{% endif %}>{{ label }}</option>
-                        {% endfor %}
-                    </select>
+
+                <!-- Additional Filters -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div>
+                        <label for="patient_type" class="block text-xs font-medium text-gray-700 mb-1">Patient Type</label>
+                        <select name="patient_type" id="patient_type" class="block w-full px-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
+                            <option value="">All Types</option>
+                            {% for value, label in patient_types %}
+                                <option value="{{ value }}" {% if filters.patient_type == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="assigned_dentist" class="block text-xs font-medium text-gray-700 mb-1">Requested Dentist</label>
+                        <select name="assigned_dentist" id="assigned_dentist" class="block w-full px-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
+                            <option value="">All Dentists</option>
+                            {% for dentist in dentists %}
+                                <option value="{{ dentist.id }}" {% if filters.assigned_dentist == dentist.id|stringformat:"s" %}selected{% endif %}>
+                                    Dr. {{ dentist.first_name }} {{ dentist.last_name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label for="date_from" class="block text-xs font-medium text-gray-700 mb-1">From Date</label>
+                        <input type="date" name="date_from" id="date_from" value="{{ filters.date_from }}" 
+                               class="block w-full px-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
+                    </div>
+                    <div>
+                        <label for="date_to" class="block text-xs font-medium text-gray-700 mb-1">To Date</label>
+                        <input type="date" name="date_to" id="date_to" value="{{ filters.date_to }}" 
+                               class="block w-full px-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
+                    </div>
                 </div>
-                <div>
-                    <select name="assigned_dentist" class="block w-full px-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                        <option value="">All Dentists</option>
-                        {% for dentist in dentists %}
-                            <option value="{{ dentist.id }}" {% if filters.assigned_dentist == dentist.id|stringformat:"s" %}selected{% endif %}>
-                                Dr. {{ dentist.first_name }} {{ dentist.last_name }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <input type="date" name="date_from" value="{{ filters.date_from }}" 
-                           class="block w-full px-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                </div>
-                <div>
-                    <input type="date" name="date_to" value="{{ filters.date_to }}" 
-                           class="block w-full px-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                </div>
-                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                    Filter
-                </button>
             </form>
         </div>
 

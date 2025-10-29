@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if object %}Edit Product{% else %}Add Product{% endif %} - KingJoy Appointment System
+{% endblock %}
+
+{% block content %}
+<style> 
+    input,
+    select,
+    textarea {
+        padding: 0.5rem 0.75rem;
+    }
+</style>
+
+<div class="max-w-2xl mx-auto space-y-6">
+    <!-- Header -->
+    <div>
+        <div class="flex items-center space-x-2 text-sm text-gray-500 mb-2">
+            <a href="{% url 'services:product_list' %}" class="hover:text-gray-700">Products</a>
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+            {% if object %}
+                <a href="{% url 'services:product_detail' object.pk %}" class="hover:text-gray-700">{{ object.name }}</a>
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+            {% endif %}
+            <span>{% if object %}Edit Product{% else %}Add Product{% endif %}</span>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">
+            {% if object %}Edit Product{% else %}Add New Product{% endif %}
+        </h1>
+        <p class="mt-1 text-sm text-gray-600">
+            {% if object %}Update the details of this product{% else %}Add a new product or supply to the inventory{% endif %}
+        </p>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white shadow rounded-lg">
+        <form method="post" class="space-y-6 p-6">
+            {% csrf_token %}
+            
+            <!-- Display non-field errors -->
+            {% if form.non_field_errors %}
+                <div class="rounded-md bg-red-50 p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.316 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">Please correct the following errors:</h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                <ul class="list-disc list-inside space-y-1">
+                                    {% for error in form.non_field_errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Product Name -->
+            <div>
+                <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    Product Name <span class="text-red-500">*</span>
+                </label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.name.errors.0 }}</p>
+                {% endif %}
+                <p class="mt-2 text-sm text-gray-500">
+                    {{ form.name.help_text|default:"Include unit details (e.g., 'Anesthesia 2mL', 'Cotton Gauze Pack of 10')" }}
+                </p>
+            </div>
+
+            <!-- Category -->
+            <div>
+                <label for="{{ form.category.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    Category <span class="text-red-500">*</span>
+                </label>
+                {{ form.category }}
+                {% if form.category.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.category.errors.0 }}</p>
+                {% endif %}
+                <p class="mt-2 text-sm text-gray-500">
+                    Select the category this product belongs to. 
+                    <a href="{% url 'services:product_category_list' %}" target="_blank" class="text-primary-600 hover:text-primary-900">Manage categories</a>
+                </p>
+            </div>
+
+            <!-- Price -->
+            <div>
+                <label for="{{ form.price.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    Unit Price (₱) <span class="text-red-500">*</span>
+                </label>
+                {{ form.price }}
+                {% if form.price.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.price.errors.0 }}</p>
+                {% endif %}
+                <p class="mt-2 text-sm text-gray-500">
+                    {{ form.price.help_text|default:"Price per unit in Philippine Peso (minimum ₱1.00)" }}
+                </p>
+            </div>
+
+            <!-- Description -->
+            <div>
+                <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    Description
+                </label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.description.errors.0 }}</p>
+                {% endif %}
+                {% if form.description.help_text %}
+                    <p class="mt-2 text-sm text-gray-500">{{ form.description.help_text }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Info Box -->
+            <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-blue-700">
+                            <strong>Tip:</strong> Product names should be unique and descriptive. 
+                            Include size, quantity, or volume to differentiate similar products 
+                            (e.g., "Alcohol 250mL" vs "Alcohol 500mL").
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                <a href="{% if object %}{% url 'services:product_detail' object.pk %}{% else %}{% url 'services:product_list' %}{% endif %}" 
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700">
+                    {% if object %}Update Product{% else %}Create Product{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const priceInput = document.getElementById('id_price');
+    
+    if (priceInput) {
+        // Format price on blur
+        priceInput.addEventListener('blur', function() {
+            const value = parseFloat(this.value);
+            if (!isNaN(value) && value >= 1) {
+                this.value = value.toFixed(2);
+            }
+        });
+        
+        // Validate minimum price
+        const form = priceInput.closest('form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const price = parseFloat(priceInput.value);
+                
+                if (!price || price < 1) {
+                    e.preventDefault();
+                    alert('Product price must be at least ₱1.00');
+                    priceInput.focus();
+                    return false;
+                }
+            });
+        }
+    }
+});
+</script>
+{% endblock %}

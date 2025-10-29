@@ -16,246 +16,285 @@
             </p>
         </div>
         
-        <div x-data="appointmentForm()">
-            <form method="post" id="appointment-form" class="px-6 py-6 space-y-6">
-                {% csrf_token %}
-                
-                <!-- Display form errors -->
-                {% if form.errors %}
-                    <div class="rounded-md bg-red-50 p-4">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                                </svg>
-                            </div>
-                            <div class="ml-3">
-                                <h3 class="text-sm font-medium text-red-800">
-                                    Please correct the following errors:
-                                </h3>
-                                <div class="mt-2 text-sm text-red-700">
-                                    <ul class="list-disc pl-5 space-y-1">
-                                        {% for field, errors in form.errors.items %}
-                                            {% for error in errors %}
-                                                <li>{{ field|capfirst }}: {{ error }}</li>
-                                            {% endfor %}
+        <form method="post" id="appointment-form" class="px-6 py-6 space-y-6">
+            {% csrf_token %}
+            
+            <!-- Display form errors -->
+            {% if form.errors %}
+                <div class="rounded-md bg-red-50 p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">
+                                Please correct the following errors:
+                            </h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                <ul class="list-disc pl-5 space-y-1">
+                                    {% for field, errors in form.errors.items %}
+                                        {% for error in errors %}
+                                            <li>{% if field != '__all__' %}{{ field|capfirst }}: {% endif %}{{ error }}</li>
                                         {% endfor %}
-                                    </ul>
-                                </div>
+                                    {% endfor %}
+                                </ul>
                             </div>
                         </div>
                     </div>
-                {% endif %}
-                
-                <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                    <!-- Left Column: Basic Info -->
-                    <div class="space-y-6">
-                        <!-- Patient Autocomplete -->
-                        <div>
-                            <label for="patient-search" class="block text-sm font-medium text-gray-700">
-                                Patient *
-                            </label>
-                            <div class="mt-1 relative">
-                                <input 
-                                    type="text" 
-                                    id="patient-search"
-                                    placeholder="Type patient name..."
-                                    autocomplete="off"
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                                    value=""
-                                >
-                                
-                                <!-- Hidden input for actual patient ID -->
-                                <input type="hidden" name="patient" id="patient-id" value="">
-                                
-                                <!-- Autocomplete results dropdown -->
-                                <div id="patient-results" class="hidden absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md border border-gray-200 max-h-60 overflow-auto">
-                                    <!-- Results will be inserted here -->
-                                </div>
-                                
-                                <!-- Selected Patient Display -->
-                                <div id="selected-patient-display" class="hidden mt-3 p-4 bg-green-50 border border-green-200 rounded-md">
-                                    <div class="flex justify-between items-start">
-                                        <div class="flex-1">
-                                            <div class="flex items-center">
-                                                <span class="text-green-800 mr-2">✓</span>
-                                                <p class="text-sm font-medium text-green-900">Selected Patient:</p>
-                                            </div>
-                                            <div class="mt-2 text-sm text-green-800">
-                                                <p class="font-semibold" id="selected-patient-name"></p>
-                                                <p id="selected-patient-email"></p>
-                                                <p id="selected-patient-phone"></p>
-                                            </div>
-                                        </div>
-                                        <button 
-                                            type="button" 
-                                            id="clear-patient-btn"
-                                            class="ml-3 text-sm text-green-700 hover:text-green-900 font-medium underline"
-                                        >
-                                            Change Patient
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <!-- Validation warning -->
-                                <div id="patient-warning" class="hidden mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                                    <p class="text-sm text-yellow-800">
-                                        ⚠ Please select a patient from the dropdown list
-                                    </p>
-                                </div>
-                                
-                                <!-- Error message -->
-                                <div id="patient-error" class="hidden mt-2 text-sm text-red-600">
-                                    Please select a patient from the search results.
-                                </div>
-                            </div>
-                            <p id="patient-help" class="mt-2 text-sm text-gray-500">Start typing to search patients by name</p>
-                        </div>
-
-                        <!-- Service -->
-                        <div>
-                            <label for="{{ form.service.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                                Service *
-                            </label>
-                            <div class="mt-1">
-                                {{ form.service }}
-                            </div>
-                            {% if form.service.help_text %}
-                                <p class="mt-2 text-sm text-gray-500">{{ form.service.help_text }}</p>
-                            {% endif %}
-                        </div>
-
-                        <!-- Patient Type -->
-                        <div>
-                            <label for="{{ form.patient_type.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                                Patient Type *
-                            </label>
-                            <div class="mt-1">
-                                {{ form.patient_type }}
-                            </div>
-                        </div>
-
-                        <!-- Reason -->
-                        <div>
-                            <label for="{{ form.reason.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                                Reason for Visit
-                            </label>
-                            <div class="mt-1">
-                                {{ form.reason }}
-                            </div>
-                            <p class="mt-2 text-sm text-gray-500">Optional: Patient's reason for the appointment</p>
-                        </div>
-
-                        <!-- Staff Notes -->
-                        {% if user.has_permission.appointments %}
-                        <div>
-                            <label for="{{ form.staff_notes.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                                Staff Notes
-                            </label>
-                            <div class="mt-1">
-                                {{ form.staff_notes }}
-                            </div>
-                            <p class="mt-2 text-sm text-gray-500">Internal notes for staff (not visible to patient)</p>
-                        </div>
-                        {% endif %}
-
-                        <!-- Status (only for updates) -->
-                        {% if appointment and user.has_permission.appointments %}
-                        <div>
-                            <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                                Status
-                            </label>
-                            <div class="mt-1">
-                                {{ form.status }}
-                            </div>
-                        </div>
-                        {% endif %}
-
-                        <!-- Assigned Dentist (only for updates) -->
-                        {% if appointment and user.has_permission.appointments %}
-                        <div>
-                            <label for="{{ form.assigned_dentist.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                                Assigned Dentist
-                            </label>
-                            <div class="mt-1">
-                                {{ form.assigned_dentist }}
-                            </div>
-                            <p class="mt-2 text-sm text-gray-500">Dentist will be assigned when appointment is approved</p>
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    <!-- Right Column: AM/PM Schedule Selection -->
-                    <div class="space-y-6">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-3">
-                                Appointment Schedule
-                            </label>
+                </div>
+            {% endif %}
+            
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <!-- Left Column: Patient & Service -->
+                <div class="space-y-6">
+                    <!-- Patient Autocomplete -->
+                    <div>
+                        <label for="patient-search" class="block text-sm font-medium text-gray-700">
+                            Patient <span class="text-red-500">*</span>
+                        </label>
+                        <div class="mt-1 relative">
+                            <input 
+                                type="text" 
+                                id="patient-search"
+                                placeholder="Type patient name..."
+                                autocomplete="off"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                value=""
+                            >
                             
-                            <!-- Date Selection -->
-                            <div class="mb-4">
-                                <label for="{{ form.appointment_date.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                                    Appointment Date *
-                                </label>
-                                <div class="mt-1">
-                                    {{ form.appointment_date }}
-                                </div>
-                                <p class="mt-1 text-xs text-gray-500">Select a future date (no Sundays)</p>
+                            <!-- Hidden input for actual patient ID -->
+                            <input type="hidden" name="patient" id="patient-id" value="">
+                            
+                            <!-- Autocomplete results dropdown -->
+                            <div id="patient-results" class="hidden absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md border border-gray-200 max-h-60 overflow-auto">
+                                <!-- Results will be inserted here -->
                             </div>
-
-                            <!-- Period Selection (AM/PM) -->
-                            <div class="mb-4">
-                                <label for="{{ form.period.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                                    Time Period *
-                                </label>
-                                <div class="mt-1">
-                                    {{ form.period }}
-                                </div>
-                                <div class="mt-2 grid grid-cols-2 gap-4 text-xs text-gray-600">
-                                    <div class="bg-blue-50 p-3 rounded-md">
-                                        <div class="font-medium text-blue-700">Morning (AM)</div>
-                                        <div class="text-blue-600">{{ AM_PERIOD_DISPLAY }}</div>
+                            
+                            <!-- Selected Patient Display -->
+                            <div id="selected-patient-display" class="hidden mt-3 p-4 bg-green-50 border border-green-200 rounded-md">
+                                <div class="flex justify-between items-start">
+                                    <div class="flex-1">
+                                        <div class="flex items-center">
+                                            <span class="text-green-800 mr-2">✓</span>
+                                            <p class="text-sm font-medium text-green-900">Selected Patient:</p>
+                                        </div>
+                                        <div class="mt-2 text-sm text-green-800">
+                                            <p class="font-semibold" id="selected-patient-name"></p>
+                                            <p id="selected-patient-email"></p>
+                                            <p id="selected-patient-phone"></p>
+                                        </div>
                                     </div>
-                                    <div class="bg-green-50 p-3 rounded-md">
-                                        <div class="font-medium text-green-700">Afternoon (PM)</div>
-                                        <div class="text-green-600">{{ PM_PERIOD_DISPLAY }}</div>
+                                    <button 
+                                        type="button" 
+                                        id="clear-patient-btn"
+                                        class="ml-3 text-sm text-green-700 hover:text-green-900 font-medium underline"
+                                    >
+                                        Change Patient
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Validation warning -->
+                            <div id="patient-warning" class="hidden mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                                <p class="text-sm text-yellow-800">
+                                    ⚠ Please select a patient from the dropdown list
+                                </p>
+                            </div>
+                            
+                            <!-- Error message -->
+                            <div id="patient-error" class="hidden mt-2 text-sm text-red-600">
+                                Please select a patient from the search results.
+                            </div>
+                        </div>
+                        <p id="patient-help" class="mt-2 text-sm text-gray-500">Start typing to search patients by name</p>
+                    </div>
+
+                    <!-- Service -->
+                    <div>
+                        <label for="{{ form.service.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Service <span class="text-red-500">*</span>
+                        </label>
+                        <div class="mt-1">
+                            {{ form.service }}
+                        </div>
+                        
+                        <!-- Service Info Display -->
+                        <div id="service-info" class="hidden mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                            <div class="text-sm text-blue-900">
+                                <p class="font-medium mb-1" id="service-name-display"></p>
+                                <div class="text-xs text-blue-700 space-y-1">
+                                    <p><strong>Duration:</strong> <span id="service-duration-display"></span></p>
+                                    <p><strong>Timeslots needed:</strong> <span id="service-slots-display"></span></p>
+                                    <p><strong>Price range:</strong> <span id="service-price-display"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Patient Type -->
+                    <div>
+                        <label for="{{ form.patient_type.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Patient Type <span class="text-red-500">*</span>
+                        </label>
+                        <div class="mt-1">
+                            {{ form.patient_type }}
+                        </div>
+                    </div>
+
+                    <!-- Reason -->
+                    <div>
+                        <label for="{{ form.reason.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Reason for Visit
+                        </label>
+                        <div class="mt-1">
+                            {{ form.reason }}
+                        </div>
+                        <p class="mt-2 text-sm text-gray-500">Optional: Patient's reason for the appointment</p>
+                    </div>
+
+                    <!-- Staff Notes -->
+                    {% if user.has_permission.appointments %}
+                    <div>
+                        <label for="{{ form.staff_notes.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Staff Notes
+                        </label>
+                        <div class="mt-1">
+                            {{ form.staff_notes }}
+                        </div>
+                        <p class="mt-2 text-sm text-gray-500">Internal notes for staff (not visible to patient)</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Status (only for updates) -->
+                    {% if appointment and user.has_permission.appointments %}
+                    <div>
+                        <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Status
+                        </label>
+                        <div class="mt-1">
+                            {{ form.status }}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Assigned Dentist -->
+                    {% if user.has_permission.appointments %}
+                    <div>
+                        <label for="{{ form.assigned_dentist.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Assigned Dentist
+                        </label>
+                        <div class="mt-1">
+                            {{ form.assigned_dentist }}
+                        </div>
+                        <p class="mt-2 text-sm text-gray-500">
+                            {% if appointment %}Can be changed if needed{% else %}Will be auto-assigned if not specified{% endif %}
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Right Column: Date & Time Selection -->
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-3">
+                            Appointment Schedule
+                        </label>
+                        
+                        <!-- Date Selection -->
+                        <div class="mb-4">
+                            <label for="{{ form.appointment_date.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                Appointment Date <span class="text-red-500">*</span>
+                            </label>
+                            <div class="mt-1">
+                                {{ form.appointment_date }}
+                            </div>
+                            <p class="mt-1 text-xs text-gray-500">Select a future date (no Sundays)</p>
+                        </div>
+
+                        <!-- Timeslot Selection -->
+                        <div class="mb-4">
+                            <label for="{{ form.start_time.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                                Start Time <span class="text-red-500">*</span>
+                            </label>
+                            <div class="mt-1">
+                                {{ form.start_time }}
+                            </div>
+                            <p class="mt-1 text-xs text-gray-500">Select date and service first to see available times</p>
+                            
+                            <!-- Loading indicator -->
+                            <div id="timeslots-loading" class="hidden mt-2 flex items-center text-sm text-gray-600">
+                                <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Loading available timeslots...
+                            </div>
+                            
+                            <!-- No timeslots message -->
+                            <div id="no-timeslots-message" class="hidden mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                                <p class="text-sm text-yellow-800">
+                                    <span id="no-timeslots-text"></span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Configuration Info Display -->
+                        <div id="config-info-display" class="hidden border border-gray-200 rounded-lg p-4">
+                            <h5 class="font-medium text-gray-900 mb-3">Timeslot Information</h5>
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Operating Hours:</span>
+                                    <span class="font-medium" id="config-hours"></span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Available Slots:</span>
+                                    <span class="font-medium" id="config-available"></span>
+                                </div>
+                                <div id="config-pending-row" class="hidden flex justify-between">
+                                    <span class="text-gray-600">Pending Requests:</span>
+                                    <span class="font-medium text-yellow-600" id="config-pending"></span>
+                                </div>
+                                <div id="selected-timeslot-info" class="hidden pt-3 border-t border-gray-200">
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-gray-600">Selected Time:</span>
+                                        <span class="font-medium text-primary-600" id="selected-time-display"></span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Appointment Ends:</span>
+                                        <span class="font-medium" id="selected-end-time"></span>
                                     </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <!-- Slot Availability Display -->
-                            <div x-show="selectedDate && selectedPeriod" class="border border-gray-200 rounded-lg p-4">
-                                <h5 class="font-medium text-gray-900 mb-3">Slot Availability</h5>
-                                <div class="space-y-2">
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-sm text-gray-600">Selected Date:</span>
-                                        <span class="text-sm font-medium" x-text="selectedDate"></span>
-                                    </div>
-                                    <div class="flex justify-between items-center">
-                                        <span class="text-sm text-gray-600">Selected Period:</span>
-                                        <span class="text-sm font-medium" x-text="selectedPeriod === 'AM' ? 'Morning' : 'Afternoon'"></span>
-                                    </div>
+                        <!-- Double Booking Warning -->
+                        <div id="double-booking-warning" class="hidden mt-3 p-4 bg-red-50 border border-red-200 rounded-md">
+                            <div class="flex items-start">
+                                <span class="text-red-600 mr-2 text-lg">⚠</span>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-red-800">Double Booking Alert</p>
+                                    <p class="text-sm text-red-700 mt-1" id="double-booking-message"></p>
                                 </div>
-                                
                             </div>
-
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Form Actions -->
-                <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
-                    <a href="{% if appointment %}{% url 'appointments:appointment_detail' appointment.pk %}{% else %}{% url 'appointments:appointment_list' %}{% endif %}" 
-                       class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                        Cancel
-                    </a>
-                    <button type="button" id="submit-btn"
-                            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                        {% if appointment %}Update Appointment{% else %}Create Appointment{% endif %}
-                    </button>
-                </div>
-            </form>
-        </div>
+            <!-- Form Actions -->
+            <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                <a href="{% if appointment %}{% url 'appointments:appointment_detail' appointment.pk %}{% else %}{% url 'appointments:appointment_list' %}{% endif %}" 
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                    Cancel
+                </a>
+                <button type="button" id="submit-btn"
+                        class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed">
+                    {% if appointment %}Update Appointment{% else %}Create Appointment{% endif %}
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -272,10 +311,15 @@
                 <div class="border-b pb-2">
                     <p class="text-gray-600">Service:</p>
                     <p class="font-semibold text-gray-900" id="confirm-service"></p>
+                    <p class="text-xs text-gray-500 mt-1" id="confirm-service-duration"></p>
                 </div>
                 <div class="border-b pb-2">
-                    <p class="text-gray-600">Date & Time:</p>
-                    <p class="font-semibold text-gray-900" id="confirm-datetime"></p>
+                    <p class="text-gray-600">Date:</p>
+                    <p class="font-semibold text-gray-900" id="confirm-date"></p>
+                </div>
+                <div class="border-b pb-2">
+                    <p class="text-gray-600">Time:</p>
+                    <p class="font-semibold text-primary-600" id="confirm-timeslot"></p>
                 </div>
                 <div>
                     <p class="text-gray-600">Reason:</p>
@@ -297,40 +341,21 @@
 </div>
 
 <script>
-function appointmentForm() {
-    return {
-        selectedDate: '{% if appointment %}{{ appointment.appointment_date|date:"Y-m-d" }}{% endif %}',
-        selectedPeriod: '{% if appointment %}{{ appointment.period }}{% endif %}',
-        
-        init() {
-            this.$watch('selectedDate', () => this.updateAvailability());
-            this.$watch('selectedPeriod', () => this.updateAvailability());
-            
-            const dateField = document.querySelector('[name="appointment_date"]');
-            const periodField = document.querySelector('[name="period"]');
-            
-            if (dateField) {
-                dateField.addEventListener('change', (e) => {
-                    this.selectedDate = e.target.value;
-                });
-                this.selectedDate = dateField.value;
-            }
-            
-            if (periodField) {
-                periodField.addEventListener('change', (e) => {
-                    this.selectedPeriod = e.target.value;
-                });
-                this.selectedPeriod = periodField.value;
-            }
-        },
-        
-        updateAvailability() {
-            console.log('Checking availability for:', this.selectedDate, this.selectedPeriod);
-        }
-    }
-}
+// Service data for duration calculations
+const servicesData = {};
 
-// Patient Autocomplete Logic with Pre-selection Support
+// Populate services data from Django
+{% for service in form.fields.service.queryset %}
+servicesData[{{ service.id }}] = {
+    name: "{{ service.name|escapejs }}",
+    duration: {{ service.duration_minutes }},
+    durationDisplay: "{{ service.duration_display|escapejs }}",
+    priceRange: "{{ service.price_range_display|escapejs }}",
+    slotsNeeded: {{ service.duration_minutes }} / 30
+};
+{% endfor %}
+
+// Patient Autocomplete Logic
 (function() {
     const searchInput = document.getElementById('patient-search');
     const resultsDiv = document.getElementById('patient-results');
@@ -349,31 +374,28 @@ function appointmentForm() {
     {% if appointment and appointment.patient %}
     selectedPatient = {
         id: {{ appointment.patient.id }},
-        name: "{{ appointment.patient.full_name }}",
-        email: "{{ appointment.patient.email|default:'' }}",
-        phone: "{{ appointment.patient.contact_number|default:'' }}"
+        name: "{{ appointment.patient.full_name|escapejs }}",
+        email: "{{ appointment.patient.email|default:'No email'|escapejs }}",
+        phone: "{{ appointment.patient.contact_number|default:'No phone'|escapejs }}"
     };
     displaySelectedPatient();
     {% elif preselected_patient %}
     selectedPatient = {
         id: {{ preselected_patient.id }},
-        name: "{{ preselected_patient.name }}",
-        email: "{{ preselected_patient.email }}",
-        phone: "{{ preselected_patient.phone }}"
+        name: "{{ preselected_patient.name|escapejs }}",
+        email: "{{ preselected_patient.email|escapejs }}",
+        phone: "{{ preselected_patient.phone|escapejs }}"
     };
     displaySelectedPatient();
     {% endif %}
 
-    // Input handler
     searchInput.addEventListener('input', function() {
         const query = this.value.trim();
         
-        // If locked and user is typing, warn them
         if (isLocked) {
             return;
         }
         
-        // Clear selection if user modifies after selecting
         if (selectedPatient && this.value !== selectedPatient.name) {
             clearSelection(false);
             patientWarning.classList.remove('hidden');
@@ -392,7 +414,6 @@ function appointmentForm() {
         }, 300);
     });
 
-    // Prevent typing when locked
     searchInput.addEventListener('keydown', function(e) {
         if (isLocked && e.key !== 'Tab') {
             e.preventDefault();
@@ -453,18 +474,17 @@ function appointmentForm() {
         patientError.classList.add('hidden');
         
         displaySelectedPatient();
+        
+        // Trigger double-booking check
+        checkDoubleBooking();
     }
 
     function displaySelectedPatient() {
         if (!selectedPatient) return;
         
-        // Set the visible search input value
         searchInput.value = selectedPatient.name;
-        
-        // Set the hidden input value
         hiddenInput.value = selectedPatient.id;
         
-        // Update the display
         document.getElementById('selected-patient-name').textContent = selectedPatient.name;
         document.getElementById('selected-patient-email').textContent = selectedPatient.email || 'No email';
         document.getElementById('selected-patient-phone').textContent = selectedPatient.phone || 'No phone';
@@ -472,7 +492,6 @@ function appointmentForm() {
         selectedDisplay.classList.remove('hidden');
         helpText.classList.add('hidden');
         
-        // Lock the input
         searchInput.readOnly = true;
         searchInput.classList.add('bg-gray-50', 'cursor-not-allowed');
         isLocked = true;
@@ -486,7 +505,6 @@ function appointmentForm() {
         patientWarning.classList.add('hidden');
         patientError.classList.add('hidden');
         
-        // Unlock the input
         searchInput.readOnly = false;
         searchInput.classList.remove('bg-gray-50', 'cursor-not-allowed');
         isLocked = false;
@@ -495,21 +513,231 @@ function appointmentForm() {
             searchInput.value = '';
             searchInput.focus();
         }
+        
+        // Clear double-booking warning
+        document.getElementById('double-booking-warning').classList.add('hidden');
     }
 
-    // Clear button handler
     clearBtn.addEventListener('click', function() {
         clearSelection(true);
     });
 
-    // Hide results when clicking outside
     document.addEventListener('click', function(e) {
         if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
             resultsDiv.classList.add('hidden');
         }
     });
 
-    // Form submission with confirmation
+    // Expose for use by other scripts
+    window.getSelectedPatient = () => selectedPatient;
+})();
+
+// Service Selection Handler
+(function() {
+    const serviceSelect = document.querySelector('[name="service"]');
+    const serviceInfo = document.getElementById('service-info');
+    
+    if (serviceSelect) {
+        serviceSelect.addEventListener('change', function() {
+            const serviceId = this.value;
+            
+            if (serviceId && servicesData[serviceId]) {
+                const service = servicesData[serviceId];
+                
+                document.getElementById('service-name-display').textContent = service.name;
+                document.getElementById('service-duration-display').textContent = service.durationDisplay;
+                document.getElementById('service-slots-display').textContent = `${service.slotsNeeded} slot${service.slotsNeeded !== 1 ? 's' : ''} (${service.duration} minutes)`;
+                document.getElementById('service-price-display').textContent = service.priceRange;
+                
+                serviceInfo.classList.remove('hidden');
+                
+                // Reload timeslots with new service duration
+                loadTimeslots();
+            } else {
+                serviceInfo.classList.add('hidden');
+                
+                // Clear timeslots
+                const startTimeSelect = document.querySelector('[name="start_time"]');
+                if (startTimeSelect) {
+                    startTimeSelect.innerHTML = '<option value="">Select service and date first...</option>';
+                    startTimeSelect.disabled = true;
+                }
+            }
+        });
+        
+        // Trigger on page load if editing
+        {% if appointment %}
+        if (serviceSelect.value) {
+            serviceSelect.dispatchEvent(new Event('change'));
+        }
+        {% endif %}
+    }
+})();
+
+// Timeslot Loading Logic
+(function() {
+    const dateInput = document.querySelector('[name="appointment_date"]');
+    const serviceSelect = document.querySelector('[name="service"]');
+    const startTimeSelect = document.querySelector('[name="start_time"]');
+    const loadingIndicator = document.getElementById('timeslots-loading');
+    const noTimeslotsMessage = document.getElementById('no-timeslots-message');
+    const configInfoDisplay = document.getElementById('config-info-display');
+    
+    let currentTimeslots = [];
+    
+    if (dateInput) {
+        dateInput.addEventListener('change', function() {
+            loadTimeslots();
+            checkDoubleBooking();
+        });
+    }
+    
+    if (startTimeSelect) {
+        startTimeSelect.addEventListener('change', function() {
+            updateSelectedTimeslotInfo();
+        });
+    }
+    
+    window.loadTimeslots = function() {
+        const date = dateInput?.value;
+        const serviceId = serviceSelect?.value;
+        
+        if (!date || !serviceId) {
+            startTimeSelect.innerHTML = '<option value="">Select service and date first...</option>';
+            startTimeSelect.disabled = true;
+            configInfoDisplay.classList.add('hidden');
+            noTimeslotsMessage.classList.add('hidden');
+            return;
+        }
+        
+        // Show loading
+        loadingIndicator.classList.remove('hidden');
+        noTimeslotsMessage.classList.add('hidden');
+        configInfoDisplay.classList.add('hidden');
+        startTimeSelect.disabled = true;
+        
+        fetch(`/appointments/api/timeslots-for-date/?date=${date}&service_id=${serviceId}`)
+            .then(response => response.json())
+            .then(data => {
+                loadingIndicator.classList.add('hidden');
+                
+                if (!data.has_config) {
+                    document.getElementById('no-timeslots-text').textContent = data.error || 'No timeslots configured for this date.';
+                    noTimeslotsMessage.classList.remove('hidden');
+                    startTimeSelect.innerHTML = '<option value="">No timeslots available</option>';
+                    startTimeSelect.disabled = true;
+                    return;
+                }
+                
+                if (data.available_slots.length === 0) {
+                    document.getElementById('no-timeslots-text').textContent = `All timeslots are booked for this date. Please select a different date.`;
+                    noTimeslotsMessage.classList.remove('hidden');
+                    startTimeSelect.innerHTML = '<option value="">No available timeslots</option>';
+                    startTimeSelect.disabled = true;
+                    return;
+                }
+                
+                // Populate timeslot dropdown
+                currentTimeslots = data.available_slots;
+                let html = '<option value="">Select a timeslot...</option>';
+                data.available_slots.forEach(slot => {
+                    html += `<option value="${slot.value}">${slot.time_range}</option>`;
+                });
+                startTimeSelect.innerHTML = html;
+                startTimeSelect.disabled = false;
+                
+                // Show config info
+                document.getElementById('config-hours').textContent = `${data.config.start_time} - ${data.config.end_time}`;
+                document.getElementById('config-available').textContent = `${data.available_count} slot${data.available_count !== 1 ? 's' : ''}`;
+                configInfoDisplay.classList.remove('hidden');
+                
+                // Restore selected value if editing
+                {% if appointment %}
+                const editingStartTime = '{{ appointment.start_time|time:"H:i:s" }}';
+                if (editingStartTime) {
+                    startTimeSelect.value = editingStartTime;
+                    if (startTimeSelect.value === editingStartTime) {
+                        updateSelectedTimeslotInfo();
+                    }
+                }
+                {% endif %}
+            })
+            .catch(error => {
+                console.error('Error loading timeslots:', error);
+                loadingIndicator.classList.add('hidden');
+                document.getElementById('no-timeslots-text').textContent = 'Error loading timeslots. Please try again.';
+                noTimeslotsMessage.classList.remove('hidden');
+                startTimeSelect.innerHTML = '<option value="">Error loading timeslots</option>';
+                startTimeSelect.disabled = true;
+            });
+    };
+    
+    function updateSelectedTimeslotInfo() {
+        const selectedValue = startTimeSelect.value;
+        const selectedTimeslotInfo = document.getElementById('selected-timeslot-info');
+        
+        if (!selectedValue) {
+            selectedTimeslotInfo.classList.add('hidden');
+            return;
+        }
+        
+        const selectedSlot = currentTimeslots.find(slot => slot.value === selectedValue);
+        if (selectedSlot) {
+            document.getElementById('selected-time-display').textContent = selectedSlot.display;
+            document.getElementById('selected-end-time').textContent = selectedSlot.end_time;
+            selectedTimeslotInfo.classList.remove('hidden');
+        }
+    }
+    
+    // Load timeslots on page load if editing
+    {% if appointment %}
+    loadTimeslots();
+    {% endif %}
+})();
+
+// Double-booking check
+function checkDoubleBooking() {
+    const patientIdInput = document.getElementById('patient-id');
+    const dateInput = document.querySelector('[name="appointment_date"]');
+    const doubleBookingWarning = document.getElementById('double-booking-warning');
+    const submitBtn = document.getElementById('submit-btn');
+    
+    const patientId = patientIdInput.value;
+    const date = dateInput.value;
+    
+    if (!patientId || !date) {
+        doubleBookingWarning.classList.add('hidden');
+        submitBtn.disabled = false;
+        return;
+    }
+    
+    const excludeId = '{% if appointment %}{{ appointment.id }}{% endif %}';
+    let url = `/appointments/api/check-double-booking/?patient_id=${patientId}&date=${date}`;
+    
+    if (excludeId) {
+        url += `&exclude_id=${excludeId}`;
+    }
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data.has_conflict) {
+                document.getElementById('double-booking-message').textContent = data.message;
+                doubleBookingWarning.classList.remove('hidden');
+                submitBtn.disabled = true;
+            } else {
+                doubleBookingWarning.classList.add('hidden');
+                submitBtn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error checking double booking:', error);
+            doubleBookingWarning.classList.add('hidden');
+        });
+}
+
+// Form submission with confirmation
+(function() {
     const form = document.getElementById('appointment-form');
     const submitBtn = document.getElementById('submit-btn');
     const modal = document.getElementById('confirmation-modal');
@@ -520,27 +748,35 @@ function appointmentForm() {
         e.preventDefault();
         
         // Validate patient selection
-        if (!hiddenInput.value) {
-            patientError.classList.remove('hidden');
-            patientWarning.classList.remove('hidden');
-            searchInput.focus();
+        const patientId = document.getElementById('patient-id').value;
+        if (!patientId) {
+            document.getElementById('patient-error').classList.remove('hidden');
+            document.getElementById('patient-warning').classList.remove('hidden');
+            document.getElementById('patient-search').focus();
             return;
         }
 
         // Get form values
         const serviceSelect = document.querySelector('[name="service"]');
         const dateInput = document.querySelector('[name="appointment_date"]');
-        const periodSelect = document.querySelector('[name="period"]');
+        const startTimeSelect = document.querySelector('[name="start_time"]');
         const reasonTextarea = document.querySelector('[name="reason"]');
 
         // Validate required fields
-        if (!serviceSelect.value || !dateInput.value || !periodSelect.value) {
-            alert('Please fill in all required fields');
+        if (!serviceSelect.value || !dateInput.value || !startTimeSelect.value) {
+            alert('Please fill in all required fields (Patient, Service, Date, and Time)');
             return;
         }
 
-        // Format period display
-        const periodDisplay = periodSelect.options[periodSelect.selectedIndex].text;
+        // Get selected service data
+        const serviceId = serviceSelect.value;
+        const serviceData = servicesData[serviceId];
+        
+        // Get selected timeslot
+        const startTimeValue = startTimeSelect.value;
+        const startTimeText = startTimeSelect.options[startTimeSelect.selectedIndex].text;
+        
+        // Format date display
         const dateDisplay = new Date(dateInput.value).toLocaleDateString('en-US', {
             weekday: 'long',
             year: 'numeric',
@@ -548,135 +784,42 @@ function appointmentForm() {
             day: 'numeric'
         });
 
+        // Get selected patient
+        const selectedPatient = window.getSelectedPatient();
+
         // Populate confirmation modal
         document.getElementById('confirm-patient').textContent = selectedPatient.name;
-        document.getElementById('confirm-service').textContent = 
-            serviceSelect.options[serviceSelect.selectedIndex].text;
-        document.getElementById('confirm-datetime').textContent = 
-            `${dateDisplay} - ${periodDisplay}`;
-        document.getElementById('confirm-reason').textContent = 
-            reasonTextarea.value || 'No reason specified';
+        document.getElementById('confirm-service').textContent = serviceData.name;
+        document.getElementById('confirm-service-duration').textContent = `Duration: ${serviceData.durationDisplay} (${serviceData.slotsNeeded} slot${serviceData.slotsNeeded !== 1 ? 's' : ''})`;
+        document.getElementById('confirm-date').textContent = dateDisplay;
+        document.getElementById('confirm-timeslot').textContent = startTimeText;
+        document.getElementById('confirm-reason').textContent = reasonTextarea.value || 'No reason specified';
 
         // Show modal
         modal.classList.remove('hidden');
     });
 
-    // Cancel modal
     cancelModalBtn.addEventListener('click', function() {
         modal.classList.add('hidden');
     });
 
-    // Confirm and submit
     confirmSubmitBtn.addEventListener('click', function() {
         modal.classList.add('hidden');
         form.submit();
     });
 
-    // Close modal on outside click
     modal.addEventListener('click', function(e) {
         if (e.target === modal) {
             modal.classList.add('hidden');
         }
     });
-})();
-
-// Double-booking check - Add this after the patient autocomplete script
-(function() {
-    const dateInput = document.querySelector('[name="appointment_date"]');
-    const patientIdInput = document.getElementById('patient-id');
-    const doubleBookingWarning = document.createElement('div');
     
-    // Create warning element
-    doubleBookingWarning.id = 'double-booking-warning';
-    doubleBookingWarning.className = 'hidden mt-3 p-4 bg-red-50 border border-red-200 rounded-md';
-    doubleBookingWarning.innerHTML = `
-        <div class="flex items-start">
-            <span class="text-red-600 mr-2 text-lg">⚠</span>
-            <div class="flex-1">
-                <p class="text-sm font-medium text-red-800">Double Booking Alert</p>
-                <p class="text-sm text-red-700 mt-1" id="double-booking-message"></p>
-            </div>
-        </div>
-    `;
-    
-    // Insert warning after date input
-    if (dateInput && dateInput.parentElement) {
-        dateInput.parentElement.appendChild(doubleBookingWarning);
-    }
-    
-    let checkTimeout;
-    
-    function checkDoubleBooking() {
-        const patientId = patientIdInput.value;
-        const date = dateInput.value;
-        
-        // Only check if both patient and date are selected
-        if (!patientId || !date) {
-            doubleBookingWarning.classList.add('hidden');
-            return;
+    // Close modal on escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+            modal.classList.add('hidden');
         }
-        
-        // Clear previous timeout
-        clearTimeout(checkTimeout);
-        
-        // Debounce the API call
-        checkTimeout = setTimeout(() => {
-            const excludeId = '{% if appointment %}{{ appointment.id }}{% endif %}';
-            let url = `/appointments/api/check-double-booking/?patient_id=${patientId}&date=${date}`;
-            
-            if (excludeId) {
-                url += `&exclude_id=${excludeId}`;
-            }
-            
-            fetch(url)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.has_conflict) {
-                        document.getElementById('double-booking-message').textContent = data.message;
-                        doubleBookingWarning.classList.remove('hidden');
-                        
-                        // Optionally disable submit button
-                        const submitBtn = document.getElementById('submit-btn');
-                        if (submitBtn) {
-                            submitBtn.disabled = true;
-                            submitBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                        }
-                    } else {
-                        doubleBookingWarning.classList.add('hidden');
-                        
-                        // Re-enable submit button
-                        const submitBtn = document.getElementById('submit-btn');
-                        if (submitBtn) {
-                            submitBtn.disabled = false;
-                            submitBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error checking double booking:', error);
-                    doubleBookingWarning.classList.add('hidden');
-                });
-        }, 500); // 500ms debounce
-    }
-    
-    // Attach event listeners
-    if (dateInput) {
-        dateInput.addEventListener('change', checkDoubleBooking);
-    }
-    
-    if (patientIdInput) {
-        // Use MutationObserver to detect when patient is selected
-        const observer = new MutationObserver(checkDoubleBooking);
-        observer.observe(patientIdInput, { attributes: true, attributeFilter: ['value'] });
-        
-        // Also listen for input events
-        patientIdInput.addEventListener('change', checkDoubleBooking);
-    }
-    
-    // Check on page load if editing
-    {% if appointment %}
-    checkDoubleBooking();
-    {% endif %}
+    });
 })();
 </script>
 
@@ -696,6 +839,11 @@ input:focus, select:focus, textarea:focus {
 }
 
 input:read-only {
+    cursor: not-allowed;
+}
+
+select:disabled {
+    background-color: #f3f4f6;
     cursor: not-allowed;
 }
 </style>

@@ -1,0 +1,951 @@
+
+<!-- templates/core/partials/_booking_script.html -->
+<script>
+// Modal control functions
+function openTermsModal() {
+    const modal = document.getElementById('termsModal');
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    
+    const closeButton = modal.querySelector('button[aria-label="Close terms dialog"]');
+    if (closeButton) closeButton.focus();
+}
+
+function closeTermsModal() {
+    document.getElementById('termsModal').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+// Close modal on ESC key
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !document.getElementById('termsModal').classList.contains('hidden')) {
+        closeTermsModal();
+    }
+});
+
+// User-friendly error messages
+const USER_MESSAGES = {
+    // Service & Schedule
+    service_required: 'Please select a service',
+    date_required: 'Please select an appointment date',
+    start_time_required: 'Please select a time slot',
+    date_past: 'Please select a future date',
+    date_sunday: 'Appointments are not available on Sundays',
+    no_slots_available: 'No time slots available for this date. Please select another date.',
+    slot_taken: 'This time slot is no longer available. Please select another time.',
+    double_booking: 'You already have an appointment on this date. Please select a different date.',
+    
+    // Patient type & selection
+    patient_type_required: 'Please select whether you are a new or existing patient',
+    patient_selection_required: 'Please select your patient record from the list',
+    
+    // OTP & Email
+    otp_email_required: 'Please enter your email address',
+    otp_email_invalid: 'We couldn\'t find an account with this email. Please check and try again.',
+    otp_code_required: 'Please enter the 6-digit verification code',
+    otp_code_invalid: 'The code you entered is incorrect or has expired. Please request a new code.',
+    otp_send_failed: 'Failed to send verification code. Please try again.',
+    otp_verify_failed: 'Failed to verify code. Please try again.',
+    
+    // New patient fields
+    first_name_required: 'First name is required',
+    first_name_invalid: 'First name can only contain letters, spaces, hyphens, and apostrophes',
+    last_name_required: 'Last name is required',
+    last_name_invalid: 'Last name can only contain letters, spaces, hyphens, and apostrophes',
+    email_required: 'Email is required',
+    email_invalid: 'Please enter a valid email address',
+    contact_number_invalid: 'Please enter a valid Philippine mobile number (e.g., +639123456789 or 09123456789)',
+    
+    // Terms
+    terms_required: 'Please agree to our terms to continue',
+    
+    // Generic errors
+    submit_failed: 'Failed to submit appointment request. Please try again.',
+    unexpected_error: 'An unexpected error occurred. Please try again.',
+    network_error: 'Network error. Please check your connection and try again.',
+};
+
+// Template data from Django
+const servicesData = {{ services_json|safe }};
+const csrfToken = '{{ csrf_token }}';
+const todayDate = '{{ today_date }}';
+
+function appointmentBooking() {
+    return {
+        step: 1,
+        submitting: false,
+        submitted: false,
+        referenceNumber: '',
+        errorMessage: '',
+        
+        errors: {},
+        services: servicesData || [],
+        selectedService: null,
+        
+        // Loading states
+        loadingTimeslots: false,
+        loadingAvailability: false,
+        
+        // Request management - track ongoing requests
+        pendingAvailabilityRequest: null,
+        pendingTimeslotRequest: null,
+        
+        // Debounce timers
+        availabilityDebounceTimer: null,
+        timeslotDebounceTimer: null,
+        
+        // OTP state
+        otp: {
+            email: '',
+            code: '',
+            codeSent: false,
+            verified: false,
+            sending: false,
+            verifying: false,
+            selectingPatient: false,
+            canResend: true,
+            accessCodeId: null,
+            patientOptions: [],
+            showPatientSelection: false,
+            selectedPatientId: null,
+            verifiedPatientName: '',
+            verifiedPatientData: null
+        },
+        
+        // Form data
+        form: {
+            patient_type: '',
+            patient_id: null,
+            first_name: '',
+            last_name: '',
+            email: '',
+            contact_number: '',
+            address: '',
+            service: '',
+            appointment_date: '',
+            start_time: '',
+            reason: '',
+            agreed_to_terms: false
+        },
+        
+        // Calendar
+        currentMonth: new Date().getMonth(),
+        currentYear: new Date().getFullYear(),
+        calendarDays: [],
+        dateAvailability: {},
+        
+        // Timeslots
+        availableTimeslots: [],
+        
+        init() {
+            this.generateCalendar();
+            
+            // Watch for service changes with debouncing
+            this.$watch('form.service', (value) => {
+                // Cancel any pending timers
+                if (this.availabilityDebounceTimer) {
+                    clearTimeout(this.availabilityDebounceTimer);
+                }
+                
+                if (value) {
+                    // Debounce the availability load
+                    this.availabilityDebounceTimer = setTimeout(() => {
+                        this.loadMonthAvailability();
+                        
+                        // Reload timeslots if date is already selected
+                        if (this.form.appointment_date) {
+                            this.loadTimeslotsForDate();
+                        }
+                    }, 300); // 300ms debounce
+                } else {
+                    // Clear availability when service is deselected
+                    this.dateAvailability = {};
+                    this.generateCalendar();
+                }
+            });
+            
+            // Watch for date changes with debouncing
+            this.$watch('form.appointment_date', (value) => {
+                // Cancel any pending timers
+                if (this.timeslotDebounceTimer) {
+                    clearTimeout(this.timeslotDebounceTimer);
+                }
+                
+                if (value && this.form.service) {
+                    // Debounce the timeslot load
+                    this.timeslotDebounceTimer = setTimeout(() => {
+                        this.loadTimeslotsForDate();
+                    }, 200); // 200ms debounce
+                }
+            });
+        },
+        
+        get currentMonthName() {
+            const months = ['January', 'February', 'March', 'April', 'May', 'June', 
+                          'July', 'August', 'September', 'October', 'November', 'December'];
+            return months[this.currentMonth];
+        },
+        
+        clearErrors(field = null) {
+            if (field) {
+                delete this.errors[field];
+            } else {
+                this.errors = {};
+            }
+            this.errorMessage = '';
+        },
+        
+        handlePatientTypeChange() {
+            this.clearErrors();
+            // Reset OTP state when switching patient type
+            this.otp = {
+                email: '',
+                code: '',
+                codeSent: false,
+                verified: false,
+                sending: false,
+                verifying: false,
+                selectingPatient: false,
+                canResend: true,
+                accessCodeId: null,
+                patientOptions: [],
+                showPatientSelection: false,
+                selectedPatientId: null,
+                verifiedPatientName: '',
+                verifiedPatientData: null
+            };
+        },
+        
+        handleServiceChange() {
+            this.clearErrors('service');
+            this.updateServiceInfo();
+            
+            // Reset date and time when service changes
+            this.form.appointment_date = '';
+            this.form.start_time = '';
+            this.availableTimeslots = [];
+            
+            // Calendar will reload via watcher with debouncing
+        },
+        
+        updateServiceInfo() {
+            if (this.form.service) {
+                this.selectedService = this.services.find(s => s.id == this.form.service);
+            } else {
+                this.selectedService = null;
+            }
+        },
+        
+        // Calendar functions
+        generateCalendar() {
+            const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+            const firstDayOfWeek = firstDay.getDay();
+            const daysToGoBack = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+            
+            this.calendarDays = [];
+            
+            for (let i = 0; i < 42; i++) {
+                const dayOfMonth = 1 - daysToGoBack + i;
+                const currentDate = new Date(this.currentYear, this.currentMonth, dayOfMonth);
+                
+                const dayData = {
+                    date: this.formatDateForAPI(currentDate),
+                    day: currentDate.getDate(),
+                    isEmpty: currentDate.getMonth() !== this.currentMonth,
+                    available: false,
+                    isToday: this.isToday(currentDate),
+                    isSelected: this.form.appointment_date === this.formatDateForAPI(currentDate),
+                    isSunday: currentDate.getDay() === 0,
+                    availableCount: undefined
+                };
+                
+                // Check basic availability (not past, not Sunday, not today)
+                if (this.isDateAvailable(currentDate)) {
+                    dayData.available = true;
+                }
+                
+                this.calendarDays.push(dayData);
+            }
+            
+            // Load availability data for the month if service is selected
+            if (this.form.service) {
+                this.loadMonthAvailability();
+            }
+        },
+        
+        changeMonth(direction) {
+            this.currentMonth += direction;
+            if (this.currentMonth < 0) {
+                this.currentMonth = 11;
+                this.currentYear--;
+            } else if (this.currentMonth > 11) {
+                this.currentMonth = 0;
+                this.currentYear++;
+            }
+            this.generateCalendar();
+        },
+        
+        isToday(date) {
+            const today = new Date();
+            return date.toDateString() === today.toDateString();
+        },
+        
+        isDateAvailable(date) {
+            const dateStr = this.formatDateForAPI(date);
+            
+            // Check if date is past or today
+            if (dateStr <= todayDate) {
+                return false;
+            }
+            
+            // Check if Sunday
+            if (date.getDay() === 0) {
+                return false;
+            }
+            
+            return true;
+        },
+        
+        async loadMonthAvailability() {
+            // CRITICAL: Only load if service is selected AND valid
+            if (!this.form.service || this.form.service === '') {
+                return;
+            }
+            
+            // Cancel any pending availability request
+            if (this.pendingAvailabilityRequest) {
+                this.pendingAvailabilityRequest.abort();
+                this.pendingAvailabilityRequest = null;
+            }
+            
+            const startDate = new Date(this.currentYear, this.currentMonth, 1);
+            const endDate = new Date(this.currentYear, this.currentMonth + 1, 0);
+            
+            const startDateStr = this.formatDateForAPI(startDate);
+            const endDateStr = this.formatDateForAPI(endDate);
+            
+            // Validate service_id before making request
+            const serviceId = parseInt(this.form.service);
+            if (isNaN(serviceId) || serviceId <= 0) {
+                console.warn('Invalid service ID, skipping availability load');
+                return;
+            }
+            
+            try {
+                // Create AbortController for this request
+                const controller = new AbortController();
+                this.pendingAvailabilityRequest = controller;
+                
+                const response = await fetch(
+                    `/appointments/api/timeslot-availability/?start_date=${startDateStr}&end_date=${endDateStr}&service_id=${serviceId}`,
+                    { signal: controller.signal }
+                );
+                
+                // Clear the pending request reference
+                this.pendingAvailabilityRequest = null;
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Availability API error:', response.status, errorText);
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (data.availability) {
+                    this.dateAvailability = data.availability;
+                    
+                    // Update calendar days with availability info
+                    this.calendarDays = this.calendarDays.map(day => {
+                        if (!day.isEmpty && day.available && this.dateAvailability[day.date]) {
+                            const dayAvail = this.dateAvailability[day.date];
+                            return {
+                                ...day,
+                                availableCount: dayAvail.available_count,
+                                hasConfig: dayAvail.has_config,
+                                available: dayAvail.has_availability
+                            };
+                        }
+                        return day;
+                    });
+                }
+            } catch (error) {
+                // Ignore aborted requests
+                if (error.name === 'AbortError') {
+                    console.log('Availability request cancelled');
+                    return;
+                }
+                console.error('Error loading month availability:', error);
+            }
+        },
+        
+        async selectDate(day) {
+            if (!day.available || day.isEmpty) {
+                return;
+            }
+            
+            // Check if service is selected
+            if (!this.form.service) {
+                this.errors.service = USER_MESSAGES.service_required;
+                this.errorMessage = USER_MESSAGES.service_required;
+                return;
+            }
+            
+            this.form.appointment_date = day.date;
+            this.form.start_time = ''; // Reset timeslot selection
+            this.clearErrors('appointment_date');
+            
+            // For existing patients, check double booking
+            if (this.form.patient_type === 'existing' && this.form.patient_id) {
+                const hasConflict = await this.checkDoubleBooking();
+                if (hasConflict) {
+                    return; // Error already set by checkDoubleBooking
+                }
+            }
+            
+            // Load timeslots will be triggered by watcher with debouncing
+            
+            // Regenerate calendar to update selection
+            this.generateCalendar();
+            
+            // Scroll to timeslot selection
+            setTimeout(() => {
+                const timeslotSection = document.querySelector('[x-show="form.appointment_date"]');
+                if (timeslotSection) {
+                    timeslotSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }, 100);
+        },
+        
+        async loadTimeslotsForDate() {
+            // CRITICAL: Validate both date and service before making request
+            if (!this.form.appointment_date || !this.form.service) {
+                return;
+            }
+            
+            // Validate service_id is a valid number
+            const serviceId = parseInt(this.form.service);
+            if (isNaN(serviceId) || serviceId <= 0) {
+                console.warn('Invalid service ID, skipping timeslot load');
+                return;
+            }
+            
+            // Cancel any pending timeslot request
+            if (this.pendingTimeslotRequest) {
+                this.pendingTimeslotRequest.abort();
+                this.pendingTimeslotRequest = null;
+            }
+            
+            this.loadingTimeslots = true;
+            this.availableTimeslots = [];
+            
+            try {
+                // Create AbortController for this request
+                const controller = new AbortController();
+                this.pendingTimeslotRequest = controller;
+                
+                const response = await fetch(
+                    `/appointments/api/timeslots-for-date/?date=${this.form.appointment_date}&service_id=${serviceId}`,
+                    { signal: controller.signal }
+                );
+                
+                // Clear the pending request reference
+                this.pendingTimeslotRequest = null;
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Timeslot API error:', response.status, errorText);
+                    this.errorMessage = USER_MESSAGES.network_error;
+                    this.availableTimeslots = [];
+                    this.loadingTimeslots = false;
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    this.errorMessage = data.error;
+                    this.availableTimeslots = [];
+                } else if (data.available_slots) {
+                    this.availableTimeslots = data.available_slots.map(slot => ({
+                        value: slot.value,
+                        display: slot.display,
+                        time_range: slot.time_range,
+                        is_booked: false
+                    }));
+                    
+                    if (this.availableTimeslots.length === 0) {
+                        this.errorMessage = USER_MESSAGES.no_slots_available;
+                    }
+                }
+            } catch (error) {
+                // Ignore aborted requests
+                if (error.name === 'AbortError') {
+                    console.log('Timeslot request cancelled');
+                    return;
+                }
+                console.error('Error loading timeslots:', error);
+                this.errorMessage = USER_MESSAGES.network_error;
+                this.availableTimeslots = [];
+            } finally {
+                this.loadingTimeslots = false;
+            }
+        },
+        
+        selectTimeslot(timeValue) {
+            this.form.start_time = timeValue;
+            this.clearErrors('start_time');
+        },
+        
+        getDateClasses(day) {
+            let classes = [];
+            
+            if (day.isEmpty) {
+                classes.push('text-gray-300', 'cursor-not-allowed', 'bg-gray-50');
+            } else if (!day.available) {
+                classes.push('text-gray-400', 'bg-gray-100', 'cursor-not-allowed', 'unavailable');
+            } else {
+                classes.push('text-gray-900', 'cursor-pointer', 'available');
+                
+                if (day.isSelected) {
+                    classes.push('bg-primary-600', 'text-white', 'selected', 'font-semibold');
+                } else if (day.isToday) {
+                    classes.push('bg-blue-50', 'text-blue-600', 'font-semibold', 'border-blue-300');
+                }
+                
+                // Add indicator classes based on slot availability (but no text)
+                if (day.availableCount !== undefined && day.hasConfig) {
+                    if (day.availableCount === 0) {
+                        classes.push('ring-2', 'ring-red-300', 'all-slots-taken');
+                    } else {
+                        classes.push('ring-2', 'ring-green-300', 'has-slots');
+                    }
+                }
+            }
+            
+            return classes.join(' ');
+        },
+        
+        getDateTooltip(day) {
+            if (day.isEmpty) return '';
+            if (day.isSunday) return 'Closed on Sundays';
+            if (day.date <= todayDate) return 'Past date unavailable';
+            if (!this.form.service) return 'Select a service first';
+            if (day.availableCount !== undefined && day.hasConfig) {
+                if (day.availableCount === 0) {
+                    return 'Fully booked';
+                }
+                return `${day.availableCount} time slots available`;
+            }
+            if (!day.hasConfig) {
+                return 'No slots configured for this date';
+            }
+            return 'Click to view available times';
+        },
+        
+        getSelectedTimeslotDisplay() {
+            if (!this.form.start_time) return '';
+            const slot = this.availableTimeslots.find(s => s.value === this.form.start_time);
+            return slot ? slot.time_range : this.form.start_time;
+        },
+        
+        // OTP functions
+        async sendOTPCode() {
+            this.clearErrors('otp_email');
+            
+            if (!this.otp.email || !this.otp.email.trim()) {
+                this.errors.otp_email = USER_MESSAGES.otp_email_required;
+                return;
+            }
+            
+            this.otp.sending = true;
+            
+            try {
+                const response = await fetch('/api/booking/send-otp/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: JSON.stringify({ email: this.otp.email })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.otp.codeSent = true;
+                    this.otp.canResend = false;
+                    this.errorMessage = '';
+                    
+                    // Enable resend after 60 seconds
+                    setTimeout(() => {
+                        this.otp.canResend = true;
+                    }, 60000);
+                } else {
+                    this.errors.otp_email = data.error || USER_MESSAGES.otp_email_invalid;
+                }
+            } catch (error) {
+                console.error('Error sending OTP:', error);
+                this.errors.otp_email = USER_MESSAGES.otp_send_failed;
+            } finally {
+                this.otp.sending = false;
+            }
+        },
+        
+        async verifyOTPCode() {
+            this.clearErrors('otp_code');
+            
+            if (!this.otp.code || this.otp.code.length !== 6) {
+                this.errors.otp_code = USER_MESSAGES.otp_code_required;
+                return;
+            }
+            
+            this.otp.verifying = true;
+            
+            try {
+                const response = await fetch('/api/booking/verify-otp/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: JSON.stringify({ 
+                        email: this.otp.email,
+                        code: this.otp.code
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success && data.verified) {
+                    this.otp.verified = true;
+                    this.otp.accessCodeId = data.access_code_id;
+                    this.otp.patientOptions = data.patients;
+                    this.otp.showPatientSelection = data.multiple_patients;
+                    
+                    if (!data.multiple_patients && data.patients.length === 1) {
+                        await this.selectPatient(data.patients[0].id);
+                    }
+                    
+                    this.errorMessage = '';
+                } else {
+                    this.errors.otp_code = data.error || USER_MESSAGES.otp_code_invalid;
+                }
+            } catch (error) {
+                console.error('Error verifying OTP:', error);
+                this.errors.otp_code = USER_MESSAGES.otp_verify_failed;
+            } finally {
+                this.otp.verifying = false;
+            }
+        },
+        
+        async selectPatient(patientId) {
+            if (this.otp.selectingPatient) {
+                return;
+            }
+            
+            this.otp.selectingPatient = true;
+            
+            try {
+                const response = await fetch('/api/booking/select-patient/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: JSON.stringify({ 
+                        access_code_id: this.otp.accessCodeId,
+                        patient_id: patientId
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    this.otp.verifiedPatientData = data.patient;
+                    this.otp.verifiedPatientName = data.patient.name;
+                    this.form.patient_id = data.patient.id;
+                    this.otp.selectedPatientId = data.patient.id;
+                    this.clearErrors('patient_selection');
+                    
+                    // Check double booking if date already selected
+                    if (this.form.appointment_date) {
+                        await this.checkDoubleBooking();
+                    }
+                } else {
+                    this.errorMessage = data.error || USER_MESSAGES.unexpected_error;
+                }
+            } catch (error) {
+                console.error('Error selecting patient:', error);
+                this.errorMessage = USER_MESSAGES.unexpected_error;
+            } finally {
+                this.otp.selectingPatient = false;
+            }
+        },
+        
+        async checkDoubleBooking() {
+            if (!this.form.patient_id || !this.form.appointment_date) {
+                return false;
+            }
+            
+            try {
+                const response = await fetch(
+                    `/appointments/api/check-double-booking/?patient_id=${this.form.patient_id}&date=${this.form.appointment_date}`
+                );
+                
+                const data = await response.json();
+                
+                if (data.has_conflict) {
+                    this.errors.appointment_date = USER_MESSAGES.double_booking;
+                    this.errorMessage = data.message || USER_MESSAGES.double_booking;
+                    this.form.appointment_date = '';
+                    this.form.start_time = '';
+                    this.availableTimeslots = [];
+                    return true;
+                }
+                
+                return false;
+            } catch (error) {
+                console.error('Error checking double booking:', error);
+                return false;
+            }
+        },
+        
+        // Validation functions
+        validateName(name, fieldName) {
+            const trimmedName = name.trim();
+            
+            if (!trimmedName) {
+                return USER_MESSAGES[`${fieldName}_required`];
+            }
+            
+            const normalizedName = trimmedName.replace(/\s+/g, ' ');
+            
+            if (normalizedName.length < 2) {
+                return `${fieldName === 'first_name' ? 'First' : 'Last'} name must be at least 2 characters`;
+            }
+            
+            if (normalizedName.length > 50) {
+                return `${fieldName === 'first_name' ? 'First' : 'Last'} name cannot exceed 50 characters`;
+            }
+            
+            const namePattern = /^[a-zA-Z\s\-']+$/;
+            if (!namePattern.test(normalizedName)) {
+                return USER_MESSAGES[`${fieldName}_invalid`];
+            }
+            
+            return null;
+        },
+        
+        isValidEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        },
+        
+        isValidPhoneNumber(phone) {
+            const cleanPhone = phone.replace(/\s/g, '');
+            const phoneRegex = /^(\+63|63|0)9\d{9}$/;
+            return phoneRegex.test(cleanPhone);
+        },
+        
+        validateStep() {
+            this.clearErrors();
+            let isValid = true;
+            
+            switch (this.step) {
+                case 1:
+                    // Service validation
+                    if (!this.form.service) {
+                        this.errors.service = USER_MESSAGES.service_required;
+                        isValid = false;
+                    }
+                    
+                    // Date validation
+                    if (!this.form.appointment_date) {
+                        this.errors.appointment_date = USER_MESSAGES.date_required;
+                        isValid = false;
+                    }
+                    
+                    // Time validation
+                    if (!this.form.start_time) {
+                        this.errors.start_time = USER_MESSAGES.start_time_required;
+                        isValid = false;
+                    }
+                    break;
+                    
+                case 2:
+                    // Patient type validation
+                    if (!this.form.patient_type) {
+                        this.errors.patient_type = USER_MESSAGES.patient_type_required;
+                        isValid = false;
+                    }
+                    
+                    if (this.form.patient_type === 'existing') {
+                        if (!this.otp.verified) {
+                            this.errors.otp_email = USER_MESSAGES.otp_email_required;
+                            isValid = false;
+                        }
+                        
+                        if (this.otp.showPatientSelection && !this.otp.selectedPatientId) {
+                            this.errors.patient_selection = USER_MESSAGES.patient_selection_required;
+                            isValid = false;
+                        }
+                    } else if (this.form.patient_type === 'new') {
+                        // First name validation
+                        const firstNameError = this.validateName(this.form.first_name, 'first_name');
+                        if (firstNameError) {
+                            this.errors.first_name = firstNameError;
+                            isValid = false;
+                        } else {
+                            this.form.first_name = this.form.first_name.trim().replace(/\s+/g, ' ');
+                        }
+                        
+                        // Last name validation
+                        const lastNameError = this.validateName(this.form.last_name, 'last_name');
+                        if (lastNameError) {
+                            this.errors.last_name = lastNameError;
+                            isValid = false;
+                        } else {
+                            this.form.last_name = this.form.last_name.trim().replace(/\s+/g, ' ');
+                        }
+                        
+                        // Email validation
+                        if (!this.form.email?.trim()) {
+                            this.errors.email = USER_MESSAGES.email_required;
+                            isValid = false;
+                        } else if (!this.isValidEmail(this.form.email)) {
+                            this.errors.email = USER_MESSAGES.email_invalid;
+                            isValid = false;
+                        }
+                        
+                        // Contact number validation (optional but must be valid if provided)
+                        if (this.form.contact_number && !this.isValidPhoneNumber(this.form.contact_number)) {
+                            this.errors.contact_number = USER_MESSAGES.contact_number_invalid;
+                            isValid = false;
+                        }
+                    }
+                    break;
+                    
+                case 3:
+                    if (!this.form.agreed_to_terms) {
+                        this.errors.agreed_to_terms = USER_MESSAGES.terms_required;
+                        isValid = false;
+                    }
+                    break;
+            }
+            
+            return isValid;
+        },
+        
+        nextStep() {
+            if (this.validateStep()) {
+                this.step++;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                // Scroll to first error
+                setTimeout(() => {
+                    const firstError = document.querySelector('.text-red-600');
+                    if (firstError) {
+                        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 100);
+            }
+        },
+        
+        prevStep() {
+            this.step--;
+            this.clearErrors();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        },
+        
+        async submitForm() {
+            if (!this.validateStep()) {
+                return;
+            }
+            
+            this.submitting = true;
+            this.clearErrors();
+            
+            try {
+                let submissionData = {
+                    service: this.form.service,
+                    appointment_date: this.form.appointment_date,
+                    start_time: this.form.start_time,
+                    reason: this.form.reason,
+                    agreed_to_terms: this.form.agreed_to_terms
+                };
+
+                if (this.form.patient_type === 'existing') {
+                    submissionData.patient_id = this.form.patient_id;
+                    submissionData.patient_type = 'existing';
+                } else {
+                    submissionData.patient_type = 'new';
+                    submissionData.first_name = this.form.first_name;
+                    submissionData.last_name = this.form.last_name;
+                    submissionData.email = this.form.email;
+                    submissionData.contact_number = this.form.contact_number;
+                    submissionData.address = this.form.address;
+                }
+
+                const response = await fetch('/api/booking/submit/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken,
+                    },
+                    body: JSON.stringify(submissionData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    this.submitted = true;
+                    this.referenceNumber = data.reference_number;
+                    this.errorMessage = '';
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                    this.errorMessage = data.error || USER_MESSAGES.submit_failed;
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+            } catch (error) {
+                console.error('Error submitting appointment:', error);
+                this.errorMessage = USER_MESSAGES.submit_failed;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } finally {
+                this.submitting = false;
+            }
+        },
+        
+        getPatientName() {
+            if (this.form.patient_type === 'existing' && this.otp.verifiedPatientName) {
+                return this.otp.verifiedPatientName;
+            } else if (this.form.patient_type === 'new') {
+                return `${this.form.first_name} ${this.form.last_name}`.trim();
+            }
+            return '';
+        },
+        
+        getSelectedServiceName() {
+            return this.selectedService ? this.selectedService.name : '';
+        },
+        
+        formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString + 'T00:00:00');
+            return date.toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+            });
+        },
+        
+        formatDateForAPI(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+    };
+}
+</script>

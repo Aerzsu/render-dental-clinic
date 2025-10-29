@@ -1,4 +1,4 @@
-# appointments/urls.py - Updated with receipt PDF URL
+# appointments/urls.py - Updated with timeslot system endpoints
 from django.urls import path
 from . import views, payment_views
 
@@ -25,12 +25,12 @@ urlpatterns = [
     path('notes/<int:appointment_pk>/update/', views.update_appointment_note, name='appointment_note_update'),
     path('notes/<int:appointment_pk>/get/', views.get_appointment_notes, name='appointment_notes_get'),
     
-    # Daily Slots Management (BACKEND - Updated with preview/confirm)
-    path('slots/', views.DailySlotsManagementView.as_view(), name='daily_slots_list'),
-    path('slots/create/', views.DailySlotsCreateView.as_view(), name='daily_slots_create'),
-    path('slots/<int:pk>/edit/', views.DailySlotsUpdateView.as_view(), name='daily_slots_update'),
-    path('slots/bulk-preview/', views.bulk_create_daily_slots_preview, name='bulk_create_preview'),
-    path('slots/bulk-confirm/', views.bulk_create_daily_slots_confirm, name='bulk_create_confirm'),
+    # TimeSlot Configuration Management (BACKEND)
+    path('timeslots/', views.TimeSlotConfigurationListView.as_view(), name='daily_slots_list'),
+    path('timeslots/create/', views.TimeSlotConfigurationCreateView.as_view(), name='daily_slots_create'),
+    path('timeslots/<int:pk>/edit/', views.TimeSlotConfigurationUpdateView.as_view(), name='daily_slots_update'),
+    path('timeslots/bulk-preview/', views.bulk_create_timeslot_configs_preview, name='bulk_create_preview'),
+    path('timeslots/bulk-confirm/', views.bulk_create_timeslot_configs_confirm, name='bulk_create_confirm'),
     
     # Payment URLs
     path('payments/', payment_views.PaymentListView.as_view(), name='payment_list'),
@@ -50,12 +50,16 @@ urlpatterns = [
     # Receipt PDF Generation
     path('receipts/<int:transaction_pk>/pdf/', payment_views.receipt_pdf, name='receipt_pdf'),
 
-    # API endpoints for AM/PM slot system (PUBLIC + BACKEND)
-    path('api/slot-availability/', views.get_slot_availability_api, name='slot_availability_api'),
+    # API endpoints for timeslot system (PUBLIC + BACKEND)
+    path('api/timeslot-availability/', views.get_timeslot_availability_api, name='timeslot_availability_api'),
+    path('api/timeslots-for-date/', views.get_timeslots_for_date_api, name='timeslots_for_date_api'),
     path('api/find-patient/', views.find_patient_api, name='find_patient_api'),
+    path('api/check-double-booking/', views.check_double_booking_api, name='check_double_booking_api'),
 
     # API endpoint for pending appointments count (for notification badge)
     path('api/pending-count/', views.pending_count_api, name='pending_count_api'),
 
-    path('api/check-double-booking/', views.check_double_booking_api, name='check_double_booking_api'),
+    # Treatment Records
+    path('<int:appointment_pk>/treatment/', views.treatment_record_view, name='treatment_record'),
+    path('<int:appointment_pk>/treatment/delete/', views.delete_treatment_record, name='treatment_record_delete'),
 ]

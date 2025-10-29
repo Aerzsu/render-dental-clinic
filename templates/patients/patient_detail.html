@@ -169,7 +169,7 @@
                             <div class="border-l-4 border-blue-400 pl-3">
                                 <p class="text-sm font-medium text-gray-900">{{ appointment.service.name }}</p>
                                 <p class="text-xs text-gray-500">
-                                    {{ appointment.appointment_date|date:"M j, Y" }} {{ appointment.get_period_display }}
+                                    {{ appointment.appointment_date|date:"M j, Y" }}
                                 </p>
                                 {% if appointment.assigned_dentist %}
                                     <p class="text-xs text-gray-400">Dr. {{ appointment.assigned_dentist.get_full_name|default:appointment.assigned_dentist.username }}</p>

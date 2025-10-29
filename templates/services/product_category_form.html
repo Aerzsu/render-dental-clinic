@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}
+    {% if object %}Edit Category{% else %}Add Category{% endif %} - KingJoy Appointment System
+{% endblock %}
+
+{% block content %}
+<style> 
+    input,
+    select,
+    textarea {
+        padding: 0.5rem 0.75rem;
+    }
+</style>
+
+<div class="max-w-2xl mx-auto space-y-6">
+    <!-- Header -->
+    <div>
+        <div class="flex items-center space-x-2 text-sm text-gray-500 mb-2">
+            <a href="{% url 'services:product_category_list' %}" class="hover:text-gray-700">Product Categories</a>
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+            <span>{% if object %}Edit Category{% else %}Add Category{% endif %}</span>
+        </div>
+        <h1 class="text-2xl font-bold text-gray-900">
+            {% if object %}Edit Category{% else %}Add New Category{% endif %}
+        </h1>
+        <p class="mt-1 text-sm text-gray-600">
+            {% if object %}Update the details of this product category{% else %}Create a new category to organize products{% endif %}
+        </p>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white shadow rounded-lg">
+        <form method="post" class="space-y-6 p-6">
+            {% csrf_token %}
+            
+            <!-- Display non-field errors -->
+            {% if form.non_field_errors %}
+                <div class="rounded-md bg-red-50 p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.316 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">Please correct the following errors:</h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                <ul class="list-disc list-inside space-y-1">
+                                    {% for error in form.non_field_errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Category Name -->
+            <div>
+                <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    Category Name <span class="text-red-500">*</span>
+                </label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.name.errors.0 }}</p>
+                {% endif %}
+                {% if form.name.help_text %}
+                    <p class="mt-2 text-sm text-gray-500">{{ form.name.help_text }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Description -->
+            <div>
+                <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    Description
+                </label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.description.errors.0 }}</p>
+                {% endif %}
+                {% if form.description.help_text %}
+                    <p class="mt-2 text-sm text-gray-500">{{ form.description.help_text }}</p>
+                {% endif %}
+            </div>
+
+            <!-- Display Order -->
+            <div>
+                <label for="{{ form.display_order.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    Display Order
+                </label>
+                {{ form.display_order }}
+                {% if form.display_order.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.display_order.errors.0 }}</p>
+                {% endif %}
+                <p class="mt-2 text-sm text-gray-500">
+                    {{ form.display_order.help_text|default:"Categories with lower numbers appear first in lists (e.g., 0, 10, 20)" }}
+                </p>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+                <a href="{% url 'services:product_category_list' %}" 
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700">
+                    {% if object %}Update Category{% else %}Create Category{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -27,39 +27,33 @@ def round_amount(value):
 
 @register.filter
 def format_currency(value):
-    """
-    Format value as currency with peso sign and no decimals.
-    Usage: {{ payment.total_amount|format_currency }}
-    Returns: "₱1,234" format
-    """
-    rounded = round_amount(value)
-    return f"₱{rounded:,}"
+    """Format amount as Philippine Peso currency"""
+    try:
+        rounded = round(float(value))
+        return f"₱{rounded:,}"
+    except (ValueError, TypeError):
+        return "₱0"
 
 
 @register.filter
 def display_balance(value):
-    """
-    Display 'None' if balance is zero, otherwise format as currency.
-    Usage: {{ payment.outstanding_balance|display_balance }}
-    Returns: "None" if 0, otherwise "₱1,234"
-    """
-    rounded = round_amount(value)
-    if rounded == 0:
-        return "None"
-    return f"₱{rounded:,}"
+    """Display balance with proper formatting"""
+    try:
+        rounded = round(float(value))
+        if rounded == 0:
+            return "₱0 (Paid in Full)"
+        return f"₱{rounded:,}"
+    except (ValueError, TypeError):
+        return "₱0"
 
 
 @register.filter
 def payment_status_display(value):
-    """
-    Custom display for payment status - show 'Fully Paid' for completed.
-    Usage: {{ payment.status|payment_status_display }}
-    Returns: User-friendly status text
-    """
+    """Display user-friendly payment status"""
     status_map = {
         'pending': 'Pending',
         'partially_paid': 'Partially Paid',
-        'completed': 'Fully Paid',
-        'cancelled': 'Cancelled',  # Keep for backward compatibility
+        'completed': 'Completed',
+        'cancelled': 'Cancelled',
     }
-    return status_map.get(value, value.replace('_', ' ').title())
+    return status_map.get(value, value.title())

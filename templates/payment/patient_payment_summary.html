@@ -273,6 +273,28 @@
         </div>
 
         <div class="bg-white shadow rounded-lg p-6">
+            <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Product Usage Summary</h4>
+            <dl class="space-y-2">
+                {% with total_services=0 total_products=0 %}
+                    {% for payment in all_payments %}
+                        {% for item in payment.items.all %}
+                            {% with total_services=total_services|add:1 %}{% endwith %}
+                            {% with total_products=total_products|add:item.products.count %}{% endwith %}
+                        {% endfor %}
+                    {% endfor %}
+                    <div class="flex justify-between">
+                        <dt class="text-sm text-gray-600">Total Services:</dt>
+                        <dd class="text-sm font-medium text-gray-900">{{ total_services }}</dd>
+                    </div>
+                    <div class="flex justify-between">
+                        <dt class="text-sm text-gray-600">Products Used:</dt>
+                        <dd class="text-sm font-medium text-blue-600">{{ total_products }}</dd>
+                    </div>
+                {% endwith %}
+            </dl>
+        </div>
+
+        <div class="bg-white shadow rounded-lg p-6">
             <h4 class="text-sm font-medium text-gray-500 uppercase tracking-wide mb-3">Payment History</h4>
             <dl class="space-y-2">
                 <div class="flex justify-between">

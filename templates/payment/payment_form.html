@@ -35,13 +35,31 @@
     @keyframes spinner {
         to { transform: rotate(360deg); }
     }
+    
+    .service-item-card {
+        transition: all 0.2s ease;
+    }
+    
+    .service-item-card:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    .product-item {
+        background: #f9fafb;
+        border-left: 3px solid #e5e7eb;
+    }
+    
+    .summary-sticky {
+        position: sticky;
+        top: 1rem;
+    }
 </style>
 
 <div class="space-y-6">
     <!-- Header -->
     <div class="sm:flex sm:items-center sm:justify-between">
         <div>
-            <nav class="flex" aria-label="Breadcrumb">
+            <nav class="flex mb-2" aria-label="Breadcrumb">
                 <ol role="list" class="flex items-center space-x-4">
                     <li>
                         <div class="flex">
@@ -60,7 +78,7 @@
                     </li>
                 </ol>
             </nav>
-            <h1 class="mt-2 text-2xl font-bold text-gray-900">Create Payment Record</h1>
+            <h1 class="text-2xl font-bold text-gray-900">Create Payment Record</h1>
             <p class="mt-1 text-sm text-gray-600">
                 Create payment tracking for {{ appointment.patient.full_name }}
             </p>
@@ -69,7 +87,7 @@
 
     <!-- Form -->
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <!-- Main Form -->
+        <!-- Main Form (Left - 2 columns on large screens) -->
         <div class="lg:col-span-2">
             <form method="post" id="paymentForm" class="space-y-6">
                 {% csrf_token %}
@@ -80,78 +98,68 @@
                 <!-- Service Items Section -->
                 <div class="bg-white shadow rounded-lg">
                     <div class="px-6 py-4 border-b border-gray-200">
-                        <h3 class="text-lg font-medium text-gray-900">Service Items</h3>
-                        <p class="mt-1 text-sm text-gray-500">Configure services and pricing for this payment</p>
+                        <h3 class="text-lg font-medium text-gray-900">Services & Products</h3>
+                        <p class="mt-1 text-sm text-gray-500">Add services and the products/supplies used</p>
                     </div>
                     <div class="px-6 py-4">
                         <!-- Service Items Container -->
-                        <div id="serviceItemsContainer" class="space-y-4">
+                        <div id="serviceItemsContainer" class="space-y-6">
                             <!-- Service items will be dynamically added here -->
                         </div>
                         
                         <!-- Add Service Button -->
-                        <div class="mt-4 pt-4 border-t border-gray-200">
+                        <div class="mt-6 pt-4 border-t border-gray-200">
                             <button type="button" id="addServiceBtn" 
-                                    class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                                <svg class="-ml-0.5 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                                <svg class="-ml-0.5 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                 </svg>
                                 Add Another Service
                             </button>
                         </div>
-                        
-                        <!-- Discount Application -->
-                        <div class="mt-6 pt-4 border-t border-gray-200">
-                            <fieldset>
-                                <legend class="text-sm font-medium text-gray-900 mb-4">Discount Application</legend>
-                                <div class="space-y-4">
-                                    <div class="flex items-center">
-                                        {{ form.discount_application.0 }}
-                                        <label for="{{ form.discount_application.0.id_for_label }}" class="ml-3 text-sm font-medium text-gray-900">
-                                            Apply to Individual Services
-                                        </label>
-                                    </div>
-                                    <div class="flex items-center">
-                                        {{ form.discount_application.1 }}
-                                        <label for="{{ form.discount_application.1.id_for_label }}" class="ml-3 text-sm font-medium text-gray-900">
-                                            Apply to Total Bill
-                                        </label>
-                                    </div>
+                    </div>
+                </div>
+
+                <!-- Discount Application -->
+                <div class="bg-white shadow rounded-lg">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">Discount Application</h3>
+                        <p class="mt-1 text-sm text-gray-500">Choose how discounts should be applied</p>
+                    </div>
+                    <div class="px-6 py-4">
+                        <fieldset>
+                            <legend class="sr-only">Discount application method</legend>
+                            <div class="space-y-4">
+                                <div class="flex items-start">
+                                    {{ form.discount_application.0 }}
+                                    <label for="{{ form.discount_application.0.id_for_label }}" class="ml-3 block">
+                                        <span class="text-sm font-medium text-gray-900">Apply to Individual Services</span>
+                                        <span class="block text-sm text-gray-500">Discounts apply only to service base fees (products excluded)</span>
+                                    </label>
                                 </div>
-                                {% if form.discount_application.errors %}
-                                    <p class="mt-2 text-sm text-red-600">{{ form.discount_application.errors.0 }}</p>
-                                {% endif %}
-                            </fieldset>
-                            
-                            <!-- Total Discount Selection (shown when discount_application is 'total') -->
-                            <div id="totalDiscountSection" class="mt-4 hidden">
-                                <label for="{{ form.total_discount.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                                    Discount to Apply to Total
-                                </label>
-                                {{ form.total_discount }}
-                                {% if form.total_discount.errors %}
-                                    <p class="mt-2 text-sm text-red-600">{{ form.total_discount.errors.0 }}</p>
-                                {% endif %}
+                                <div class="flex items-start">
+                                    {{ form.discount_application.1 }}
+                                    <label for="{{ form.discount_application.1.id_for_label }}" class="ml-3 block">
+                                        <span class="text-sm font-medium text-gray-900">Apply to Total Bill</span>
+                                        <span class="block text-sm text-gray-500">One discount applied to total service fees only</span>
+                                    </label>
+                                </div>
                             </div>
-                        </div>
+                            {% if form.discount_application.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.discount_application.errors.0 }}</p>
+                            {% endif %}
+                        </fieldset>
                         
-                        <!-- Payment Summary -->
-                        <div class="mt-6 pt-4 border-t border-gray-200 bg-gray-50 rounded-lg p-4">
-                            <h4 class="text-sm font-medium text-gray-900 mb-3">Payment Summary</h4>
-                            <dl class="space-y-2 text-sm">
-                                <div class="flex justify-between">
-                                    <dt class="text-gray-600">Subtotal:</dt>
-                                    <dd class="font-medium" id="summarySubtotal">₱0.00</dd>
-                                </div>
-                                <div class="flex justify-between">
-                                    <dt class="text-gray-600">Total Discount:</dt>
-                                    <dd class="font-medium text-green-600" id="summaryDiscount">₱0.00</dd>
-                                </div>
-                                <div class="flex justify-between font-semibold text-lg pt-2 border-t border-gray-300">
-                                    <dt>Total Amount:</dt>
-                                    <dd id="summaryTotal">₱0.00</dd>
-                                </div>
-                            </dl>
+                        <!-- Total Discount Selection -->
+                        <div id="totalDiscountSection" class="mt-4 hidden">
+                            <label for="{{ form.total_discount.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Discount to Apply
+                            </label>
+                            {{ form.total_discount }}
+                            {% if form.total_discount.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.total_discount.errors.0 }}</p>
+                            {% endif %}
+                            <p class="mt-2 text-sm text-gray-500">This discount will be applied to the total of all service base fees only (excludes products)</p>
                         </div>
                     </div>
                 </div>
@@ -159,15 +167,15 @@
                 <!-- Payment Configuration -->
                 <div class="bg-white shadow rounded-lg">
                     <div class="px-6 py-4 border-b border-gray-200">
-                        <h3 class="text-lg font-medium text-gray-900">Payment Configuration</h3>
-                        <p class="mt-1 text-sm text-gray-500">Set up the payment plan for this appointment</p>
+                        <h3 class="text-lg font-medium text-gray-900">Payment Terms</h3>
+                        <p class="mt-1 text-sm text-gray-500">Set up the payment plan</p>
                     </div>
                     <div class="px-6 py-4">
                         <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
                             <!-- Payment Type -->
                             <div class="sm:col-span-2">
                                 <fieldset>
-                                    <legend class="text-sm font-medium text-gray-900 mb-4">Payment Type</legend>
+                                    <legend class="text-sm font-medium text-gray-900 mb-3">Payment Type</legend>
                                     <div class="space-y-4 sm:flex sm:items-center sm:space-y-0 sm:space-x-6">
                                         <div class="flex items-center">
                                             {{ form.payment_type.0 }}
@@ -188,7 +196,7 @@
                                 </fieldset>
                             </div>
 
-                            <!-- Installment Months (conditional) -->
+                            <!-- Installment Months -->
                             <div id="installmentMonths" class="hidden">
                                 <label for="{{ form.installment_months.id_for_label }}" class="block text-sm font-medium text-gray-700">
                                     Number of Months
@@ -227,90 +235,116 @@
                     </div>
                 </div>
 
-                <!-- Form Actions -->
-                <div class="flex justify-end space-x-3">
+                <!-- Form Actions (Mobile) -->
+                <div class="flex flex-col sm:flex-row sm:justify-end space-y-3 sm:space-y-0 sm:space-x-3 lg:hidden">
                     <a href="{% url 'appointments:appointment_detail' appointment.pk %}" 
-                       class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                       class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 text-center">
                         Cancel
                     </a>
-                    <button type="submit" id="submitBtn"
-                            class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                        <span id="submitBtnText">Create Payment Record</span>
+                    <button type="submit" id="submitBtnMobile"
+                            class="inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                        <span>Create Payment Record</span>
                     </button>
                 </div>
             </form>
         </div>
 
-        <!-- Sidebar -->
-        <div class="space-y-6">
-            <!-- Appointment Information -->
-            <div class="bg-white shadow rounded-lg">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-lg font-medium text-gray-900">Appointment Details</h3>
-                </div>
-                <div class="px-6 py-4">
-                    <dl class="space-y-3">
-                        <div>
-                            <dt class="text-sm font-medium text-gray-500">Patient</dt>
-                            <dd class="mt-1">
-                                <div class="flex items-center space-x-3">
-                                    <div class="flex-shrink-0 h-8 w-8">
-                                        <div class="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center">
-                                            <span class="text-xs font-medium text-white">
-                                                {{ appointment.patient.first_name|first }}{{ appointment.patient.last_name|first }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="text-sm font-medium text-gray-900">
-                                        {{ appointment.patient.full_name }}
-                                    </div>
-                                </div>
-                            </dd>
-                        </div>
-                        <div>
-                            <dt class="text-sm font-medium text-gray-500">Date & Time</dt>
-                            <dd class="mt-1 text-sm text-gray-900">
-                                {{ appointment.appointment_date|date:"F d, Y" }}<br>
-                                <span class="text-gray-600">{{ appointment.get_period_display }}</span>
-                            </dd>
-                        </div>
-                        <div>
-                            <dt class="text-sm font-medium text-gray-500">Service</dt>
-                            <dd class="mt-1 text-sm text-gray-900">{{ appointment.service.name }}</dd>
-                        </div>
-                        {% if appointment.assigned_dentist %}
-                        <div>
-                            <dt class="text-sm font-medium text-gray-500">Assigned Dentist</dt>
-                            <dd class="mt-1 text-sm text-gray-900">{{ appointment.assigned_dentist.full_name }}</dd>
-                        </div>
-                        {% endif %}
-                        <div>
-                            <dt class="text-sm font-medium text-gray-500">Status</dt>
-                            <dd class="mt-1">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                    {% if appointment.status == 'pending' %}bg-yellow-100 text-yellow-800
-                                    {% elif appointment.status == 'confirmed' %}bg-green-100 text-green-800
-                                    {% elif appointment.status == 'completed' %}bg-blue-100 text-blue-800
-                                    {% elif appointment.status == 'cancelled' %}bg-red-100 text-red-800
-                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                    {{ appointment.get_status_display }}
-                                </span>
-                            </dd>
-                        </div>
-                    </dl>
-                    
-                    <div class="mt-4 pt-4 border-t border-gray-200">
-                        <a href="{% url 'appointments:appointment_detail' appointment.pk %}" 
-                           class="text-sm text-primary-600 hover:text-primary-500">
-                            View Full Appointment Details →
-                        </a>
+        <!-- Sidebar Summary (Right - 1 column on large screens) -->
+        <div class="lg:col-span-1">
+            <div class="summary-sticky">
+                <!-- Payment Summary Card -->
+                <div class="bg-white shadow rounded-lg">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-primary-50">
+                        <h3 class="text-lg font-medium text-gray-900">💰 Payment Summary</h3>
                     </div>
+                    <div class="px-6 py-4">
+                        <dl class="space-y-3">
+                            <div class="flex justify-between text-sm">
+                                <dt class="text-gray-600">Services Subtotal:</dt>
+                                <dd class="font-medium text-gray-900" id="summaryServicesSubtotal">₱0.00</dd>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <dt class="text-gray-600">Products Subtotal:</dt>
+                                <dd class="font-medium text-gray-900" id="summaryProductsSubtotal">₱0.00</dd>
+                            </div>
+                            <div class="flex justify-between text-sm pt-2 border-t border-gray-200">
+                                <dt class="font-medium text-gray-700">Subtotal:</dt>
+                                <dd class="font-semibold text-gray-900" id="summarySubtotal">₱0.00</dd>
+                            </div>
+                            <div class="flex justify-between text-sm">
+                                <dt class="text-gray-600">Discount:</dt>
+                                <dd class="font-medium text-green-600" id="summaryDiscount">-₱0.00</dd>
+                            </div>
+                            <div class="flex justify-between text-lg font-bold pt-3 border-t-2 border-gray-300">
+                                <dt class="text-gray-900">Total Due:</dt>
+                                <dd class="text-primary-600" id="summaryTotal">₱0.00</dd>
+                            </div>
+                        </dl>
+                        
+                        <!-- Installment Info -->
+                        <div id="installmentInfo" class="mt-4 pt-4 border-t border-gray-200 hidden">
+                            <div class="flex justify-between text-sm">
+                                <dt class="text-gray-600">Monthly Payment:</dt>
+                                <dd class="font-medium text-gray-900" id="monthlyAmount">₱0.00</dd>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Appointment Info Card -->
+                <div class="bg-white shadow rounded-lg mt-6">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-sm font-medium text-gray-900">Appointment Details</h3>
+                    </div>
+                    <div class="px-6 py-4">
+                        <dl class="space-y-3 text-sm">
+                            <div>
+                                <dt class="text-gray-500">Patient</dt>
+                                <dd class="mt-1 font-medium text-gray-900">{{ appointment.patient.full_name }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-gray-500">Date & Time</dt>
+                                <dd class="mt-1 text-gray-900">
+                                    {{ appointment.appointment_date|date:"M d, Y" }}<br>
+                                    <span class="text-gray-600 text-xs">{{ appointment.time_display }}</span>
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="text-gray-500">Service Booked</dt>
+                                <dd class="mt-1 text-gray-900">{{ appointment.service.name }}</dd>
+                            </div>
+                            {% if appointment.assigned_dentist %}
+                            <div>
+                                <dt class="text-gray-500">Dentist</dt>
+                                <dd class="mt-1 text-gray-900">{{ appointment.assigned_dentist.full_name }}</dd>
+                            </div>
+                            {% endif %}
+                        </dl>
+                        
+                        <div class="mt-4 pt-4 border-t border-gray-200">
+                            <a href="{% url 'appointments:appointment_detail' appointment.pk %}" 
+                               class="text-sm text-primary-600 hover:text-primary-500">
+                                View Appointment →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Actions (Desktop) -->
+                <div class="hidden lg:flex flex-col space-y-3 mt-6">
+                    <button type="submit" form="paymentForm" id="submitBtn"
+                            class="w-full inline-flex justify-center items-center px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                        <span id="submitBtnText">Create Payment Record</span>
+                    </button>
+                    <a href="{% url 'appointments:appointment_detail' appointment.pk %}" 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 text-center">
+                        Cancel
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 </div>
-
 <!-- Admin Override Modal -->
 <div id="adminOverrideModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
     <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
@@ -336,11 +370,11 @@
             </div>
             <div class="flex items-center px-4 py-3 space-x-3">
                 <button id="cancelOverride" 
-                        class="px-4 py-2 bg-gray-300 text-gray-900 text-base font-medium rounded-md shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        class="flex-1 px-4 py-2 bg-gray-300 text-gray-900 text-base font-medium rounded-md shadow-sm hover:bg-gray-400">
                     Cancel
                 </button>
                 <button id="confirmOverride" 
-                        class="px-4 py-2 bg-yellow-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                        class="flex-1 px-4 py-2 bg-yellow-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-yellow-700">
                     Override Prices
                 </button>
             </div>
@@ -349,35 +383,26 @@
 </div>
 
 <script>
-// Available services and discounts data (populated from Django context)
+// Available data from Django context
 const availableServices = {{ services_json|safe }};
 const availableDiscounts = {{ discounts_json|safe }};
+const availableProducts = {{ products_json|safe }};
+const availableCategories = {{ categories_json|safe }};
 
 // Current service items data
 let serviceItems = [];
 
-// Utility function to round amounts (no decimals)
+// Utility functions
 function roundAmount(value) {
     return Math.round(parseFloat(value) || 0);
 }
 
-// Utility function to format currency
 function formatCurrency(value) {
     const rounded = roundAmount(value);
     return `₱${rounded.toLocaleString('en-PH')}`;
 }
 
-// Utility function to format discount label
-function formatDiscountLabel(discount) {
-    let label = discount.name;
-    if (discount.is_percentage) {
-        label += ` - ${discount.amount}% off`;
-    } else {
-        label += ` - ${formatCurrency(discount.amount)} off`;
-    }
-    return label;
-}
-
+// Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize service items from form data
     const initialData = document.getElementById('id_service_items_data').value;
@@ -390,13 +415,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Render initial service items
-    renderServiceItems();
+    // If no items, add a default one
+    if (serviceItems.length === 0) {
+        addServiceItem();
+    } else {
+        renderServiceItems();
+    }
     
-    // Set up event listeners
     setupEventListeners();
-    
-    // Update summary
     updatePaymentSummary();
 });
 
@@ -426,7 +452,13 @@ function setupEventListeners() {
     // Total discount change
     document.getElementById('id_total_discount').addEventListener('change', updatePaymentSummary);
     
-    // Initialize visibility based on current selection
+    // Installment months change
+    const installmentMonthsInput = document.getElementById('id_installment_months');
+    if (installmentMonthsInput) {
+        installmentMonthsInput.addEventListener('input', updatePaymentSummary);
+    }
+    
+    // Initialize visibility
     const checkedPaymentType = document.querySelector('input[name="payment_type"]:checked');
     if (checkedPaymentType) {
         handlePaymentTypeChange.call(checkedPaymentType);
@@ -442,16 +474,21 @@ function handlePaymentTypeChange() {
     const installmentMonths = document.getElementById('installmentMonths');
     const dueDateLabel = document.getElementById('dueDateLabel');
     const dueDateHelp = document.getElementById('dueDateHelp');
+    const installmentInfo = document.getElementById('installmentInfo');
     
     if (this.value === 'installment') {
         installmentMonths.classList.remove('hidden');
         dueDateLabel.textContent = 'First Payment Due Date';
-        dueDateHelp.textContent = 'When should the first payment be due';
+        dueDateHelp.textContent = 'When should the first installment be due';
+        installmentInfo.classList.remove('hidden');
     } else {
         installmentMonths.classList.add('hidden');
         dueDateLabel.textContent = 'Payment Due Date';
         dueDateHelp.textContent = 'When should the payment be due';
+        installmentInfo.classList.add('hidden');
     }
+    
+    updatePaymentSummary();
 }
 
 function handleDiscountApplicationChange() {
@@ -459,11 +496,19 @@ function handleDiscountApplicationChange() {
     
     if (this.value === 'total') {
         totalDiscountSection.classList.remove('hidden');
+        // Hide per-item discount selects
+        document.querySelectorAll('.discount-section').forEach(section => {
+            section.classList.add('hidden');
+        });
     } else {
         totalDiscountSection.classList.add('hidden');
-        // Clear total discount selection
         document.getElementById('id_total_discount').value = '';
+        // Show per-item discount selects
+        document.querySelectorAll('.discount-section').forEach(section => {
+            section.classList.remove('hidden');
+        });
     }
+    
     updatePaymentSummary();
 }
 
@@ -476,7 +521,6 @@ function renderServiceItems() {
         container.insertAdjacentHTML('beforeend', itemHtml);
     });
     
-    // Attach event listeners to the rendered items
     serviceItems.forEach((item, index) => {
         attachServiceItemListeners(index);
     });
@@ -487,97 +531,218 @@ function createServiceItemHtml(item, index) {
         `<option value="${service.id}" ${service.id == item.service_id ? 'selected' : ''}>${service.name}</option>`
     ).join('');
     
-    // Create discount options with formatted labels
     const discountOptions = availableDiscounts.map(discount => {
-        const label = formatDiscountLabel(discount);
+        const label = discount.is_percentage ? `${discount.name} - ${discount.amount}% off` : `${discount.name} - ${formatCurrency(discount.amount)} off`;
         return `<option value="${discount.id}" ${discount.id == item.discount_id ? 'selected' : ''}>${label}</option>`;
     }).join('');
     
+    const discountApplicationType = document.querySelector('input[name="discount_application"]:checked')?.value;
+    
     return `
-        <div class="service-item border border-gray-200 rounded-lg p-4" data-index="${index}">
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div class="sm:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700">Service</label>
-                    <select class="service-select mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" data-index="${index}">
-                        <option value="">Select a service</option>
+        <div class="service-item-card border-2 border-gray-200 rounded-lg p-5" data-index="${index}">
+            <div class="flex items-center justify-between mb-4">
+                <h4 class="text-md font-semibold text-gray-900">Service #${index + 1}</h4>
+                ${serviceItems.length > 1 ? `
+                    <button type="button" class="remove-service text-red-600 hover:text-red-800 text-sm font-medium" data-index="${index}">
+                        Remove
+                    </button>
+                ` : ''}
+            </div>
+            
+            <div class="grid grid-cols-1 gap-4">
+                <!-- Service Selection -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Service <span class="text-red-500">*</span></label>
+                    <select class="service-select block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" data-index="${index}">
+                        <option value="">Select a service...</option>
                         ${serviceOptions}
                     </select>
                 </div>
                 
+                <!-- Service Price -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700">Service Fee (₱)</label>
-                    <input type="number" class="price-input mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
-                           value="${item.price || ''}" step="0.01" min="0.01" data-index="${index}" placeholder="0.00">
-                    <p class="text-xs text-gray-500 mt-1">Range: ₱<span class="min-price">${roundAmount(item.min_price || 0)}</span> - ₱<span class="max-price">${roundAmount(item.max_price || 999999)}</span></p>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Service Base Fee (₱) <span class="text-red-500">*</span></label>
+                    <input type="number" class="price-input block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
+                           value="${item.price || ''}" step="1" min="1" data-index="${index}" placeholder="0">
+                    <p class="text-xs text-gray-500 mt-1">Range: ${formatCurrency(item.min_price || 0)} - ${formatCurrency(item.max_price || 999999)}</p>
                 </div>
                 
-                <div class="discount-section ${document.querySelector('input[name="discount_application"]:checked')?.value === 'per_item' ? '' : 'hidden'}">
-                    <label class="block text-sm font-medium text-gray-700">Discount</label>
-                    <select class="discount-select mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" data-index="${index}">
+                <!-- Discount (per-item only) -->
+                <div class="discount-section ${discountApplicationType === 'per_item' ? '' : 'hidden'}">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Discount (applies to service fee only)</label>
+                    <select class="discount-select block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" data-index="${index}">
                         <option value="">No discount</option>
                         ${discountOptions}
                     </select>
                 </div>
                 
-                <div class="sm:col-span-2 flex justify-between items-center pt-2 border-t border-gray-200">
-                    <div class="text-sm">
-                        <span class="text-gray-600">Service Fee: </span><span class="subtotal font-medium">₱0</span>
-                        <span class="discount-amount text-green-600 ml-4 hidden">Discount: ₱0</span>
-                        <span class="total font-semibold ml-4">Total: ₱0</span>
-                    </div>
-                    ${serviceItems.length > 1 ? `
-                        <button type="button" class="remove-item text-red-600 hover:text-red-800 text-sm font-medium" data-index="${index}">
-                            Remove
+                <!-- Products Section -->
+                <div class="mt-3 pt-3 border-t border-gray-200">
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-sm font-medium text-gray-700">Products & Supplies Used</label>
+                        <button type="button" class="add-product text-primary-600 hover:text-primary-800 text-sm font-medium" data-index="${index}">
+                            + Add Product
                         </button>
-                    ` : ''}
+                    </div>
+                    <div class="products-container space-y-2" data-service-index="${index}">
+                        ${item.products && item.products.length > 0 ? item.products.map((prod, prodIdx) => createProductItemHtml(index, prodIdx, prod)).join('') : '<p class="text-sm text-gray-500 italic">No products added yet</p>'}
+                    </div>
+                </div>
+                
+                <!-- Service Totals -->
+                <div class="mt-3 pt-3 border-t-2 border-gray-300 bg-gray-50 -mx-5 -mb-5 px-5 py-3 rounded-b-lg">
+                    <div class="space-y-1 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Service Fee:</span>
+                            <span class="service-subtotal font-medium">₱0</span>
+                        </div>
+                        <div class="flex justify-between service-discount-row hidden">
+                            <span class="text-gray-600">Discount:</span>
+                            <span class="service-discount text-green-600">-₱0</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Products:</span>
+                            <span class="products-subtotal font-medium">₱0</span>
+                        </div>
+                        <div class="flex justify-between font-semibold text-base pt-1 border-t border-gray-400">
+                            <span>Service Total:</span>
+                            <span class="service-total text-primary-600">₱0</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     `;
 }
 
+function createProductItemHtml(serviceIndex, productIndex, product) {
+    const categoriesHtml = availableCategories.map(cat => 
+        `<optgroup label="${cat.name}">
+            ${availableProducts.filter(p => p.category_id === cat.id).map(p => 
+                `<option value="${p.id}" ${p.id == product.product_id ? 'selected' : ''}>${p.name} - ${formatCurrency(p.price)}</option>`
+            ).join('')}
+        </optgroup>`
+    ).join('');
+    
+    return `
+        <div class="product-item flex items-start space-x-2 p-3 rounded" data-service-index="${serviceIndex}" data-product-index="${productIndex}">
+            <div class="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div class="sm:col-span-2">
+                    <select class="product-select block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                        <option value="">Select product...</option>
+                        ${categoriesHtml}
+                    </select>
+                </div>
+                <div>
+                    <input type="number" class="product-quantity block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
+                           value="${product.quantity || 1}" min="1" placeholder="Qty">
+                </div>
+            </div>
+            <button type="button" class="remove-product text-red-600 hover:text-red-800 mt-2" data-service-index="${serviceIndex}" data-product-index="${productIndex}">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+    `;
+}
+
 function attachServiceItemListeners(index) {
     const item = document.querySelector(`[data-index="${index}"]`);
+    if (!item) return;
     
-    // Service selection change
+    // Service selection
     const serviceSelect = item.querySelector('.service-select');
     serviceSelect.addEventListener('change', function() {
         updateServiceItem(index, 'service_id', this.value);
         updateServicePriceRange(index);
     });
     
-    // Price change
+    // Price input
     const priceInput = item.querySelector('.price-input');
     priceInput.addEventListener('input', function() {
         updateServiceItem(index, 'price', parseFloat(this.value) || 0);
-        updateItemCalculations(index);
+        updateServiceCalculations(index);
     });
     
-    // Discount change
+    // Discount selection
     const discountSelect = item.querySelector('.discount-select');
     discountSelect.addEventListener('change', function() {
         updateServiceItem(index, 'discount_id', this.value);
-        updateItemCalculations(index);
+        updateServiceCalculations(index);
     });
     
-    // Remove item
-    const removeBtn = item.querySelector('.remove-item');
+    // Remove service
+    const removeBtn = item.querySelector('.remove-service');
     if (removeBtn) {
         removeBtn.addEventListener('click', function() {
             removeServiceItem(index);
         });
     }
     
-    // Update calculations initially
-    updateItemCalculations(index);
+    // Add product button
+    const addProductBtn = item.querySelector('.add-product');
+    addProductBtn.addEventListener('click', function() {
+        addProductToService(index);
+    });
+    
+    // Attach product listeners
+    attachProductListeners(index);
+    
+    // Initial calculations
+    updateServiceCalculations(index);
+}
+
+function attachProductListeners(serviceIndex) {
+    const item = serviceItems[serviceIndex];
+    if (!item || !item.products) return;
+    
+    item.products.forEach((product, productIndex) => {
+        const productElement = document.querySelector(`[data-service-index="${serviceIndex}"][data-product-index="${productIndex}"]`);
+        if (!productElement) return;
+        
+        // Product selection
+        const productSelect = productElement.querySelector('.product-select');
+        productSelect.addEventListener('change', function() {
+            updateProductItem(serviceIndex, productIndex, 'product_id', this.value);
+            updateServiceCalculations(serviceIndex);
+        });
+        
+        // Quantity input
+        const quantityInput = productElement.querySelector('.product-quantity');
+        quantityInput.addEventListener('input', function() {
+            updateProductItem(serviceIndex, productIndex, 'quantity', parseInt(this.value) || 1);
+            updateServiceCalculations(serviceIndex);
+        });
+        
+        // Remove product
+        const removeBtn = productElement.querySelector('.remove-product');
+        removeBtn.addEventListener('click', function() {
+            removeProductFromService(serviceIndex, productIndex);
+        });
+    });
 }
 
 function updateServiceItem(index, field, value) {
     if (!serviceItems[index]) return;
-    
     serviceItems[index][field] = value;
+    document.getElementById('id_service_items_data').value = JSON.stringify(serviceItems);
+}
+
+function updateProductItem(serviceIndex, productIndex, field, value) {
+    if (!serviceItems[serviceIndex] || !serviceItems[serviceIndex].products[productIndex]) return;
     
-    // Update hidden form field
+    serviceItems[serviceIndex].products[productIndex][field] = value;
+    
+    // Update product name if product_id changed
+    if (field === 'product_id' && value) {
+        const product = availableProducts.find(p => p.id == value);
+        if (product) {
+            serviceItems[serviceIndex].products[productIndex].product_name = product.name;
+            serviceItems[serviceIndex].products[productIndex].unit_price = product.price;
+        }
+    }
+    
     document.getElementById('id_service_items_data').value = JSON.stringify(serviceItems);
 }
 
@@ -589,30 +754,42 @@ function updateServicePriceRange(index) {
         serviceItems[index].service_name = service.name;
         serviceItems[index].min_price = service.min_price || 0;
         serviceItems[index].max_price = service.max_price || 999999;
+        serviceItems[index].price = service.default_price || service.min_price || 0;
         
-        // Update UI with rounded values
+        // Update UI
         const item = document.querySelector(`[data-index="${index}"]`);
-        const minPriceSpan = item.querySelector('.min-price');
-        const maxPriceSpan = item.querySelector('.max-price');
+        const priceInput = item.querySelector('.price-input');
+        priceInput.value = roundAmount(serviceItems[index].price);
         
-        minPriceSpan.textContent = roundAmount(service.min_price || 0);
-        maxPriceSpan.textContent = roundAmount(service.max_price || 999999);
+        const priceRange = item.querySelector('.text-xs');
+        priceRange.textContent = `Range: ${formatCurrency(serviceItems[index].min_price)} - ${formatCurrency(serviceItems[index].max_price)}`;
         
-        // Update hidden form field
         document.getElementById('id_service_items_data').value = JSON.stringify(serviceItems);
-        
-        updateItemCalculations(index);
+        updateServiceCalculations(index);
     }
 }
 
-function updateItemCalculations(index) {
+function updateServiceCalculations(index) {
     const item = serviceItems[index];
     const itemElement = document.querySelector(`[data-index="${index}"]`);
     
     if (!item || !itemElement) return;
     
-    const price = parseFloat(item.price) || 0;
+    const servicePrice = parseFloat(item.price) || 0;
     
+    // Calculate products total
+    let productsTotal = 0;
+    if (item.products && item.products.length > 0) {
+        item.products.forEach(product => {
+            const prod = availableProducts.find(p => p.id == product.product_id);
+            if (prod) {
+                const quantity = parseInt(product.quantity) || 1;
+                productsTotal += prod.price * quantity;
+            }
+        });
+    }
+    
+    // Calculate discount (only on service base price)
     let discountAmount = 0;
     const discountApplicationType = document.querySelector('input[name="discount_application"]:checked')?.value;
     
@@ -620,26 +797,28 @@ function updateItemCalculations(index) {
         const discount = availableDiscounts.find(d => d.id == item.discount_id);
         if (discount) {
             if (discount.is_percentage) {
-                discountAmount = price * (discount.amount / 100);
+                discountAmount = servicePrice * (discount.amount / 100);
             } else {
-                discountAmount = discount.amount;
+                discountAmount = Math.min(discount.amount, servicePrice);
             }
-            discountAmount = Math.min(discountAmount, price);
         }
     }
     
-    const total = price - discountAmount;
+    const serviceAfterDiscount = servicePrice - discountAmount;
+    const serviceTotal = serviceAfterDiscount + productsTotal;
     
-    // Update display with rounded values
-    itemElement.querySelector('.subtotal').textContent = formatCurrency(price);
-    itemElement.querySelector('.total').textContent = formatCurrency(total);
+    // Update display
+    itemElement.querySelector('.service-subtotal').textContent = formatCurrency(servicePrice);
+    itemElement.querySelector('.products-subtotal').textContent = formatCurrency(productsTotal);
+    itemElement.querySelector('.service-total').textContent = formatCurrency(serviceTotal);
     
-    const discountElement = itemElement.querySelector('.discount-amount');
+    const discountRow = itemElement.querySelector('.service-discount-row');
+    const discountElement = itemElement.querySelector('.service-discount');
     if (discountAmount > 0) {
-        discountElement.textContent = `Discount: ${formatCurrency(discountAmount)}`;
-        discountElement.classList.remove('hidden');
+        discountElement.textContent = `-${formatCurrency(discountAmount)}`;
+        discountRow.classList.remove('hidden');
     } else {
-        discountElement.classList.add('hidden');
+        discountRow.classList.add('hidden');
     }
     
     updatePaymentSummary();
@@ -649,10 +828,12 @@ function addServiceItem() {
     const newItem = {
         service_id: '',
         service_name: '',
-        price: '',
+        price: 0,
         discount_id: '',
+        notes: '',
         min_price: 0,
-        max_price: 999999
+        max_price: 999999,
+        products: []
     };
     
     serviceItems.push(newItem);
@@ -661,37 +842,103 @@ function addServiceItem() {
 }
 
 function removeServiceItem(index) {
+    if (serviceItems.length === 1) {
+        alert('At least one service is required.');
+        return;
+    }
+    
     serviceItems.splice(index, 1);
     renderServiceItems();
     updatePaymentSummary();
 }
 
+function addProductToService(serviceIndex) {
+    if (!serviceItems[serviceIndex].products) {
+        serviceItems[serviceIndex].products = [];
+    }
+    
+    serviceItems[serviceIndex].products.push({
+        product_id: '',
+        product_name: '',
+        quantity: 1,
+        unit_price: 0,
+        notes: ''
+    });
+    
+    const container = document.querySelector(`[data-service-index="${serviceIndex}"].products-container`);
+    
+    // Remove "no products" message if exists
+    const noProductsMsg = container.querySelector('p.italic');
+    if (noProductsMsg) {
+        noProductsMsg.remove();
+    }
+    
+    const productIndex = serviceItems[serviceIndex].products.length - 1;
+    const productHtml = createProductItemHtml(serviceIndex, productIndex, serviceItems[serviceIndex].products[productIndex]);
+    container.insertAdjacentHTML('beforeend', productHtml);
+    
+    attachProductListeners(serviceIndex);
+    document.getElementById('id_service_items_data').value = JSON.stringify(serviceItems);
+}
+
+function removeProductFromService(serviceIndex, productIndex) {
+    serviceItems[serviceIndex].products.splice(productIndex, 1);
+    
+    const container = document.querySelector(`[data-service-index="${serviceIndex}"].products-container`);
+    
+    // Re-render products for this service
+    if (serviceItems[serviceIndex].products.length === 0) {
+        container.innerHTML = '<p class="text-sm text-gray-500 italic">No products added yet</p>';
+    } else {
+        container.innerHTML = serviceItems[serviceIndex].products.map((prod, idx) => 
+            createProductItemHtml(serviceIndex, idx, prod)
+        ).join('');
+        attachProductListeners(serviceIndex);
+    }
+    
+    document.getElementById('id_service_items_data').value = JSON.stringify(serviceItems);
+    updateServiceCalculations(serviceIndex);
+}
+
 function updatePaymentSummary() {
-    let subtotal = 0;
+    let servicesSubtotal = 0;
+    let productsSubtotal = 0;
     let totalDiscount = 0;
     
     const discountApplicationType = document.querySelector('input[name="discount_application"]:checked')?.value;
     
-    // Calculate subtotal and per-item discounts
+    // Calculate subtotals
     serviceItems.forEach(item => {
-        const price = parseFloat(item.price) || 0;
-        subtotal += price;
+        const servicePrice = parseFloat(item.price) || 0;
+        servicesSubtotal += servicePrice;
         
+        // Calculate products for this service
+        if (item.products && item.products.length > 0) {
+            item.products.forEach(product => {
+                const prod = availableProducts.find(p => p.id == product.product_id);
+                if (prod) {
+                    const quantity = parseInt(product.quantity) || 1;
+                    productsSubtotal += prod.price * quantity;
+                }
+            });
+        }
+        
+        // Calculate per-item discount (only on service base)
         if (discountApplicationType === 'per_item' && item.discount_id) {
             const discount = availableDiscounts.find(d => d.id == item.discount_id);
             if (discount) {
                 let discountAmount = 0;
                 if (discount.is_percentage) {
-                    discountAmount = price * (discount.amount / 100);
+                    discountAmount = servicePrice * (discount.amount / 100);
                 } else {
-                    discountAmount = discount.amount;
+                    discountAmount = Math.min(discount.amount, servicePrice);
                 }
-                totalDiscount += Math.min(discountAmount, price);
+                totalDiscount += discountAmount;
             }
         }
     });
     
-    // Apply total discount if selected
+    // Apply total discount (only on services)
     if (discountApplicationType === 'total') {
         const totalDiscountSelect = document.getElementById('id_total_discount');
         const totalDiscountId = totalDiscountSelect.value;
@@ -700,36 +947,57 @@ function updatePaymentSummary() {
             const discount = availableDiscounts.find(d => d.id == totalDiscountId);
             if (discount) {
                 if (discount.is_percentage) {
-                    totalDiscount = subtotal * (discount.amount / 100);
+                    totalDiscount = servicesSubtotal * (discount.amount / 100);
                 } else {
-                    totalDiscount = discount.amount;
+                    totalDiscount = Math.min(discount.amount, servicesSubtotal);
                 }
-                totalDiscount = Math.min(totalDiscount, subtotal);
             }
         }
-        
-        // Hide per-item discount sections
-        document.querySelectorAll('.discount-section').forEach(section => {
-            section.classList.add('hidden');
-        });
-    } else {
-        // Show per-item discount sections
-        document.querySelectorAll('.discount-section').forEach(section => {
-            section.classList.remove('hidden');
-        });
     }
     
+    const subtotal = servicesSubtotal + productsSubtotal;
     const total = subtotal - totalDiscount;
     
-    // Update summary display with rounded values
+    // Update summary display
+    document.getElementById('summaryServicesSubtotal').textContent = formatCurrency(servicesSubtotal);
+    document.getElementById('summaryProductsSubtotal').textContent = formatCurrency(productsSubtotal);
     document.getElementById('summarySubtotal').textContent = formatCurrency(subtotal);
-    document.getElementById('summaryDiscount').textContent = formatCurrency(totalDiscount);
+    document.getElementById('summaryDiscount').textContent = totalDiscount > 0 ? `-${formatCurrency(totalDiscount)}` : '₱0.00';
     document.getElementById('summaryTotal').textContent = formatCurrency(total);
+    
+    // Update installment info
+    const paymentType = document.querySelector('input[name="payment_type"]:checked')?.value;
+    if (paymentType === 'installment') {
+        const months = parseInt(document.getElementById('id_installment_months')?.value) || 1;
+        const monthlyAmount = total / months;
+        document.getElementById('monthlyAmount').textContent = formatCurrency(monthlyAmount);
+    }
 }
 
 function handleFormSubmission(e) {
-    // Update hidden field with current service items
+    // Update hidden field
     document.getElementById('id_service_items_data').value = JSON.stringify(serviceItems);
+    
+    // Validate at least one service
+    if (serviceItems.length === 0) {
+        e.preventDefault();
+        alert('Please add at least one service.');
+        return false;
+    }
+    
+    // Validate all services have selections
+    for (let i = 0; i < serviceItems.length; i++) {
+        if (!serviceItems[i].service_id) {
+            e.preventDefault();
+            alert(`Please select a service for Service #${i + 1}.`);
+            return false;
+        }
+        if (!serviceItems[i].price || serviceItems[i].price <= 0) {
+            e.preventDefault();
+            alert(`Please enter a valid price for Service #${i + 1}.`);
+            return false;
+        }
+    }
     
     // Check for price violations
     const violations = [];
@@ -755,6 +1023,18 @@ function handleFormSubmission(e) {
         return false;
     }
     
+    // Show loading state
+    const submitBtn = document.getElementById('submitBtn');
+    const submitBtnMobile = document.getElementById('submitBtnMobile');
+    if (submitBtn) {
+        submitBtn.classList.add('btn-loading');
+        submitBtn.querySelector('span').textContent = 'Creating...';
+    }
+    if (submitBtnMobile) {
+        submitBtnMobile.classList.add('btn-loading');
+        submitBtnMobile.querySelector('span').textContent = 'Creating...';
+    }
+    
     return true;
 }
 
@@ -762,10 +1042,8 @@ function showAdminOverrideModal(violations) {
     const modal = document.getElementById('adminOverrideModal');
     const violationsContainer = document.getElementById('priceViolations');
     
-    // Clear previous violations
     violationsContainer.innerHTML = '';
     
-    // Add violation details with rounded values
     violations.forEach(violation => {
         const violationHtml = `
             <div class="mb-2 p-2 bg-yellow-100 rounded">
@@ -776,11 +1054,8 @@ function showAdminOverrideModal(violations) {
         violationsContainer.insertAdjacentHTML('beforeend', violationHtml);
     });
     
-    // Clear password field and errors
     document.getElementById('adminPassword').value = '';
     document.getElementById('passwordError').classList.add('hidden');
-    
-    // Show modal
     modal.classList.remove('hidden');
 }
 
@@ -814,10 +1089,9 @@ async function confirmAdminOverride() {
         const result = await response.json();
         
         if (result.valid) {
-            // Close modal and submit form
             closeAdminModal();
             
-            // Add override flag to form data
+            // Add override flag to form
             const overrideField = document.createElement('input');
             overrideField.type = 'hidden';
             overrideField.name = 'admin_override_confirmed';

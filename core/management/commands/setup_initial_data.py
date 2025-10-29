@@ -128,7 +128,7 @@ class Command(BaseCommand):
                 'description': 'Professional teeth cleaning and oral prophylaxis',
                 'min_price': Decimal('800.00'),
                 'max_price': Decimal('1200.00'),
-                'duration_minutes': 45,
+                'duration_minutes': 60,
             },
             {
                 'name': 'Tooth Filling',
@@ -170,7 +170,7 @@ class Command(BaseCommand):
                 'description': 'Radiographic examination of teeth and jaw',
                 'min_price': Decimal('300.00'),
                 'max_price': Decimal('800.00'),
-                'duration_minutes': 15,
+                'duration_minutes': 30,
             },
         ]
         

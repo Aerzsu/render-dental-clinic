@@ -287,7 +287,6 @@ class PatientListView(LoginRequiredMixin, ListView):
                     next_appt = patient.upcoming_appointments[0]
                     patient_dict['next_appointment'] = {
                         'date': next_appt.appointment_date,
-                        'period': next_appt.get_period_display() if hasattr(next_appt, 'get_period_display') else '',
                     }
                 else:
                     patient_dict['next_appointment'] = None
@@ -375,7 +374,7 @@ class PatientDetailView(LoginRequiredMixin, DetailView):
         # Get all appointments ordered by date (most recent first) - UPDATED for AM/PM system
         appointments = Appointment.objects.filter(patient=patient).select_related(
             'service', 'assigned_dentist'
-        ).order_by('-appointment_date', '-period', '-requested_at')
+        ).order_by('-appointment_date','-requested_at')
         
         # Categorize appointments - UPDATED to use appointment_date
         today = date.today()
@@ -561,13 +560,12 @@ def patient_quick_info(request, pk):
         # Get recent appointments - UPDATED to use appointment_date
         recent_appointments = patient.appointments.filter(
             appointment_date__gte=date.today() - timedelta(days=30)
-        ).order_by('-appointment_date', '-period')[:3]
-        
+        ).order_by('-appointment_date', '-requested_at')[:3]
+
         appointments_data = []
         for apt in recent_appointments:
             appointments_data.append({
                 'date': apt.appointment_date.strftime('%Y-%m-%d'),
-                'period': apt.get_period_display(),  # 'Morning' or 'Afternoon'
                 'service': apt.service.name,
                 'status': apt.get_status_display(),
             })

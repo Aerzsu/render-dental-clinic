@@ -1,0 +1,547 @@
+{% extends "base.html" %}
+{% load user_tags %}
+
+{% block title %}Treatment Notes - {{ appointment.patient_name }}{% endblock %}
+
+{% block content %}
+<style> 
+    input,
+    select,
+    textarea {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .service-item-card {
+        transition: all 0.2s ease;
+    }
+    
+    .service-item-card:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    .product-item {
+        background: #f9fafb;
+        border-left: 3px solid #e5e7eb;
+    }
+</style>
+
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="sm:flex sm:items-center sm:justify-between">
+        <div>
+            <nav class="flex mb-2" aria-label="Breadcrumb">
+                <ol role="list" class="flex items-center space-x-4">
+                    <li>
+                        <a href="{% url 'appointments:appointment_detail' appointment.pk %}" class="text-sm font-medium text-gray-500 hover:text-gray-700">
+                            Appointment Detail
+                        </a>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="ml-4 text-sm font-medium text-gray-500">Treatment Notes</span>
+                        </div>
+                    </li>
+                </ol>
+            </nav>
+            <h1 class="text-2xl font-bold text-gray-900">Document Treatment</h1>
+            <p class="mt-1 text-sm text-gray-600">
+                Record services performed and supplies used for {{ appointment.patient_name }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Info Alert -->
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-blue-700">
+                    <strong>Why document treatment now?</strong> Recording services and supplies immediately helps reduce billing errors later. 
+                    This information will auto-populate when creating the payment record.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <!-- Main Form -->
+        <div class="lg:col-span-2">
+            <form method="post" id="treatmentForm" class="space-y-6">
+                {% csrf_token %}
+                
+                <!-- Hidden field for services data -->
+                {{ form.services_data }}
+                
+                <!-- Services Performed Section -->
+                <div class="bg-white shadow rounded-lg">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">Services Performed</h3>
+                        <p class="mt-1 text-sm text-gray-500">Document what was actually done during this appointment</p>
+                    </div>
+                    <div class="px-6 py-4">
+                        <!-- Services Container -->
+                        <div id="servicesContainer" class="space-y-6">
+                            <!-- Services will be dynamically added here -->
+                        </div>
+                        
+                        <!-- Add Service Button -->
+                        <div class="mt-6 pt-4 border-t border-gray-200">
+                            <button type="button" id="addServiceBtn" 
+                                    class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                                <svg class="-ml-0.5 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                </svg>
+                                Add Another Service
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Clinical Notes Section -->
+                <div class="bg-white shadow rounded-lg">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">Clinical Notes</h3>
+                        <p class="mt-1 text-sm text-gray-500">Document symptoms, diagnosis, and observations</p>
+                    </div>
+                    <div class="px-6 py-4">
+                        {{ form.clinical_notes }}
+                        {% if form.clinical_notes.errors %}
+                            <p class="mt-2 text-sm text-red-600">{{ form.clinical_notes.errors.0 }}</p>
+                        {% endif %}
+                        <p class="mt-2 text-sm text-gray-500">
+                            This information will be saved with the appointment record
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Form Actions (Mobile) -->
+                <div class="flex flex-col sm:flex-row sm:justify-end space-y-3 sm:space-y-0 sm:space-x-3 lg:hidden">
+                    <a href="{% url 'appointments:appointment_detail' appointment.pk %}" 
+                       class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 text-center">
+                        Cancel
+                    </a>
+                    {% if can_edit %}
+                    <button type="submit" id="submitBtnMobile"
+                            class="inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                        <span>Save Treatment Notes</span>
+                    </button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="lg:col-span-1">
+            <div class="sticky top-4 space-y-6">
+                <!-- Appointment Info -->
+                <div class="bg-white shadow rounded-lg">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-primary-50">
+                        <h3 class="text-sm font-medium text-gray-900">Appointment Details</h3>
+                    </div>
+                    <div class="px-6 py-4">
+                        <dl class="space-y-3 text-sm">
+                            <div>
+                                <dt class="text-gray-500">Patient</dt>
+                                <dd class="mt-1 font-medium text-gray-900">{{ appointment.patient_name }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-gray-500">Date</dt>
+                                <dd class="mt-1 text-gray-900">{{ appointment.appointment_date|date:"M d, Y" }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-gray-500">Booked Service</dt>
+                                <dd class="mt-1 text-gray-900">{{ appointment.service.name }}</dd>
+                            </div>
+                            {% if appointment.assigned_dentist %}
+                            <div>
+                                <dt class="text-gray-500">Dentist</dt>
+                                <dd class="mt-1 text-gray-900">{{ appointment.assigned_dentist.full_name }}</dd>
+                            </div>
+                            {% endif %}
+                        </dl>
+                    </div>
+                </div>
+
+                <!-- Tips Card -->
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 class="text-sm font-medium text-green-900 mb-2">💡 Quick Tips</h4>
+                    <ul class="text-xs text-green-800 space-y-1">
+                        <li>• Record all services performed, even if different from booked</li>
+                        <li>• Document all products/supplies used with quantities</li>
+                        <li>• Add notes if extra products were needed and why</li>
+                        <li>• Clinical notes will appear in appointment record</li>
+                        <li>• You can edit these notes anytime before billing</li>
+                    </ul>
+                </div>
+
+                <!-- Audit Log (if editing) -->
+                {% if audit_logs %}
+                <div class="bg-white shadow rounded-lg">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-sm font-medium text-gray-900">Change History</h3>
+                    </div>
+                    <div class="px-6 py-4">
+                        <div class="space-y-3">
+                            {% for log in audit_logs %}
+                            <div class="text-xs">
+                                <div class="font-medium text-gray-900">{{ log.get_action_display }}</div>
+                                <div class="text-gray-500">
+                                    by {{ log.modified_by.full_name|default:log.modified_by.username }}
+                                </div>
+                                <div class="text-gray-400">{{ log.modified_at|date:"M d, Y g:i A" }}</div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Form Actions (Desktop) -->
+                <div class="hidden lg:flex flex-col space-y-3">
+                    {% if can_edit %}
+                    <button type="submit" form="treatmentForm" id="submitBtn"
+                            class="w-full inline-flex justify-center items-center px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                        <span>Save Treatment Notes</span>
+                    </button>
+                    {% endif %}
+                    <a href="{% url 'appointments:appointment_detail' appointment.pk %}" 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 text-center">
+                        {% if can_edit %}Cancel{% else %}Back to Appointment{% endif %}
+                    </a>
+                    {% if treatment_record and can_edit %}
+                    <button type="button" onclick="confirmDelete()" 
+                            class="w-full px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50">
+                        Delete Treatment Notes
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Available data from Django context
+const availableServices = {{ services_json|safe }};
+const availableProducts = {{ products_json|safe }};
+const availableCategories = {{ categories_json|safe }};
+
+// Current services data
+let servicesData = [];
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Load initial data
+    const initialData = document.getElementById('id_services_data').value;
+    if (initialData) {
+        try {
+            servicesData = JSON.parse(initialData);
+        } catch (e) {
+            console.error('Failed to parse initial services:', e);
+            servicesData = [];
+        }
+    }
+    
+    // If no services, add the booked service by default
+    if (servicesData.length === 0) {
+        servicesData.push({
+            service_id: '{{ appointment.service.id }}',
+            service_name: '{{ appointment.service.name }}',
+            notes: '',
+            products: []
+        });
+    }
+    
+    renderServices();
+    setupEventListeners();
+});
+
+function setupEventListeners() {
+    document.getElementById('addServiceBtn').addEventListener('click', addService);
+    document.getElementById('treatmentForm').addEventListener('submit', handleSubmit);
+}
+
+function renderServices() {
+    const container = document.getElementById('servicesContainer');
+    container.innerHTML = '';
+    
+    servicesData.forEach((service, index) => {
+        const serviceHtml = createServiceHtml(service, index);
+        container.insertAdjacentHTML('beforeend', serviceHtml);
+    });
+    
+    servicesData.forEach((service, index) => {
+        attachServiceListeners(index);
+    });
+}
+
+function createServiceHtml(service, index) {
+    const serviceOptions = availableServices.map(s => 
+        `<option value="${s.id}" ${s.id == service.service_id ? 'selected' : ''}>${s.name}</option>`
+    ).join('');
+    
+    return `
+        <div class="service-item-card border-2 border-gray-200 rounded-lg p-5" data-service-index="${index}">
+            <div class="flex items-center justify-between mb-4">
+                <h4 class="text-md font-semibold text-gray-900">Service #${index + 1}</h4>
+                ${servicesData.length > 1 ? `
+                    <button type="button" class="remove-service text-red-600 hover:text-red-800 text-sm font-medium" data-index="${index}">
+                        Remove
+                    </button>
+                ` : ''}
+            </div>
+            
+            <div class="space-y-4">
+                <!-- Service Selection -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Service Performed <span class="text-red-500">*</span></label>
+                    <select class="service-select block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" data-index="${index}">
+                        <option value="">Select service...</option>
+                        ${serviceOptions}
+                    </select>
+                </div>
+                
+                <!-- Service Notes -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Service Notes</label>
+                    <textarea class="service-notes block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
+                              rows="2" data-index="${index}" placeholder="Any specific notes about this service...">${service.notes || ''}</textarea>
+                </div>
+                
+                <!-- Products Section -->
+                <div class="pt-3 border-t border-gray-200">
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-sm font-medium text-gray-700">Products/Supplies Used</label>
+                        <button type="button" class="add-product text-primary-600 hover:text-primary-800 text-sm font-medium" data-index="${index}">
+                            + Add Product
+                        </button>
+                    </div>
+                    <div class="products-container space-y-2" data-service-index="${index}">
+                        ${service.products && service.products.length > 0 ? 
+                            service.products.map((prod, prodIdx) => createProductHtml(index, prodIdx, prod)).join('') : 
+                            '<p class="text-sm text-gray-500 italic">No products added yet</p>'}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function createProductHtml(serviceIndex, productIndex, product) {
+    const categoriesHtml = availableCategories.map(cat => 
+        `<optgroup label="${cat.name}">
+            ${availableProducts.filter(p => p.category_id === cat.id).map(p => 
+                `<option value="${p.id}" ${p.id == product.product_id ? 'selected' : ''}>${p.name}</option>`
+            ).join('')}
+        </optgroup>`
+    ).join('');
+    
+    return `
+        <div class="product-item flex items-start space-x-2 p-3 rounded" data-service-index="${serviceIndex}" data-product-index="${productIndex}">
+            <div class="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div class="sm:col-span-2">
+                    <select class="product-select block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                        <option value="">Select product...</option>
+                        ${categoriesHtml}
+                    </select>
+                </div>
+                <div>
+                    <input type="number" class="product-quantity block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
+                           value="${product.quantity || 1}" min="1" placeholder="Qty">
+                </div>
+            </div>
+            <button type="button" class="remove-product text-red-600 hover:text-red-800 mt-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+    `;
+}
+
+function attachServiceListeners(index) {
+    const item = document.querySelector(`[data-service-index="${index}"]`);
+    if (!item) return;
+    
+    // Service selection
+    const serviceSelect = item.querySelector('.service-select');
+    serviceSelect.addEventListener('change', function() {
+        updateService(index, 'service_id', this.value);
+        const service = availableServices.find(s => s.id == this.value);
+        if (service) {
+            updateService(index, 'service_name', service.name);
+        }
+    });
+    
+    // Service notes
+    const notesTextarea = item.querySelector('.service-notes');
+    notesTextarea.addEventListener('input', function() {
+        updateService(index, 'notes', this.value);
+    });
+    
+    // Remove service
+    const removeBtn = item.querySelector('.remove-service');
+    if (removeBtn) {
+        removeBtn.addEventListener('click', () => removeService(index));
+    }
+    
+    // Add product
+    const addProductBtn = item.querySelector('.add-product');
+    addProductBtn.addEventListener('click', () => addProduct(index));
+    
+    // Attach product listeners
+    attachProductListeners(index);
+}
+
+function attachProductListeners(serviceIndex) {
+    const service = servicesData[serviceIndex];
+    if (!service || !service.products) return;
+    
+    service.products.forEach((product, productIndex) => {
+        const productElement = document.querySelector(`[data-service-index="${serviceIndex}"][data-product-index="${productIndex}"]`);
+        if (!productElement) return;
+        
+        // Product selection
+        const productSelect = productElement.querySelector('.product-select');
+        productSelect.addEventListener('change', function() {
+            updateProduct(serviceIndex, productIndex, 'product_id', this.value);
+            const prod = availableProducts.find(p => p.id == this.value);
+            if (prod) {
+                updateProduct(serviceIndex, productIndex, 'product_name', prod.name);
+            }
+        });
+        
+        // Quantity
+        const quantityInput = productElement.querySelector('.product-quantity');
+        quantityInput.addEventListener('input', function() {
+            updateProduct(serviceIndex, productIndex, 'quantity', parseInt(this.value) || 1);
+        });
+        
+        // Remove product
+        const removeBtn = productElement.querySelector('.remove-product');
+        removeBtn.addEventListener('click', () => removeProduct(serviceIndex, productIndex));
+    });
+}
+
+function updateService(index, field, value) {
+    if (!servicesData[index]) return;
+    servicesData[index][field] = value;
+    updateHiddenField();
+}
+
+function updateProduct(serviceIndex, productIndex, field, value) {
+    if (!servicesData[serviceIndex] || !servicesData[serviceIndex].products[productIndex]) return;
+    servicesData[serviceIndex].products[productIndex][field] = value;
+    updateHiddenField();
+}
+
+function updateHiddenField() {
+    document.getElementById('id_services_data').value = JSON.stringify(servicesData);
+}
+
+function addService() {
+    servicesData.push({
+        service_id: '',
+        service_name: '',
+        notes: '',
+        products: []
+    });
+    renderServices();
+}
+
+function removeService(index) {
+    if (servicesData.length === 1) {
+        alert('At least one service is required.');
+        return;
+    }
+    servicesData.splice(index, 1);
+    renderServices();
+}
+
+function addProduct(serviceIndex) {
+    if (!servicesData[serviceIndex].products) {
+        servicesData[serviceIndex].products = [];
+    }
+    
+    servicesData[serviceIndex].products.push({
+        product_id: '',
+        product_name: '',
+        quantity: 1,
+        notes: ''
+    });
+    
+    const container = document.querySelector(`[data-service-index="${serviceIndex}"].products-container`);
+    const noProductsMsg = container.querySelector('p.italic');
+    if (noProductsMsg) {
+        noProductsMsg.remove();
+    }
+    
+    const productIndex = servicesData[serviceIndex].products.length - 1;
+    const productHtml = createProductHtml(serviceIndex, productIndex, servicesData[serviceIndex].products[productIndex]);
+    container.insertAdjacentHTML('beforeend', productHtml);
+    
+    attachProductListeners(serviceIndex);
+    updateHiddenField();
+}
+
+function removeProduct(serviceIndex, productIndex) {
+    servicesData[serviceIndex].products.splice(productIndex, 1);
+    
+    const container = document.querySelector(`[data-service-index="${serviceIndex}"].products-container`);
+    
+    if (servicesData[serviceIndex].products.length === 0) {
+        container.innerHTML = '<p class="text-sm text-gray-500 italic">No products added yet</p>';
+    } else {
+        container.innerHTML = servicesData[serviceIndex].products.map((prod, idx) => 
+            createProductHtml(serviceIndex, idx, prod)
+        ).join('');
+        attachProductListeners(serviceIndex);
+    }
+    
+    updateHiddenField();
+}
+
+function handleSubmit(e) {
+    updateHiddenField();
+    
+    // Validate at least one service
+    if (servicesData.length === 0) {
+        e.preventDefault();
+        alert('Please add at least one service.');
+        return false;
+    }
+    
+    // Validate all services have selections
+    for (let i = 0; i < servicesData.length; i++) {
+        if (!servicesData[i].service_id) {
+            e.preventDefault();
+            alert(`Please select a service for Service #${i + 1}.`);
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+function confirmDelete() {
+    if (confirm('Are you sure you want to delete these treatment notes? This action cannot be undone.')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{% url "appointments:treatment_record_delete" appointment.pk %}';
+        
+        const csrf = document.querySelector('[name=csrfmiddlewaretoken]').cloneNode(true);
+        form.appendChild(csrf);
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

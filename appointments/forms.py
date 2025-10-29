@@ -1,26 +1,36 @@
-# appointments/forms.py - Cleaned for AM/PM slot system
-from decimal import Decimal
+# appointments/forms.py - Timeslot-based appointment system
+from decimal import Decimal, InvalidOperation
 import json
 from django import forms
 from django.forms import modelformset_factory, inlineformset_factory
 from django.core.exceptions import ValidationError
 from django.utils import timezone
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
+from django.db import transaction
 from django.db.models import Q
-from .models import Appointment, DailySlots, Payment, PaymentItem, PaymentTransaction
+from .models import Appointment, TimeSlotConfiguration, Payment, PaymentItem, PaymentTransaction, TreatmentRecordAuditLog, TreatmentRecordProduct, TreatmentRecordService, TreatmentRecord
 from patients.models import Patient
-from services.models import Service, Discount
+from services.models import Product, Service, Discount
 from users.models import User
 import re
 from django.core.validators import validate_email
 
+
 class AppointmentForm(forms.ModelForm):
-    """Form for creating/editing appointments in AM/PM system"""
+    """Form for creating/editing appointments in timeslot system"""
+    
+    # Add time field for selecting start time
+    start_time = forms.TimeField(
+        widget=forms.Select(attrs={
+            'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500'
+        }),
+        help_text='Select appointment start time'
+    )
     
     class Meta:
         model = Appointment
         fields = [
-            'patient', 'service', 'appointment_date', 'period', 
+            'patient', 'service', 'appointment_date', 'start_time',
             'patient_type', 'reason', 'staff_notes', 'status', 'assigned_dentist'
         ]
         widgets = {
@@ -28,9 +38,6 @@ class AppointmentForm(forms.ModelForm):
                 'type': 'date',
                 'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
                 'min': timezone.now().date().isoformat()
-            }),
-            'period': forms.Select(attrs={
-                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500'
             }),
             'service': forms.Select(attrs={
                 'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500'
@@ -79,6 +86,13 @@ class AppointmentForm(forms.ModelForm):
         self.fields['service'].empty_label = "Select a service..."
         self.fields['assigned_dentist'].empty_label = "Select a dentist (optional)..."
         
+        # Initialize time choices (will be populated via JavaScript based on date/service)
+        self.fields['start_time'].widget.choices = [('', 'Select a date first...')]
+        
+        # If editing existing appointment, set the start_time field
+        if self.instance and self.instance.pk:
+            self.fields['start_time'].initial = self.instance.start_time
+        
         # Handle status field based on context
         if self.is_creating:
             # For new appointments, don't show status field - it will default to 'confirmed'
@@ -122,30 +136,48 @@ class AppointmentForm(forms.ModelForm):
         
         return appointment_date
     
+    def clean_start_time(self):
+        start_time = self.cleaned_data.get('start_time')
+        
+        if not start_time:
+            raise ValidationError('Please select a start time.')
+        
+        return start_time
+    
     def clean(self):
         cleaned_data = super().clean()
         appointment_date = cleaned_data.get('appointment_date')
-        period = cleaned_data.get('period')
+        start_time = cleaned_data.get('start_time')
+        service = cleaned_data.get('service')
         patient = cleaned_data.get('patient')
         
         # Set default status for new appointments
         if self.is_creating and self.user and self.user.has_permission('appointments'):
             cleaned_data['status'] = 'confirmed'
         
-        if appointment_date and period:
-            # Check slot availability (excluding current appointment if updating)
+        if appointment_date and start_time and service:
+            # Check if timeslot configuration exists
+            config = TimeSlotConfiguration.get_for_date(appointment_date)
+            if not config:
+                raise ValidationError(
+                    f'No timeslots are configured for {appointment_date.strftime("%B %d, %Y")}. '
+                    'Please contact the clinic to set up timeslots for this date.'
+                )
+            
+            # Check timeslot availability (excluding current appointment if updating)
             exclude_id = self.instance.id if self.instance.id else None
             
-            can_book, message = Appointment.can_book_appointment(
-                appointment_date=appointment_date,
-                period=period,
-                exclude_appointment_id=exclude_id
+            is_available, message = config.is_timeslot_available(
+                start_time,
+                service.duration_minutes,
+                exclude_appointment_id=exclude_id,
+                include_pending=True
             )
             
-            if not can_book:
-                raise ValidationError(f'This time slot is not available. {message}')
+            if not is_available:
+                raise ValidationError(message)
         
-        # NEW: Check for double-booking (same patient, same date)
+        # Check for double-booking (same patient, same date)
         if patient and appointment_date:
             # Build query to find conflicting appointments
             conflicting_appointments = Appointment.objects.filter(
@@ -163,8 +195,8 @@ class AppointmentForm(forms.ModelForm):
                 formatted_date = appointment_date.strftime('%B %d, %Y')
                 raise ValidationError(
                     f'This patient already has an appointment on {formatted_date} '
-                    f'({existing.period} - {existing.service.name}). '
-                    f'Please choose a different date.'
+                    f'at {existing.start_time.strftime("%I:%M %p")} for {existing.service.name}. '
+                    f'Please choose a different date or time.'
                 )
         
         return cleaned_data
@@ -185,32 +217,36 @@ class AppointmentForm(forms.ModelForm):
         return instance
 
 
-class DailySlotsForm(forms.ModelForm):
-    """Form for managing daily AM/PM slot allocations"""
+class TimeSlotConfigurationForm(forms.ModelForm):
+    """Form for managing daily timeslot configurations"""
     
     class Meta:
-        model = DailySlots
-        fields = ['date', 'am_slots', 'pm_slots', 'notes']
+        model = TimeSlotConfiguration
+        fields = ['date', 'start_time', 'end_time', 'notes']
         widgets = {
             'date': forms.DateInput(attrs={
                 'type': 'date',
                 'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500'
             }),
-            'am_slots': forms.NumberInput(attrs={
+            'start_time': forms.TimeInput(attrs={
+                'type': 'time',
                 'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
-                'min': '0',
-                'max': '20'
+                'step': '1800'  # 30-minute increments
             }),
-            'pm_slots': forms.NumberInput(attrs={
+            'end_time': forms.TimeInput(attrs={
+                'type': 'time',
                 'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
-                'min': '0',
-                'max': '20'
+                'step': '1800'  # 30-minute increments
             }),
             'notes': forms.Textarea(attrs={
                 'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
                 'rows': 2,
                 'placeholder': 'Optional notes for this date...'
             })
+        }
+        help_texts = {
+            'start_time': 'Clinic opening time (e.g., 10:00 AM)',
+            'end_time': 'Clinic closing time (e.g., 6:00 PM)',
         }
     
     def __init__(self, *args, **kwargs):
@@ -219,6 +255,10 @@ class DailySlotsForm(forms.ModelForm):
         # Set minimum date to today
         today = timezone.now().date()
         self.fields['date'].widget.attrs['min'] = today.strftime('%Y-%m-%d')
+        
+        # Add help text
+        self.fields['start_time'].help_text = 'Time slots will be created in 30-minute increments from this time'
+        self.fields['end_time'].help_text = 'Last appointment slot will start before this time'
     
     def clean_date(self):
         date_value = self.cleaned_data.get('date')
@@ -228,302 +268,166 @@ class DailySlotsForm(forms.ModelForm):
         
         # Check if it's a Sunday
         if date_value.weekday() == 6:  # Sunday
-            am_slots = self.cleaned_data.get('am_slots', 0)
-            pm_slots = self.cleaned_data.get('pm_slots', 0)
-            
-            if am_slots > 0 or pm_slots > 0:
+            raise ValidationError(
+                'Sundays are not available for appointments. Please choose a different date.'
+            )
+        
+        # For new configurations, check if date already has configuration
+        if not self.instance.pk:
+            if TimeSlotConfiguration.objects.filter(date=date_value).exists():
                 raise ValidationError(
-                    'Sundays are not available for appointments. Set both AM and PM slots to 0, or choose a different date.'
+                    f'Time slot configuration already exists for {date_value.strftime("%B %d, %Y")}. '
+                    'Please edit the existing configuration instead.'
                 )
         
         return date_value
     
+    def clean_start_time(self):
+        start_time = self.cleaned_data.get('start_time')
+        
+        if not start_time:
+            return start_time
+        
+        # Validate time is in 30-minute increments
+        if start_time.minute not in [0, 30]:
+            raise ValidationError('Start time must be in 30-minute increments (e.g., 10:00, 10:30)')
+        
+        return start_time
+    
+    def clean_end_time(self):
+        end_time = self.cleaned_data.get('end_time')
+        
+        if not end_time:
+            return end_time
+        
+        # Validate time is in 30-minute increments
+        if end_time.minute not in [0, 30]:
+            raise ValidationError('End time must be in 30-minute increments (e.g., 18:00, 18:30)')
+        
+        return end_time
+    
     def clean(self):
         cleaned_data = super().clean()
-        am_slots = cleaned_data.get('am_slots', 0)
-        pm_slots = cleaned_data.get('pm_slots', 0)
+        start_time = cleaned_data.get('start_time')
+        end_time = cleaned_data.get('end_time')
         
-        # Ensure at least one slot is set (unless it's Sunday)
-        if am_slots == 0 and pm_slots == 0:
-            date_value = cleaned_data.get('date')
-            if date_value and date_value.weekday() != 6:
-                raise ValidationError('Please set at least one slot (AM or PM).')
+        if start_time and end_time:
+            # Ensure start is before end
+            if start_time >= end_time:
+                raise ValidationError('Start time must be before end time.')
+            
+            # Calculate duration
+            start_dt = datetime.combine(date.today(), start_time)
+            end_dt = datetime.combine(date.today(), end_time)
+            duration_minutes = (end_dt - start_dt).total_seconds() / 60
+            
+            # Ensure minimum 30 minutes
+            if duration_minutes < 30:
+                raise ValidationError('Time slot configuration must span at least 30 minutes.')
         
         return cleaned_data
 
 
-class PublicBookingForm(forms.Form):
-    """Public booking form for AM/PM slot system"""
+class BulkTimeSlotConfigurationForm(forms.Form):
+    """Form for bulk creating timeslot configurations across a date range"""
     
-    PATIENT_TYPE_CHOICES = [
-        ('new', 'New Patient'),
-        ('existing', 'Existing Patient')
-    ]
-    
-    # Patient type selection
-    patient_type = forms.ChoiceField(
-        choices=PATIENT_TYPE_CHOICES,
-        widget=forms.RadioSelect(attrs={
-            'class': 'focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300'
-        })
-    )
-    
-    # Existing patient identification
-    patient_identifier = forms.CharField(
-        max_length=200,
-        required=False,
-        label='Email or Phone Number',
-        help_text='Enter your email address or contact number',
-        widget=forms.TextInput(attrs={
-            'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
-            'placeholder': 'patient@example.com or +639123456789'
-        })
-    )
-    
-    # New patient fields
-    first_name = forms.CharField(
-        max_length=100,
-        required=False,
-        widget=forms.TextInput(attrs={
-            'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500'
-        })
-    )
-    last_name = forms.CharField(
-        max_length=100,
-        required=False,
-        widget=forms.TextInput(attrs={
-            'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500'
-        })
-    )
-    email = forms.EmailField(
-        required=False,
-        widget=forms.EmailInput(attrs={
-            'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500'
-        })
-    )
-    contact_number = forms.CharField(
-        max_length=20,
-        required=False,
-        widget=forms.TextInput(attrs={
-            'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
-            'placeholder': '+639123456789'
-        })
-    )
-    address = forms.CharField(
-        required=False,
-        widget=forms.Textarea(attrs={
-            'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
-            'rows': 3
-        })
-    )
-    
-    # Appointment fields
-    service = forms.ModelChoiceField(
-        queryset=Service.objects.none(),  # Will be set in __init__
-        widget=forms.Select(attrs={
-            'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500'
-        })
-    )
-    
-    appointment_date = forms.DateField(
+    start_date = forms.DateField(
         widget=forms.DateInput(attrs={
             'type': 'date',
             'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500'
-        })
-    )
-    
-    period = forms.ChoiceField(
-        choices=Appointment.PERIOD_CHOICES,
-        widget=forms.RadioSelect(attrs={
-            'class': 'focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300'
         }),
-        help_text='Morning (AM): 8:00 AM - 12:00 PM | Afternoon (PM): 1:00 PM - 6:00 PM'
+        help_text='First date to create timeslots for'
     )
     
-    reason = forms.CharField(
-        required=False,
-        widget=forms.Textarea(attrs={
+    end_date = forms.DateField(
+        widget=forms.DateInput(attrs={
+            'type': 'date',
+            'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500'
+        }),
+        help_text='Last date to create timeslots for'
+    )
+    
+    start_time = forms.TimeField(
+        widget=forms.TimeInput(attrs={
+            'type': 'time',
             'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
-            'rows': 3,
-            'placeholder': 'Optional: Please describe your symptoms or reason for visit'
-        })
+            'step': '1800'
+        }),
+        help_text='Clinic opening time (e.g., 10:00 AM)'
     )
     
-    # Terms agreement
-    agreed_to_terms = forms.BooleanField(
-        required=True,
-        widget=forms.CheckboxInput(attrs={
-            'class': 'focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300 rounded'
+    end_time = forms.TimeField(
+        widget=forms.TimeInput(attrs={
+            'type': 'time',
+            'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
+            'step': '1800'
         }),
-        label='I agree to the terms and conditions'
+        help_text='Clinic closing time (e.g., 6:00 PM)'
     )
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        # Set active service queryset
-        self.fields['service'].queryset = Service.active.all().order_by('name')
-        
-        # Set minimum date to tomorrow
-        tomorrow = (timezone.now() + timedelta(days=1)).date()
-        self.fields['appointment_date'].widget.attrs['min'] = tomorrow.strftime('%Y-%m-%d')
+        # Set minimum date to today
+        today = timezone.now().date()
+        self.fields['start_date'].widget.attrs['min'] = today.strftime('%Y-%m-%d')
+        self.fields['end_date'].widget.attrs['min'] = today.strftime('%Y-%m-%d')
     
-    def clean_first_name(self):
-        first_name = self.cleaned_data.get('first_name', '').strip()
-        if first_name:
-            name_pattern = re.compile(r"^[a-zA-Z\s\-\']+$")
-            if not name_pattern.match(first_name):
-                raise ValidationError('First name should only contain letters, spaces, hyphens, and apostrophes.')
-        return first_name
+    def clean_start_date(self):
+        start_date = self.cleaned_data.get('start_date')
+        
+        if start_date and start_date < timezone.now().date():
+            raise ValidationError('Start date cannot be in the past.')
+        
+        return start_date
     
-    def clean_last_name(self):
-        last_name = self.cleaned_data.get('last_name', '').strip()
-        if last_name:
-            name_pattern = re.compile(r"^[a-zA-Z\s\-\']+$")
-            if not name_pattern.match(last_name):
-                raise ValidationError('Last name should only contain letters, spaces, hyphens, and apostrophes.')
-        return last_name
+    def clean_start_time(self):
+        start_time = self.cleaned_data.get('start_time')
+        
+        if start_time and start_time.minute not in [0, 30]:
+            raise ValidationError('Start time must be in 30-minute increments (e.g., 10:00, 10:30)')
+        
+        return start_time
     
-    def clean_email(self):
-        email = self.cleaned_data.get('email', '').strip()
-        if email:
-            try:
-                validate_email(email)
-            except ValidationError:
-                raise ValidationError('Please enter a valid email address.')
-        return email
-    
-    def clean_contact_number(self):
-        contact_number = self.cleaned_data.get('contact_number', '').strip()
-        if not contact_number:
-            return ''
+    def clean_end_time(self):
+        end_time = self.cleaned_data.get('end_time')
         
-        # Philippine mobile number pattern
-        phone_pattern = re.compile(r'^(\+63|0)?9\d{9}$')
-        clean_contact = contact_number.replace(' ', '').replace('-', '')
-        if not phone_pattern.match(clean_contact):
-            raise ValidationError('Please enter a valid Philippine mobile number (e.g., +639123456789).')
+        if end_time and end_time.minute not in [0, 30]:
+            raise ValidationError('End time must be in 30-minute increments (e.g., 18:00, 18:30)')
         
-        return clean_contact
-    
-    def clean_appointment_date(self):
-        appointment_date = self.cleaned_data.get('appointment_date')
-        
-        if not appointment_date:
-            return appointment_date
-        
-        # Don't allow past dates
-        if appointment_date <= timezone.now().date():
-            raise ValidationError('Appointment date must be in the future.')
-        
-        # Don't allow Sundays
-        if appointment_date.weekday() == 6:
-            raise ValidationError('Appointments are not available on Sundays.')
-        
-        return appointment_date
+        return end_time
     
     def clean(self):
         cleaned_data = super().clean()
-        patient_type = cleaned_data.get('patient_type')
+        start_date = cleaned_data.get('start_date')
+        end_date = cleaned_data.get('end_date')
+        start_time = cleaned_data.get('start_time')
+        end_time = cleaned_data.get('end_time')
         
-        # Validate patient data based on type
-        if patient_type == 'existing':
-            patient_identifier = cleaned_data.get('patient_identifier', '').strip()
-            if not patient_identifier:
-                raise ValidationError('Please provide your email or phone number to find your record.')
+        # Validate date range
+        if start_date and end_date:
+            if start_date > end_date:
+                raise ValidationError('Start date must be before or equal to end date.')
             
-            # Try to find the patient
-            patient = self._find_existing_patient(patient_identifier)
-            if not patient:
-                raise ValidationError(f'No patient record found with "{patient_identifier}". Please check your information or register as a new patient.')
-            
-            cleaned_data['patient'] = patient
+            # Limit range to prevent excessive creation
+            days_diff = (end_date - start_date).days
+            if days_diff > 90:
+                raise ValidationError('Date range cannot exceed 90 days.')
         
-        elif patient_type == 'new':
-            # Validate new patient fields - email is required
-            required_fields = ['first_name', 'last_name', 'email']
-            for field in required_fields:
-                value = cleaned_data.get(field, '').strip() if cleaned_data.get(field) else ''
-                if not value:
-                    field_label = self.fields[field].label or field.replace('_', ' ').title()
-                    raise ValidationError(f'{field_label} is required for new patients.')
+        # Validate time range
+        if start_time and end_time:
+            if start_time >= end_time:
+                raise ValidationError('Start time must be before end time.')
             
-            # Check if patient already exists
-            email = cleaned_data.get('email', '').strip()
-            contact_number = cleaned_data.get('contact_number', '').strip()
+            start_dt = datetime.combine(date.today(), start_time)
+            end_dt = datetime.combine(date.today(), end_time)
+            duration_minutes = (end_dt - start_dt).total_seconds() / 60
             
-            existing_query = Q()
-            if email:
-                existing_query |= Q(email__iexact=email, is_active=True)
-            if contact_number:
-                existing_query |= Q(contact_number=contact_number, is_active=True)
-            
-            if existing_query:
-                existing_patient = Patient.objects.filter(existing_query).first()
-                if existing_patient:
-                    if existing_patient.email and email and existing_patient.email.lower() == email.lower():
-                        raise ValidationError(f'A patient with email "{email}" already exists. Please use "Existing Patient" option.')
-                    elif existing_patient.contact_number and contact_number and existing_patient.contact_number == contact_number:
-                        raise ValidationError(f'A patient with contact number "{contact_number}" already exists. Please use "Existing Patient" option.')
-        
-        # Validate appointment availability
-        appointment_date = cleaned_data.get('appointment_date')
-        period = cleaned_data.get('period')
-        
-        if appointment_date and period:
-            can_book, message = Appointment.can_book_appointment(appointment_date, period)
-            if not can_book:
-                raise ValidationError(f'Cannot book appointment: {message}')
+            if duration_minutes < 30:
+                raise ValidationError('Time slot configuration must span at least 30 minutes.')
         
         return cleaned_data
-    
-    def _find_existing_patient(self, identifier):
-        """Find existing patient by email or contact number"""
-        query = Q(is_active=True)
-        
-        if '@' in identifier:
-            query &= Q(email__iexact=identifier)
-        else:
-            clean_identifier = identifier.replace(' ', '').replace('-', '').replace('+', '')
-            query &= (
-                Q(contact_number=identifier) | 
-                Q(contact_number=clean_identifier) |
-                (Q(contact_number__endswith=clean_identifier[-10:]) if len(clean_identifier) >= 10 else Q())
-            )
-        
-        return Patient.objects.filter(query).first()
-    
-    def save(self):
-        """Create appointment from form data"""
-        cleaned_data = self.cleaned_data
-        patient_type = cleaned_data['patient_type']
-        
-        # Handle patient creation/assignment
-        if patient_type == 'new':
-            patient = Patient.objects.create(
-                first_name=cleaned_data['first_name'].strip(),
-                last_name=cleaned_data['last_name'].strip(),
-                email=cleaned_data.get('email', '').strip(),
-                contact_number=cleaned_data.get('contact_number', '').strip(),
-                address=cleaned_data.get('address', '').strip(),
-            )
-            appointment_patient_type = 'new'
-        else:
-            patient = cleaned_data['patient']
-            appointment_patient_type = 'returning'
-        
-        # Create appointment
-        appointment = Appointment.objects.create(
-            patient=patient,
-            service=cleaned_data['service'],
-            appointment_date=cleaned_data['appointment_date'],
-            period=cleaned_data['period'],
-            patient_type=appointment_patient_type,
-            reason=cleaned_data.get('reason', '').strip(),
-            status='pending'
-        )
-        
-        return appointment
+
 
 class AppointmentNotesForm(forms.ModelForm):
     """Form for editing clinical notes of an appointment"""
@@ -554,6 +458,7 @@ class AppointmentNotesForm(forms.ModelForm):
             'diagnosis': 'Diagnosis & Treatment Notes',
         }
 
+
 class AppointmentNoteFieldForm(forms.Form):
     """Form for editing individual clinical note fields via AJAX"""
     field_name = forms.ChoiceField(choices=[
@@ -567,53 +472,52 @@ class AppointmentNoteFieldForm(forms.Form):
     }), required=False)
 
 
-# PAYMENT FORMS
 class PaymentForm(forms.ModelForm):
-    """Enhanced form for creating/editing payments with dynamic service items"""
+    """
+    Enhanced payment form with product tracking
+    Handles dynamic service items with products
+    """
     
-    # Dynamic service items data (will be handled via JavaScript)
+    # Hidden field to store JSON data for service items with products
     service_items_data = forms.CharField(
         widget=forms.HiddenInput(),
         required=False,
-        help_text="JSON data for service items"
+        help_text="JSON data for service items and their products"
     )
     
     # Discount application choice
-    DISCOUNT_APPLICATION_CHOICES = [
+    DISCOUNT_CHOICES = [
         ('per_item', 'Apply to Individual Services'),
         ('total', 'Apply to Total Bill'),
     ]
-    
     discount_application = forms.ChoiceField(
-        choices=DISCOUNT_APPLICATION_CHOICES,
+        choices=DISCOUNT_CHOICES,
+        widget=forms.RadioSelect,
         initial='per_item',
-        widget=forms.RadioSelect(attrs={
-            'class': 'focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300'
-        }),
-        required=False
+        required=True
     )
     
-    # Total discount (when applying to total bill)
+    # Total discount (when discount_application = 'total')
     total_discount = forms.ModelChoiceField(
-        queryset=Discount.objects.none(),
+        queryset=Discount.objects.filter(is_active=True),
         required=False,
-        empty_label='No discount',
-        widget=forms.Select(attrs={
-            'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500'
-        })
+        empty_label="No discount"
     )
     
     class Meta:
         model = Payment
-        fields = ['payment_type', 'installment_months', 'next_due_date', 'notes']
+        fields = [
+            'payment_type',
+            'installment_months',
+            'next_due_date',
+            'notes'
+        ]
         widgets = {
-            'payment_type': forms.RadioSelect(attrs={
-                'class': 'focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300'
-            }),
+            'payment_type': forms.RadioSelect(choices=Payment.PAYMENT_TYPE_CHOICES),
             'installment_months': forms.NumberInput(attrs={
                 'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
-                'min': 1,
-                'max': 24
+                'min': '1',
+                'max': '12'
             }),
             'next_due_date': forms.DateInput(attrs={
                 'type': 'date',
@@ -629,112 +533,117 @@ class PaymentForm(forms.ModelForm):
         self.appointment = kwargs.pop('appointment', None)
         super().__init__(*args, **kwargs)
         
-        # Set default next due date to 30 days from now
-        if not self.instance.pk:
-            self.fields['next_due_date'].initial = date.today() + timedelta(days=30)
-        
-        # Set up discount queryset
-        self.fields['total_discount'].queryset = Discount.objects.filter(is_active=True).order_by('name')
-        
-        # FORMAT DISCOUNT LABELS
-        discount_choices = [('', 'No discount')]
-        for discount in Discount.objects.filter(is_active=True).order_by('name'):
-            if discount.is_percentage:
-                label = f"{discount.name} - {discount.amount}% off"
-            else:
-                label = f"{discount.name} - ₱{int(round(discount.amount))} off"
-            discount_choices.append((discount.id, label))
-        
-        self.fields['total_discount'].choices = discount_choices
-        
-        # Initialize service items data with appointment service
-        if self.appointment and not self.instance.pk:
-            initial_service_data = {
+        # Pre-populate with appointment service
+        if self.appointment and not self.data:
+            initial_items = [{
                 'service_id': self.appointment.service.id,
                 'service_name': self.appointment.service.name,
-                'price': '',
-                'discount_id': '',
-                'notes': '',
+                'price': float(self.appointment.service.min_price or 0),
                 'min_price': float(self.appointment.service.min_price or 0),
                 'max_price': float(self.appointment.service.max_price or 999999),
-            }
-            self.fields['service_items_data'].initial = json.dumps([initial_service_data])
+                'discount_id': '',
+                'notes': '',
+                'products': []  # Empty products array
+            }]
+            self.initial['service_items_data'] = json.dumps(initial_items)
     
     def clean_service_items_data(self):
-        service_items_json = self.cleaned_data.get('service_items_data')
-        
-        if not service_items_json:
-            raise ValidationError('At least one service item is required.')
+        """Validate and parse service items JSON data"""
+        data = self.cleaned_data.get('service_items_data', '[]')
         
         try:
-            service_items = json.loads(service_items_json)
-        except (json.JSONDecodeError, TypeError):
-            raise ValidationError('Invalid service items data.')
+            items = json.loads(data) if data else []
+        except json.JSONDecodeError:
+            raise forms.ValidationError('Invalid service items data format.')
         
-        if not service_items or len(service_items) == 0:
-            raise ValidationError('At least one service item is required.')
+        if not items:
+            raise forms.ValidationError('At least one service must be added to the payment.')
         
-        # Validate each service item
         validated_items = []
-        for i, item in enumerate(service_items):
-            # Validate required fields
-            if not item.get('service_id'):
-                raise ValidationError(f'Service is required for item {i+1}.')
-            
-            if not item.get('price'):
-                raise ValidationError(f'Service fee is required for item {i+1}.')
-            
-            # Validate service exists
+        
+        for idx, item in enumerate(items):
+            # Validate service
             try:
-                service = Service.objects.get(id=item['service_id'], is_archived=False)
+                service = Service.objects.get(pk=item.get('service_id'))
             except Service.DoesNotExist:
-                raise ValidationError(f'Invalid service for item {i+1}.')
+                raise forms.ValidationError(f'Invalid service selected for item #{idx + 1}.')
             
             # Validate price
             try:
-                price = Decimal(str(item['price']))
-            except (ValueError, TypeError):
-                raise ValidationError(f'Invalid service fee for item {i+1}.')
+                price = Decimal(str(item.get('price', 0)))
+            except (ValueError, TypeError, InvalidOperation):
+                raise forms.ValidationError(f'Invalid price for {service.name}.')
             
-            # Check price range (unless admin override is requested)
-            min_price = getattr(service, 'min_price', None) or 0
-            max_price = getattr(service, 'max_price', None) or 999999
+            if price < Decimal('0'):
+                raise forms.ValidationError(f'Price cannot be negative for {service.name}.')
             
-            if price < min_price or price > max_price:
-                # Flag for admin override check
-                item['requires_admin_override'] = True
-                item['price_violation'] = f'Price ₱{price} is outside allowed range ₱{min_price} - ₱{max_price}'
+            # Check price range
+            requires_override = False
+            if service.min_price and price < service.min_price:
+                requires_override = True
+            if service.max_price and price > service.max_price:
+                requires_override = True
             
-            # Validate discount if specified
+            # Validate discount
             discount = None
             if item.get('discount_id'):
                 try:
-                    discount = Discount.objects.get(id=item['discount_id'], is_active=True)
+                    discount = Discount.objects.get(pk=item.get('discount_id'), is_active=True)
                 except Discount.DoesNotExist:
-                    raise ValidationError(f'Invalid discount for item {i+1}.')
+                    raise forms.ValidationError(f'Invalid discount for {service.name}.')
+            
+            # Validate products
+            validated_products = []
+            for prod_idx, product_data in enumerate(item.get('products', [])):
+                try:
+                    product = Product.objects.get(pk=product_data.get('product_id'), is_active=True)
+                except Product.DoesNotExist:
+                    raise forms.ValidationError(f'Invalid product #{prod_idx + 1} for {service.name}.')
+                
+                try:
+                    quantity = int(product_data.get('quantity', 1))
+                    if quantity < 1:
+                        raise ValueError
+                except (ValueError, TypeError):
+                    raise forms.ValidationError(f'Invalid quantity for {product.name}.')
+                
+                validated_products.append({
+                    'product': product,
+                    'quantity': quantity,
+                    'unit_price': product.price,  # Snapshot current price
+                    'notes': product_data.get('notes', '').strip()
+                })
             
             validated_items.append({
                 'service': service,
                 'price': price,
                 'discount': discount,
-                'notes': item.get('notes', ''),
-                'requires_admin_override': item.get('requires_admin_override', False),
-                'price_violation': item.get('price_violation', ''),
+                'notes': item.get('notes', '').strip(),
+                'products': validated_products,
+                'requires_admin_override': requires_override
             })
         
         return validated_items
     
     def clean(self):
+        """Cross-field validation"""
         cleaned_data = super().clean()
+        
         payment_type = cleaned_data.get('payment_type')
         installment_months = cleaned_data.get('installment_months')
+        next_due_date = cleaned_data.get('next_due_date')
         
-        # Validate installment settings
+        # Validate installment requirements
         if payment_type == 'installment':
-            if not installment_months or installment_months <= 0:
-                raise ValidationError('Please specify the number of installment months.')
-            if installment_months > 24:
-                raise ValidationError('Maximum installment period is 24 months.')
+            if not installment_months or installment_months < 1:
+                raise forms.ValidationError('Number of months is required for installment payments.')
+            
+            if not next_due_date:
+                raise forms.ValidationError('First payment due date is required for installment payments.')
+        
+        # Validate due date is in the future
+        if next_due_date and next_due_date < date.today():
+            raise forms.ValidationError('Payment due date must be in the future.')
         
         return cleaned_data
 
@@ -801,87 +710,6 @@ class PaymentItemForm(forms.ModelForm):
                 )
         
         return price
-
-
-class PaymentTransactionForm(forms.ModelForm):
-    """Form for adding payment transactions"""
-    
-    payment_type_choice = forms.ChoiceField(
-        choices=[('full', 'Full Payment'), ('partial', 'Partial Payment')],
-        widget=forms.RadioSelect(attrs={
-            'class': 'focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300'
-        }),
-        initial='partial'
-    )
-    
-    installment_months = forms.IntegerField(
-        required=False,
-        min_value=1,
-        max_value=24,
-        widget=forms.NumberInput(attrs={
-            'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
-            'min': 1,
-            'max': 24
-        }),
-        help_text='Required only for first installment payment'
-    )
-    
-    class Meta:
-        model = PaymentTransaction
-        fields = ['amount', 'payment_date', 'notes']
-        widgets = {
-            'amount': forms.NumberInput(attrs={
-                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
-                'step': '1',
-                'min': '1'
-            }),
-            'payment_date': forms.DateInput(attrs={
-                'type': 'date',
-                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500'
-            }),
-            'notes': forms.Textarea(attrs={
-                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
-                'rows': 2,
-                'placeholder': 'Optional notes about this payment...'
-            }),
-        }
-    
-    def __init__(self, *args, **kwargs):
-        self.payment = kwargs.pop('payment', None)
-        super().__init__(*args, **kwargs)
-        
-        # Set default payment date to today
-        self.fields['payment_date'].initial = date.today()
-        
-        if self.payment:
-            # Set maximum amount to outstanding balance
-            self.fields['amount'].widget.attrs['max'] = str(self.payment.outstanding_balance)
-            
-            # If payment is already set up for installments, hide installment months
-            if self.payment.payment_type == 'installment':
-                self.fields['installment_months'].widget = forms.HiddenInput()
-    
-    def clean_amount(self):
-        amount = self.cleaned_data.get('amount')
-        
-        if self.payment and amount:
-            if amount > self.payment.outstanding_balance:
-                raise ValidationError(
-                    f'Payment amount cannot exceed outstanding balance of ₱{self.payment.outstanding_balance}'
-                )
-            
-            if amount <= 0:
-                raise ValidationError('Payment amount must be greater than zero.')
-        
-        return amount
-    
-    def clean_payment_date(self):
-        payment_date = self.cleaned_data.get('payment_date')
-        
-        if payment_date and payment_date > date.today():
-            raise ValidationError('Payment date cannot be in the future.')
-        
-        return payment_date
 
 
 class PaymentTransactionForm(forms.ModelForm):
@@ -1096,3 +924,160 @@ class PaymentFilterForm(forms.Form):
             raise ValidationError('Start date cannot be after end date.')
         
         return cleaned_data
+    
+class TreatmentRecordForm(forms.ModelForm):
+    """Form for documenting treatment during/after appointment"""
+    
+    # Hidden field to store JSON data for services with products
+    services_data = forms.CharField(
+        widget=forms.HiddenInput(),
+        required=False,
+        help_text="JSON data for services and their products"
+    )
+    
+    class Meta:
+        model = TreatmentRecord
+        fields = ['clinical_notes']
+        widgets = {
+            'clinical_notes': forms.Textarea(attrs={
+                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
+                'rows': 4,
+                'placeholder': 'Document symptoms, diagnosis, procedures performed, and observations...'
+            }),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.appointment = kwargs.pop('appointment', None)
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        # If editing existing record, populate services_data
+        if self.instance and self.instance.pk:
+            services_list = []
+            for service_record in self.instance.service_records.all().prefetch_related('products__product'):
+                products_list = []
+                for prod in service_record.products.all():
+                    products_list.append({
+                        'product_id': prod.product.id,
+                        'product_name': prod.product.name,
+                        'quantity': prod.quantity,
+                        'notes': prod.notes
+                    })
+                
+                services_list.append({
+                    'service_id': service_record.service.id,
+                    'service_name': service_record.service.name,
+                    'notes': service_record.notes,
+                    'products': products_list
+                })
+            
+            self.initial['services_data'] = json.dumps(services_list)
+    
+    def clean_services_data(self):
+        """Validate and parse services JSON data"""
+        data = self.cleaned_data.get('services_data', '[]')
+        
+        try:
+            services = json.loads(data) if data else []
+        except json.JSONDecodeError:
+            raise forms.ValidationError('Invalid services data format.')
+        
+        if not services:
+            raise forms.ValidationError('At least one service must be documented.')
+        
+        validated_services = []
+        
+        for idx, service_data in enumerate(services):
+            # Validate service
+            try:
+                service = Service.objects.get(pk=service_data.get('service_id'))
+            except Service.DoesNotExist:
+                raise forms.ValidationError(f'Invalid service selected for item #{idx + 1}.')
+            
+            # Validate products
+            validated_products = []
+            for prod_idx, product_data in enumerate(service_data.get('products', [])):
+                try:
+                    product = Product.objects.get(pk=product_data.get('product_id'), is_active=True)
+                except Product.DoesNotExist:
+                    raise forms.ValidationError(f'Invalid product #{prod_idx + 1} for {service.name}.')
+                
+                try:
+                    quantity = int(product_data.get('quantity', 1))
+                    if quantity < 1:
+                        raise ValueError
+                except (ValueError, TypeError):
+                    raise forms.ValidationError(f'Invalid quantity for {product.name}.')
+                
+                validated_products.append({
+                    'product': product,
+                    'quantity': quantity,
+                    'notes': product_data.get('notes', '').strip()
+                })
+            
+            validated_services.append({
+                'service': service,
+                'notes': service_data.get('notes', '').strip(),
+                'products': validated_products
+            })
+        
+        return validated_services
+    
+    def save(self, commit=True):
+        """Save treatment record with services and products"""
+        instance = super().save(commit=False)
+        
+        if not instance.pk:
+            instance.appointment = self.appointment
+            instance.created_by = self.user
+        
+        instance.last_modified_by = self.user
+        
+        if commit:
+            with transaction.atomic():
+                # Track changes for audit
+                old_data = None
+                if instance.pk:
+                    old_data = {
+                        'clinical_notes': TreatmentRecord.objects.get(pk=instance.pk).clinical_notes,
+                        'services': list(instance.service_records.values_list('service_id', flat=True))
+                    }
+                
+                instance.save()
+                
+                # Clear existing services and products
+                instance.service_records.all().delete()
+                
+                # Create new services and products
+                validated_services = self.cleaned_data['services_data']
+                for order, service_data in enumerate(validated_services):
+                    service_record = TreatmentRecordService.objects.create(
+                        treatment_record=instance,
+                        service=service_data['service'],
+                        notes=service_data['notes'],
+                        order=order
+                    )
+                    
+                    for product_data in service_data['products']:
+                        TreatmentRecordProduct.objects.create(
+                            treatment_service=service_record,
+                            product=product_data['product'],
+                            quantity=product_data['quantity'],
+                            notes=product_data['notes']
+                        )
+                
+                # Create audit log
+                TreatmentRecordAuditLog.objects.create(
+                    treatment_record=instance,
+                    modified_by=self.user,
+                    action='updated' if old_data else 'created',
+                    changes={
+                        'old': old_data,
+                        'new': {
+                            'clinical_notes': instance.clinical_notes,
+                            'services': [s['service'].id for s in validated_services]
+                        }
+                    }
+                )
+        
+        return instance

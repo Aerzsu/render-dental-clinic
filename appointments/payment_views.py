@@ -18,10 +18,10 @@ import json
 from xhtml2pdf import pisa
 from io import BytesIO
 
-from .models import Appointment, Payment, PaymentItem, PaymentTransaction
+from .models import Appointment, Payment, PaymentItem, PaymentItemProduct, PaymentTransaction, TreatmentRecord
 from patients.models import Patient
 from .forms import PaymentForm, AdminOverrideForm
-from services.models import Service, Discount
+from services.models import Product, ProductCategory, Service, Discount
 
 
 class PaymentListView(LoginRequiredMixin, ListView):
@@ -38,7 +38,7 @@ class PaymentListView(LoginRequiredMixin, ListView):
         return super().dispatch(request, *args, **kwargs)
     
     def get_queryset(self):
-        queryset = Payment.objects.select_related('patient', 'appointment__service').prefetch_related('items', 'transactions')
+        queryset = Payment.objects.select_related('patient', 'appointment__service').prefetch_related('items', 'items__products', 'transactions')
         
         # Apply filters
         status = self.request.GET.get('status')
@@ -102,7 +102,7 @@ class PaymentListView(LoginRequiredMixin, ListView):
             'patient', 'service', 'assigned_dentist'
         ).prefetch_related(
             'payments'
-        ).order_by('-appointment_date', '-period')
+        ).order_by('-appointment_date')
         
         # Filter to only those without payments
         appointments_without_payments = []
@@ -136,7 +136,7 @@ class PaymentListView(LoginRequiredMixin, ListView):
         return context
 
 class PaymentDetailView(LoginRequiredMixin, DetailView):
-    """Payment detail view with edit capabilities"""
+    """Payment detail view with products breakdown"""
     model = Payment
     template_name = 'payment/payment_detail.html'
     context_object_name = 'payment'
@@ -151,31 +151,52 @@ class PaymentDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         payment = self.object
         
-        # Get all payment items and transactions
-        context['payment_items'] = payment.items.all().select_related('service', 'discount')
+        # Get all payment items with their products
+        payment_items = payment.items.all().select_related('service', 'discount').prefetch_related(
+            'products__product__category'
+        )
+        
+        context['payment_items'] = payment_items
         context['transactions'] = payment.transactions.all().select_related('created_by').order_by('-payment_datetime')
         
-        # Calculate totals
-        context['items_total'] = sum(item.total for item in context['payment_items'])
-        context['total_discount'] = sum(item.discount_amount for item in context['payment_items'])
+        # Calculate detailed breakdown
+        services_subtotal = Decimal('0')
+        products_subtotal = Decimal('0')
+        total_discount = Decimal('0')
         
-        # Payment summary
+        for item in payment_items:
+            # Skip negative adjustment items (total discounts)
+            if item.price < 0:
+                continue
+            
+            services_subtotal += item.price
+            products_subtotal += item.products_total
+            total_discount += item.discount_amount
+        
         context['payment_summary'] = {
-            'subtotal': sum(item.subtotal for item in context['payment_items']),
-            'total_discount': context['total_discount'],
-            'total_amount': context['items_total'],
+            'services_subtotal': services_subtotal,
+            'products_subtotal': products_subtotal,
+            'subtotal': services_subtotal + products_subtotal,
+            'total_discount': total_discount,
+            'total_amount': payment.total_amount,
             'amount_paid': payment.amount_paid,
             'outstanding_balance': payment.outstanding_balance,
             'payment_progress': payment.payment_progress_percentage,
         }
         
-        # Available services for adding items
+        # Available services and discounts for adding items
         context['available_services'] = Service.active.all().order_by('name')
-        
-        # Available discounts
         context['available_discounts'] = Discount.objects.filter(is_active=True).order_by('name')
         
-        # NEW: Add today's date for date validation
+        # Available products grouped by category
+        products_by_category = {}
+        for product in Product.objects.filter(is_active=True).select_related('category').order_by('category__display_order', 'category__name', 'name'):
+            cat_name = product.category.name
+            if cat_name not in products_by_category:
+                products_by_category[cat_name] = []
+            products_by_category[cat_name].append(product)
+        
+        context['products_by_category'] = products_by_category
         context['today'] = timezone.now().date()
         
         return context
@@ -275,7 +296,7 @@ class PatientPaymentSummaryView(LoginRequiredMixin, DetailView):
 
 
 class PaymentCreateView(LoginRequiredMixin, CreateView):
-    """Enhanced payment creation with dynamic service items"""
+    """Enhanced payment creation with product tracking"""
     model = Payment
     form_class = PaymentForm
     template_name = 'payment/payment_form.html'
@@ -305,7 +326,14 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
         context = super().get_context_data(**kwargs)
         context['appointment'] = self.appointment
         
-        # Add services and discounts data for JavaScript
+        # Check if treatment record exists
+        treatment_record = None
+        try:
+            treatment_record = self.appointment.treatment_record
+        except TreatmentRecord.DoesNotExist:
+            pass
+        
+        # Add services data
         services_data = []
         for service in Service.active.all():
             services_data.append({
@@ -313,19 +341,42 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
                 'name': service.name,
                 'min_price': float(service.min_price or 0),
                 'max_price': float(service.max_price or 999999),
+                'default_price': float(service.min_price or 0),
             })
-        
+
+        # Add discounts data for JavaScript
         discounts_data = []
         for discount in Discount.objects.filter(is_active=True):
             discounts_data.append({
                 'id': discount.id,
                 'name': discount.name,
                 'is_percentage': discount.is_percentage,
-                'amount': float(discount.amount),  # FIXED: Changed 'value' to 'amount'
+                'amount': float(discount.amount),
+            })
+        
+        # Add products data for JavaScript
+        products_data = []
+        for product in Product.objects.filter(is_active=True).select_related('category'):
+            products_data.append({
+                'id': product.id,
+                'name': product.name,
+                'category_id': product.category.id,
+                'category_name': product.category.name,
+                'price': float(product.price),
+            })
+        
+        # Add categories data for JavaScript
+        categories_data = []
+        for category in ProductCategory.objects.all():
+            categories_data.append({
+                'id': category.id,
+                'name': category.name,
             })
         
         context['services_json'] = json.dumps(services_data)
         context['discounts_json'] = json.dumps(discounts_data)
+        context['products_json'] = json.dumps(products_data)
+        context['categories_json'] = json.dumps(categories_data)
         
         return context
     
@@ -351,35 +402,51 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
                 response = super().form_valid(form)
                 payment = form.instance
                 
-                # Create payment items
+                # Create payment items with products
                 total_amount = Decimal('0')
                 
                 for item_data in validated_items:
+                    # Create payment item
                     payment_item = PaymentItem.objects.create(
                         payment=payment,
                         service=item_data['service'],
-                        quantity=item_data['quantity'],
-                        unit_price=item_data['unit_price'],
+                        price=item_data['price'],
                         discount=item_data['discount'],
                         notes=item_data['notes']
                     )
+                    
+                    # Create product records for this payment item
+                    for product_data in item_data['products']:
+                        PaymentItemProduct.objects.create(
+                            payment_item=payment_item,
+                            product=product_data['product'],
+                            quantity=product_data['quantity'],
+                            unit_price=product_data['unit_price'],
+                            notes=product_data['notes']
+                        )
+                    
+                    # Add to total (uses the updated property that includes products)
                     total_amount += payment_item.total
                 
                 # Apply total discount if specified
                 discount_application = form.cleaned_data.get('discount_application')
                 if discount_application == 'total' and form.cleaned_data.get('total_discount'):
                     total_discount = form.cleaned_data['total_discount']
+                    
+                    # Calculate discount on service base prices only (not products)
+                    service_base_total = sum(item.price for item in payment.items.all())
+                    
                     if total_discount.is_percentage:
-                        discount_amount = total_amount * (total_discount.amount / 100)
+                        discount_amount = service_base_total * (total_discount.amount / 100)
                     else:
-                        discount_amount = min(total_discount.amount, total_amount)
+                        discount_amount = min(total_discount.amount, service_base_total)
                     
                     if discount_amount > 0:
+                        # Create a negative adjustment item for the discount
                         PaymentItem.objects.create(
                             payment=payment,
-                            service=Service.active.all().first(),
-                            quantity=1,
-                            unit_price=-discount_amount,
+                            service=Service.active.all().first(),  # Use any service as placeholder
+                            price=-discount_amount,
                             notes=f'Total discount: {total_discount.name}'
                         )
                         total_amount -= discount_amount
@@ -388,7 +455,10 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
                 payment.total_amount = max(total_amount, Decimal('0'))
                 payment.save()
                 
-                messages.success(self.request, f'Payment record created successfully for {self.appointment.patient.full_name}.')
+                messages.success(
+                    self.request, 
+                    f'Payment record created successfully for {self.appointment.patient.full_name}.'
+                )
                 
             return response
                 
@@ -398,7 +468,6 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
     
     def get_success_url(self):
         return reverse_lazy('appointments:payment_detail', kwargs={'pk': self.object.pk})
-
 
 @login_required
 def verify_admin_password(request):
@@ -707,28 +776,44 @@ def receipt_pdf(request, transaction_pk):
     
     payment = transaction_obj.payment
     
-    # Get all payment items
-    payment_items = payment.items.all().select_related('service', 'discount')
+    # Get all payment items with products
+    payment_items = payment.items.all().select_related('service', 'discount').prefetch_related(
+        'products__product__category'
+    )
     
-    # Calculate payment summary
-    subtotal = sum(item.subtotal for item in payment_items)
-    total_discount = sum(item.discount_amount for item in payment_items)
+    # Calculate payment summary (same as payment detail view)
+    services_subtotal = Decimal('0')
+    products_subtotal = Decimal('0')
+    total_discount = Decimal('0')
     
-    # Get all previous transactions (excluding current one, ordered by date)
+    for item in payment_items:
+        if item.price < 0:
+            continue
+        services_subtotal += item.price
+        products_subtotal += item.products_total
+        total_discount += item.discount_amount
+    
+    payment_summary = {
+        'services_subtotal': services_subtotal,
+        'products_subtotal': products_subtotal,
+        'subtotal': services_subtotal + products_subtotal,
+        'total_discount': total_discount,
+    }
+    
+    # Get all previous transactions
     previous_transactions = payment.transactions.filter(
         payment_datetime__lt=transaction_obj.payment_datetime
     ).order_by('payment_datetime')
     
-    # Calculate previous payments total
     previous_payments_total = sum(t.amount for t in previous_transactions)
     
-    # Get clinic settings from SystemSetting model
+    # Get clinic settings
     from core.models import SystemSetting
     
     clinic_name = SystemSetting.get_setting('clinic_name', 'KingJoy Dental Clinic')
     clinic_address = SystemSetting.get_setting('clinic_address', '54 Obanic St.\nQuezon City, Metro Manila')
     clinic_phone = SystemSetting.get_setting('clinic_phone', '+63 956 631 6581')
-    clinic_email = SystemSetting.get_setting('clinic_email', 'papatmyfrend@gmail.com')
+    clinic_email = SystemSetting.get_setting('clinic_email', 'contact@kingjoydental.com')
     
     context = {
         'transaction': transaction_obj,
@@ -736,7 +821,8 @@ def receipt_pdf(request, transaction_pk):
         'patient': payment.patient,
         'appointment': payment.appointment,
         'payment_items': payment_items,
-        'subtotal': subtotal,
+        'payment_summary': payment_summary,  # ADD THIS
+        'subtotal': payment_summary['subtotal'],  # Keep for backward compatibility
         'total_discount': total_discount,
         'previous_payments_total': previous_payments_total,
         'previous_transactions': previous_transactions,
@@ -747,21 +833,13 @@ def receipt_pdf(request, transaction_pk):
     }
     
     try:
-        # Render HTML template
         html_string = render_to_string('payment/receipt_pdf.html', context)
-        
-        # Create PDF
         response = HttpResponse(content_type='application/pdf')
         filename = f'Receipt_{transaction_obj.receipt_number}.pdf'
         response['Content-Disposition'] = f'inline; filename="{filename}"'
         
-        # Generate PDF
-        pisa_status = pisa.CreatePDF(
-            html_string,
-            dest=response,
-        )
+        pisa_status = pisa.CreatePDF(html_string, dest=response)
         
-        # Check for errors
         if pisa_status.err:
             messages.error(request, 'Error generating PDF receipt. Please try again.')
             return redirect('appointments:payment_detail', pk=payment.pk)
