@@ -1,7 +1,9 @@
 # services/forms.py
 from decimal import Decimal
+from django.db import transaction
 from django import forms
-from .models import Service, Discount, ProductCategory, Product
+from .models import Service, Discount, ProductCategory, Product, ServicePresetProduct, ServicePreset
+import json
 
 class ServiceForm(forms.ModelForm):
     """Form for creating and updating services with 30-minute duration increments"""
@@ -278,3 +280,170 @@ class ProductForm(forms.ModelForm):
         if price and price < Decimal('1.00'):
             raise forms.ValidationError('Product price must be at least ₱1.00.')
         return price
+    
+
+class ServicePresetForm(forms.ModelForm):
+    """Form for creating/editing service presets"""
+    
+    # Hidden field for products JSON data
+    products_data = forms.CharField(
+        widget=forms.HiddenInput(),
+        required=False,
+        help_text="JSON data for preset products"
+    )
+    
+    class Meta:
+        model = ServicePreset
+        fields = ['name', 'service', 'description', 'is_default']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
+                'placeholder': 'e.g., Simple Extraction, Surgical Extraction'
+            }),
+            'service': forms.Select(attrs={
+                'class': 'block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
+                'rows': 2,
+                'placeholder': 'Optional description (e.g., "For complicated cases")'
+            }),
+            'is_default': forms.CheckboxInput(attrs={
+                'class': 'rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-500 focus:ring-primary-500'
+            }),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        # Only show active services
+        self.fields['service'].queryset = Service.active.all()
+        
+        # If editing, populate products_data
+        if self.instance and self.instance.pk:
+            products_list = []
+            for preset_product in self.instance.products.all().select_related('product'):
+                products_list.append({
+                    'product_id': preset_product.product.id,
+                    'product_name': preset_product.product.name,
+                    'quantity': preset_product.quantity,
+                    'notes': preset_product.notes
+                })
+            self.initial['products_data'] = json.dumps(products_list)
+        
+        # Customize labels
+        self.fields['is_default'].label = 'Set as default preset for this service'
+        self.fields['is_default'].help_text = 'Default presets auto-populate when creating treatment records'
+    
+    def clean_name(self):
+        """Validate name is not empty and trim whitespace"""
+        name = self.cleaned_data.get('name', '').strip()
+        if not name:
+            raise forms.ValidationError('Preset name is required.')
+        
+        # Check for duplicate names for this service and user
+        service = self.data.get('service')  # Use self.data instead of cleaned_data
+        if name and service and self.user:
+            existing = ServicePreset.objects.filter(
+                service_id=service,
+                created_by=self.user,
+                name__iexact=name
+            )
+            
+            # Exclude current instance if editing
+            if self.instance and self.instance.pk:
+                existing = existing.exclude(pk=self.instance.pk)
+            
+            if existing.exists():
+                raise forms.ValidationError(
+                    f'You already have a preset with this name for the selected service.'
+                )
+        
+        return name
+    
+    def clean_products_data(self):
+        """Validate and parse products JSON data"""
+        data = self.cleaned_data.get('products_data', '[]')
+        
+        try:
+            products = json.loads(data) if data else []
+        except json.JSONDecodeError:
+            raise forms.ValidationError('Invalid products data format.')
+        
+        if not products:
+            raise forms.ValidationError('At least one product must be added to the preset.')
+        
+        validated_products = []
+        
+        for idx, product_data in enumerate(products):
+            # Validate product
+            try:
+                product = Product.objects.get(pk=product_data.get('product_id'), is_active=True)
+            except Product.DoesNotExist:
+                raise forms.ValidationError(f'Invalid product #{idx + 1} selected.')
+            
+            # Validate quantity
+            try:
+                quantity = int(product_data.get('quantity', 1))
+                if quantity < 1:
+                    raise ValueError
+            except (ValueError, TypeError):
+                raise forms.ValidationError(f'Invalid quantity for {product.name}.')
+            
+            validated_products.append({
+                'product': product,
+                'quantity': quantity,
+                'notes': product_data.get('notes', '').strip()
+            })
+        
+        return validated_products
+    
+    def clean(self):
+        """Additional validation"""
+        cleaned_data = super().clean()
+        
+        # Check preset limit (only for new presets)
+        if not self.instance.pk:
+            service = cleaned_data.get('service')
+            if service and self.user:
+                existing_count = ServicePreset.objects.filter(
+                    service=service,
+                    created_by=self.user
+                ).count()
+                
+                if existing_count >= 5:
+                    raise forms.ValidationError(
+                        f'You already have 5 presets for {service.name}. '
+                        f'Please delete an existing preset before creating a new one.'
+                    )
+        
+        return cleaned_data
+    
+    def save(self, commit=True):
+        """Save preset with products"""
+        instance = super().save(commit=False)
+        
+        # CRITICAL: Set created_by for new instances BEFORE any save
+        if not instance.pk and self.user:
+            instance.created_by = self.user
+        
+        if commit:
+            with transaction.atomic():
+                instance.save()
+                
+                # Clear existing products
+                instance.products.all().delete()
+                
+                # Create new products
+                validated_products = self.cleaned_data.get('products_data', [])
+                for order, product_data in enumerate(validated_products):
+                    ServicePresetProduct.objects.create(
+                        preset=instance,
+                        product=product_data['product'],
+                        quantity=product_data['quantity'],
+                        notes=product_data['notes'],
+                        order=order
+                    )
+        
+        return instance

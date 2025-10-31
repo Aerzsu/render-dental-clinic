@@ -59,7 +59,8 @@ class AppointmentForm(forms.ModelForm):
                 'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500'
             }),
             'assigned_dentist': forms.Select(attrs={
-                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500'
+                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
+                'data-tooltip': 'assigned-dentist-tooltip'  # ✅ Add tooltip reference
             }),
         }
     
@@ -82,9 +83,24 @@ class AppointmentForm(forms.ModelForm):
         self.fields['assigned_dentist'].queryset = User.objects.filter(is_active_dentist=True).order_by('first_name', 'last_name')
         self.fields['assigned_dentist'].required = False
         
+        # ✅ UPDATED: Dynamic help text based on user type
+        if self.is_creating:
+            if self.user and self.user.is_active_dentist:
+                self.fields['assigned_dentist'].help_text = (
+                    'Pre-selected as you. Change if booking for another dentist, or clear to leave unassigned.'
+                )
+            else:
+                self.fields['assigned_dentist'].help_text = (
+                    'Optional. Leave blank to assign during check-in.'
+                )
+        else:
+            self.fields['assigned_dentist'].help_text = (
+                'Change the assigned dentist if needed.'
+            )
+        
         # Add empty labels
         self.fields['service'].empty_label = "Select a service..."
-        self.fields['assigned_dentist'].empty_label = "Select a dentist (optional)..."
+        self.fields['assigned_dentist'].empty_label = "-- Leave unassigned --"
         
         # Initialize time choices (will be populated via JavaScript based on date/service)
         self.fields['start_time'].widget.choices = [('', 'Select a date first...')]
@@ -127,7 +143,7 @@ class AppointmentForm(forms.ModelForm):
             raise ValidationError('Please select an appointment date.')
         
         # Check if date is in the future
-        if appointment_date <= timezone.now().date():
+        if appointment_date < timezone.now().date():
             raise ValidationError('Please select a future date for the appointment.')
         
         # Check if it's not a Sunday
@@ -215,7 +231,6 @@ class AppointmentForm(forms.ModelForm):
             instance.save()
         
         return instance
-
 
 class TimeSlotConfigurationForm(forms.ModelForm):
     """Form for managing daily timeslot configurations"""

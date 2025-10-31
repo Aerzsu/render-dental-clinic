@@ -294,10 +294,10 @@ class CheckInView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
         # Get today's date
         today = timezone.now().date()
         
-        # Get all appointments for today (confirmed, pending, completed)
+        # Get all appointments for today (confirmed, pending)
         appointments = Appointment.objects.filter(
             appointment_date=today,
-            status__in=['confirmed', 'pending', 'completed']
+            status__in=['confirmed', 'pending']
         ).select_related(
             'patient', 'service', 'assigned_dentist'
         ).order_by('start_time')
@@ -311,12 +311,11 @@ class CheckInView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
             # Calculate if appointment time has passed
             appt_datetime = appointment.appointment_datetime
             
-            # Check if already completed
-            if appointment.status == 'completed':
+            # Check if already checked in (has arrived_at timestamp)
+            if appointment.has_arrived:
                 checked_in.append({
                     'appointment': appointment,
-                    'checked_in_time': appointment.confirmed_at or appt_datetime,
-                    'is_completed': True
+                    'checked_in_time': appointment.arrived_at,  # ✅ Use arrived_at instead
                 })
             else:
                 upcoming.append({
@@ -324,6 +323,13 @@ class CheckInView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
                     'has_passed': appt_datetime < now,
                     'minutes_until': int((appt_datetime - now).total_seconds() / 60) if appt_datetime > now else 0
                 })
+        
+        # Get available dentists for dropdown (for non-dentist staff)
+        from users.models import User
+        available_dentists = User.objects.filter(
+            is_active_dentist=True,
+            is_active=True
+        ).order_by('first_name', 'last_name')
         
         # Get statistics
         total_today = len(appointments)
@@ -334,6 +340,7 @@ class CheckInView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
             'today': today,
             'upcoming_appointments': upcoming,
             'checked_in_appointments': checked_in,
+            'available_dentists': available_dentists,
             'total_today': total_today,
             'checked_in_count': checked_in_count,
             'remaining_count': remaining_count,
@@ -510,9 +517,6 @@ class AppointmentListView(LoginRequiredMixin, ListView):
 class AppointmentCreateView(LoginRequiredMixin, CreateView):
     """
     BACKEND VIEW: Create new appointment (staff/admin direct booking)
-    Template: appointments/appointment_form.html
-    Users: Staff, Dentist, Admin
-    Features: Patient search, timeslot selection, auto-approval
     """
     model = Appointment
     form_class = AppointmentForm
@@ -525,7 +529,7 @@ class AppointmentCreateView(LoginRequiredMixin, CreateView):
         return super().dispatch(request, *args, **kwargs)
     
     def get_initial(self):
-        """Pre-fill patient if provided via query parameter"""
+        """Pre-fill patient and dentist if provided via query parameter"""
         initial = super().get_initial()
         patient_id = self.request.GET.get('patient')
         
@@ -539,16 +543,15 @@ class AppointmentCreateView(LoginRequiredMixin, CreateView):
                     'The selected patient could not be found. Please select a patient below.'
                 )
             except ValueError:
-                # Invalid patient ID format
                 pass
         
         # Pre-fill date if provided (for walk-ins from check-in page)
         if 'date' in self.request.GET:
             initial['appointment_date'] = self.request.GET.get('date')
         
-        # Pre-fill patient if provided
-        if 'patient' in self.request.GET:
-            initial['patient'] = self.request.GET.get('patient')
+        # ✅ NEW: Pre-select current user as dentist if they're an active dentist
+        if self.request.user.is_active_dentist:
+            initial['assigned_dentist'] = self.request.user
         
         return initial
     
@@ -567,8 +570,10 @@ class AppointmentCreateView(LoginRequiredMixin, CreateView):
                     'phone': patient.contact_number or 'No phone'
                 }
             except (Patient.DoesNotExist, ValueError):
-                # Already handled in get_initial
                 pass
+        
+        # ✅ NEW: Add flag for showing assignment info
+        context['user_is_dentist'] = self.request.user.is_active_dentist
         
         return context
     
@@ -580,33 +585,56 @@ class AppointmentCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         try:
             with transaction.atomic():
+                appointment = form.instance
+                
                 # Auto-approve staff bookings
                 if self.request.user.has_permission('appointments'):
-                    form.instance.status = 'confirmed'
-                    form.instance.confirmed_at = timezone.now()
-                    form.instance.confirmed_by = self.request.user
-                    
-                    # Auto-assign dentist if not specified
-                    if not form.instance.assigned_dentist:
-                        available_dentist = User.objects.filter(is_active_dentist=True).first()
-                        if available_dentist:
-                            form.instance.assigned_dentist = available_dentist
+                    appointment.status = 'confirmed'
+                    appointment.confirmed_at = timezone.now()
+                    appointment.confirmed_by = self.request.user
+                
+                # ✅ REFINED: No random assignment - only explicit selection or unassigned
+                # Pre-selection in get_initial handles dentist auto-assignment
+                # If they clear it, it stays None (will be assigned during check-in/treatment)
                 
                 response = super().form_valid(form)
                 
-                # Log the action
+                # Determine assignment method for logging
+                if appointment.assigned_dentist:
+                    if self.request.user.is_active_dentist and appointment.assigned_dentist == self.request.user:
+                        assignment_method = "assigned to creator"
+                    else:
+                        assignment_method = f"assigned to Dr. {appointment.assigned_dentist.get_full_name()}"
+                else:
+                    assignment_method = "unassigned (will assign during check-in)"
+                
+                # Log the action with assignment details
+                changes = {
+                    'status': appointment.status,
+                    'assigned_dentist': appointment.assigned_dentist.get_full_name() if appointment.assigned_dentist else 'Unassigned'
+                }
+                
                 AuditLog.log_action(
                     user=self.request.user,
                     action='create',
-                    model_instance=form.instance,
-                    changes={'status': form.instance.status},
+                    model_instance=appointment,
+                    changes=changes,
+                    description=f"Created appointment ({assignment_method})",
                     request=self.request
                 )
                 
-                messages.success(
-                    self.request, 
-                    f'Appointment for {form.instance.patient.full_name} on {form.instance.appointment_date.strftime("%B %d, %Y")} at {form.instance.start_time.strftime("%I:%M %p")} created successfully.'
+                # Success message with assignment info
+                success_msg = (
+                    f'Appointment for {appointment.patient.full_name} on '
+                    f'{appointment.appointment_date.strftime("%B %d, %Y")} at '
+                    f'{appointment.start_time.strftime("%I:%M %p")} created successfully.'
                 )
+                
+                if not appointment.assigned_dentist:
+                    success_msg += ' Dentist will be assigned during check-in.'
+                
+                messages.success(self.request, success_msg)
+                
                 return response
                 
         except ValidationError as e:
@@ -618,7 +646,6 @@ class AppointmentCreateView(LoginRequiredMixin, CreateView):
     
     def get_success_url(self):
         return reverse_lazy('appointments:appointment_list')
-
 
 class AppointmentDetailView(LoginRequiredMixin, DetailView):
     """
@@ -716,19 +743,103 @@ class AppointmentUpdateView(LoginRequiredMixin, UpdateView):
         return kwargs
     
     def form_valid(self, form):
-        # Log the changes
-        AuditLog.log_action(
-            user=self.request.user,
-            action='update',
-            model_instance=form.instance,
-            request=self.request
-        )
-        
-        messages.success(
-            self.request,
-            f'Appointment for {form.instance.patient.full_name} updated successfully.'
-        )
-        return super().form_valid(form)
+        try:
+            with transaction.atomic():
+                appointment = form.instance
+                old_appointment = Appointment.objects.get(pk=appointment.pk)
+                
+                # Track what changed for audit log
+                changes = {}
+                
+                # Status change
+                if old_appointment.status != appointment.status:
+                    changes['status'] = {
+                        'old': old_appointment.get_status_display(),
+                        'new': appointment.get_status_display(),
+                        'label': 'Status'
+                    }
+                
+                # Assigned dentist change
+                if old_appointment.assigned_dentist != appointment.assigned_dentist:
+                    changes['assigned_dentist'] = {
+                        'old': old_appointment.assigned_dentist.get_full_name() if old_appointment.assigned_dentist else 'Unassigned',
+                        'new': appointment.assigned_dentist.get_full_name() if appointment.assigned_dentist else 'Unassigned',
+                        'label': 'Assigned Dentist'
+                    }
+                
+                # Date change
+                if old_appointment.appointment_date != appointment.appointment_date:
+                    changes['appointment_date'] = {
+                        'old': old_appointment.appointment_date.strftime('%B %d, %Y'),
+                        'new': appointment.appointment_date.strftime('%B %d, %Y'),
+                        'label': 'Date'
+                    }
+                
+                # Time change
+                if old_appointment.start_time != appointment.start_time:
+                    changes['start_time'] = {
+                        'old': old_appointment.start_time.strftime('%I:%M %p'),
+                        'new': appointment.start_time.strftime('%I:%M %p'),
+                        'label': 'Start Time'
+                    }
+                
+                # Service change
+                if old_appointment.service != appointment.service:
+                    changes['service'] = {
+                        'old': old_appointment.service.name,
+                        'new': appointment.service.name,
+                        'label': 'Service'
+                    }
+                
+                # Patient type change
+                if old_appointment.patient_type != appointment.patient_type:
+                    changes['patient_type'] = {
+                        'old': old_appointment.get_patient_type_display(),
+                        'new': appointment.get_patient_type_display(),
+                        'label': 'Patient Type'
+                    }
+                
+                # Reason change
+                if old_appointment.reason != appointment.reason:
+                    changes['reason'] = {
+                        'old': old_appointment.reason or '(empty)',
+                        'new': appointment.reason or '(empty)',
+                        'label': 'Reason'
+                    }
+                
+                # Staff notes change
+                if old_appointment.staff_notes != appointment.staff_notes:
+                    changes['staff_notes'] = {
+                        'old': old_appointment.staff_notes or '(empty)',
+                        'new': appointment.staff_notes or '(empty)',
+                        'label': 'Staff Notes'
+                    }
+                
+                response = super().form_valid(form)
+                
+                # Log the changes if any occurred
+                if changes:
+                    AuditLog.log_action(
+                        user=self.request.user,
+                        action='update',
+                        model_instance=appointment,
+                        changes=changes,
+                        description=f"Updated appointment for {appointment.patient.full_name}",
+                        request=self.request
+                    )
+                
+                messages.success(
+                    self.request,
+                    f'Appointment for {appointment.patient.full_name} updated successfully.'
+                )
+                return response
+                
+        except ValidationError as e:
+            form.add_error(None, str(e))
+            return self.form_invalid(form)
+        except Exception as e:
+            messages.error(self.request, f'Error updating appointment: {str(e)}')
+            return self.form_invalid(form)
     
     def get_success_url(self):
         return reverse_lazy('appointments:appointment_detail', kwargs={'pk': self.object.pk})
@@ -736,10 +847,19 @@ class AppointmentUpdateView(LoginRequiredMixin, UpdateView):
 # ============================================================================
 # SECTION 5: BACKEND - APPOINTMENT ACTIONS
 # ============================================================================
+
 @login_required
 @require_POST
 def mark_patient_arrived(request, pk):
-    """ACTION VIEW: Mark patient as arrived - HTMX compatible"""
+    """
+    ACTION VIEW: Mark patient as arrived - HTMX compatible
+    
+    Workflow:
+    1. Mark patient as arrived (sets arrived_at timestamp)
+    2. Auto-assign first active dentist if user is a dentist
+    3. Show dentist dropdown if user is non-dentist staff
+    4. Status stays 'confirmed' - only changes to 'completed' after treatment
+    """
     if not request.user.has_permission('appointments'):
         if request.headers.get('HX-Request'):
             return HttpResponse('<div class="text-red-600">Permission denied</div>', status=403)
@@ -749,50 +869,113 @@ def mark_patient_arrived(request, pk):
     try:
         appointment = get_object_or_404(Appointment, pk=pk)
         
-        # Only mark as arrived if appointment is today
+        # Only allow check-in for today's appointments
         if appointment.appointment_date != timezone.now().date():
             if request.headers.get('HX-Request'):
-                return HttpResponse('<div class="text-yellow-600">Can only mark today\'s appointments</div>')
-            messages.error(request, 'Can only mark today\'s appointments as arrived.')
+                return HttpResponse('<div class="text-yellow-600">Can only check in today\'s appointments</div>')
+            messages.error(request, 'Can only check in today\'s appointments.')
             return redirect('appointments:check_in')
         
-        # Update status if not already completed
-        if appointment.status != 'completed':
-            old_status = appointment.status
-            
-            # Mark as completed (patient arrived and service provided)
-            appointment.status = 'completed'
-            appointment.save()
-            
-            # Log the action
-            AuditLog.log_action(
-                user=request.user,
-                action='update',
-                model_instance=appointment,
-                changes={
-                    'status': {'old': old_status, 'new': 'completed', 'label': 'Status'}
-                },
-                description=f"Marked patient {appointment.patient_name} as arrived and completed check-in",
-                request=request
+        # Only allow check-in for confirmed or pending appointments
+        if appointment.status not in ['confirmed', 'pending']:
+            if request.headers.get('HX-Request'):
+                return HttpResponse(f'<div class="text-yellow-600">Cannot check in {appointment.get_status_display()} appointment</div>')
+            messages.error(request, f'Cannot check in {appointment.get_status_display()} appointment.')
+            return redirect('appointments:check_in')
+        
+        # Check if already checked in
+        if appointment.has_arrived:
+            if request.headers.get('HX-Request'):
+                return HttpResponse('<div class="text-yellow-600">Patient already checked in</div>')
+            messages.info(request, 'Patient already checked in.')
+            return redirect('appointments:check_in')
+        
+        # Mark as arrived
+        appointment.mark_arrived(checked_in_by=request.user)
+        
+        # Handle dentist assignment
+        dentist_assigned = False
+        assigned_dentist_name = None
+        
+        # If user is an active dentist, auto-assign them
+        if request.user.is_active_dentist and not appointment.assigned_dentist:
+            try:
+                appointment.assign_dentist(request.user, assigned_by=request.user)
+                dentist_assigned = True
+                assigned_dentist_name = request.user.get_full_name()
+            except ValueError:
+                pass  # Shouldn't happen, but fail gracefully
+        
+        # If user is not a dentist, check for manual assignment from form
+        elif not request.user.is_active_dentist and not appointment.assigned_dentist:
+            assigned_dentist_id = request.POST.get('assigned_dentist')
+            if assigned_dentist_id:
+                try:
+                    from users.models import User
+                    dentist = User.objects.get(pk=assigned_dentist_id, is_active_dentist=True)
+                    appointment.assign_dentist(dentist, assigned_by=request.user)
+                    dentist_assigned = True
+                    assigned_dentist_name = dentist.get_full_name()
+                except (User.DoesNotExist, ValueError):
+                    pass  # Invalid dentist selected
+        
+        # Log the action
+        changes = {
+            'arrived_at': {
+                'old': None,
+                'new': appointment.arrived_at.strftime('%I:%M %p'),
+                'label': 'Arrival Time'
+            }
+        }
+        
+        if dentist_assigned:
+            changes['assigned_dentist'] = {
+                'old': None,
+                'new': f'Dr. {assigned_dentist_name}',
+                'label': 'Assigned Dentist'
+            }
+        
+        description = f"Patient {appointment.patient_name} checked in"
+        if dentist_assigned:
+            description += f" and assigned to Dr. {assigned_dentist_name}"
+        
+        AuditLog.log_action(
+            user=request.user,
+            action='check_in',
+            model_instance=appointment,
+            changes=changes,
+            description=description,
+            request=request
+        )
+        
+        # HTMX Response
+        if request.headers.get('HX-Request'):
+            response = HttpResponse()
+            response['HX-Redirect'] = request.META.get('HTTP_REFERER', reverse('appointments:check_in'))
+            return response
+        
+        # Success message
+        if dentist_assigned:
+            messages.success(
+                request, 
+                f'Patient {appointment.patient_name} checked in and assigned to Dr. {assigned_dentist_name}.'
             )
-            
-            # HTMX Response
-            if request.headers.get('HX-Request'):
-                # Return updated check-in page section
-                response = HttpResponse()
-                response['HX-Redirect'] = request.META.get('HTTP_REFERER', reverse('appointments:check_in'))
-                return response
-            
-            messages.success(request, f'Patient {appointment.patient_name} marked as arrived.')
+        elif not appointment.assigned_dentist:
+            messages.success(
+                request,
+                f'Patient {appointment.patient_name} checked in. Dentist assignment pending.'
+            )
+            messages.info(request, '⚠️ No dentist assigned yet. Please assign one.')
         else:
-            if request.headers.get('HX-Request'):
-                return HttpResponse('<div class="text-yellow-600">Already checked in</div>')
-            messages.info(request, 'Patient already marked as arrived.')
+            messages.success(
+                request,
+                f'Patient {appointment.patient_name} checked in.'
+            )
         
     except Exception as e:
         if request.headers.get('HX-Request'):
             return HttpResponse(f'<div class="text-red-600">Error: {str(e)}</div>', status=500)
-        messages.error(request, f'Error marking patient as arrived: {str(e)}')
+        messages.error(request, f'Error checking in patient: {str(e)}')
     
     return redirect('appointments:check_in')
 
@@ -1915,52 +2098,71 @@ get_slot_availability_api = get_timeslot_availability_api
 def update_treatment_record_notes(request, appointment_pk):
     """
     Update treatment record clinical notes via AJAX
-    Only the assigned dentist can edit
+    
+    Permissions:
+    - If no dentist assigned: Any active dentist can edit (auto-assigns on save)
+    - If dentist assigned: Only that dentist can edit
     """
     if not request.user.has_permission('patients'):
         return JsonResponse({'error': 'Permission denied'}, status=403)
     
-    appointment = get_object_or_404(
-        Appointment.objects.select_related('assigned_dentist', 'treatment_record'),
-        pk=appointment_pk
-    )
-    
-    # Check if appointment has a treatment record
-    if not hasattr(appointment, 'treatment_record'):
-        return JsonResponse({
-            'error': 'No treatment record found. Treatment records are created when appointments are confirmed.'
-        }, status=400)
-    
-    treatment_record = appointment.treatment_record
-    
-    # Permission check: Only assigned dentist can edit
-    if not treatment_record.can_edit(request.user):
-        return JsonResponse({
-            'error': 'Only the assigned dentist can edit clinical notes for this appointment.'
-        }, status=403)
+    # Use select_for_update to prevent race conditions
+    from django.db import transaction
     
     try:
-        data = json.loads(request.body)
-        clinical_notes = data.get('clinical_notes', '').strip()
-        
-        # Update clinical notes
-        treatment_record.clinical_notes = clinical_notes
-        treatment_record.last_modified_by = request.user
-        treatment_record.save(update_fields=['clinical_notes', 'last_modified_by', 'updated_at'])
-        
-        return JsonResponse({
-            'success': True,
-            'message': 'Clinical notes updated successfully',
-            'clinical_notes': clinical_notes,
-            'last_modified_by': request.user.get_full_name() or request.user.username,
-            'updated_at': treatment_record.updated_at.strftime('%b %d, %Y at %I:%M %p')
-        })
-        
+        with transaction.atomic():
+            appointment = Appointment.objects.select_for_update().select_related(
+                'assigned_dentist', 'treatment_record'
+            ).get(pk=appointment_pk)
+            
+            # Check if appointment has a treatment record
+            if not hasattr(appointment, 'treatment_record'):
+                return JsonResponse({
+                    'error': 'No treatment record found. Treatment records are created when appointments are confirmed.'
+                }, status=400)
+            
+            treatment_record = appointment.treatment_record
+            
+            # Permission check
+            if not treatment_record.can_edit(request.user):
+                if appointment.assigned_dentist:
+                    return JsonResponse({
+                        'error': f'Only Dr. {appointment.assigned_dentist.get_full_name()} can edit clinical notes for this appointment.'
+                    }, status=403)
+                else:
+                    return JsonResponse({
+                        'error': 'Only active dentists can edit clinical notes.'
+                    }, status=403)
+            
+            # ✅ Auto-assign dentist if not assigned and user is active dentist
+            if request.user.is_active_dentist and not appointment.assigned_dentist:
+                appointment.assign_dentist(request.user, assigned_by=request.user)
+                # Refresh to get updated data
+                appointment.refresh_from_db()
+            
+            # Parse and update clinical notes
+            data = json.loads(request.body)
+            clinical_notes = data.get('clinical_notes', '').strip()
+            
+            treatment_record.clinical_notes = clinical_notes
+            treatment_record.last_modified_by = request.user
+            treatment_record.save(update_fields=['clinical_notes', 'last_modified_by', 'updated_at'])
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Clinical notes updated successfully',
+                'clinical_notes': clinical_notes,
+                'last_modified_by': request.user.get_full_name() or request.user.username,
+                'updated_at': treatment_record.updated_at.strftime('%b %d, %Y at %I:%M %p'),
+                'assigned_dentist': appointment.assigned_dentist.get_full_name() if appointment.assigned_dentist else 'Not assigned'
+            })
+            
     except json.JSONDecodeError:
         return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+    except Appointment.DoesNotExist:
+        return JsonResponse({'error': 'Appointment not found'}, status=404)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-
 
 @login_required
 def get_treatment_record_notes(request, appointment_pk):
@@ -2021,14 +2223,21 @@ def get_treatment_record_notes(request, appointment_pk):
 
 @login_required
 def treatment_record_view(request, appointment_pk):
-    """View/Create/Update treatment record for an appointment"""
+    """
+    View/Create/Update treatment record for an appointment
+    
+    Permissions:
+    - View: Anyone with 'patients' permission
+    - Edit (no dentist assigned): Any active dentist (auto-assigns on save)
+    - Edit (dentist assigned): Only that assigned dentist
+    """
     appointment = get_object_or_404(
         Appointment.objects.select_related('patient', 'service', 'assigned_dentist'),
         pk=appointment_pk
     )
     
-    # Check permissions
-    if not hasattr(request.user, 'has_permission') or not request.user.has_permission('appointments'):
+    # Check view permissions
+    if not hasattr(request.user, 'has_permission') or not request.user.has_permission('patients'):
         messages.error(request, 'You do not have permission to access this page.')
         return redirect('core:dashboard')
     
@@ -2039,13 +2248,35 @@ def treatment_record_view(request, appointment_pk):
     except TreatmentRecord.DoesNotExist:
         pass
     
-    # Check if user can edit (only assigned dentist or admin)
-    can_edit = request.user.is_superuser or appointment.assigned_dentist == request.user
+    # Check if user can edit
+    can_edit = False
+    assignment_warning = None
     
-    if not can_edit and treatment_record:
-        messages.warning(request, 'Only the assigned dentist can edit treatment notes.')
-        return redirect('appointments:appointment_detail', pk=appointment.pk)
+    if treatment_record:
+        can_edit = treatment_record.can_edit(request.user)
+        
+        # If can't edit, show appropriate message
+        if not can_edit:
+            if appointment.assigned_dentist:
+                assignment_warning = f"Only Dr. {appointment.assigned_dentist.get_full_name()} can edit this treatment record."
+            elif not request.user.is_active_dentist:
+                assignment_warning = "Only active dentists can edit treatment records."
+    else:
+        # For new records, check if user is an active dentist or has billing permission
+        if request.user.is_active_dentist or (hasattr(request.user, 'has_permission') and request.user.has_permission('billing')):
+            can_edit = True
+        else:
+            assignment_warning = "Only active dentists can create treatment records."
     
+    # Show assignment info banner
+    assignment_info = None
+    if can_edit and request.user.is_active_dentist:
+        if not appointment.assigned_dentist:
+            assignment_info = "You will be assigned as the dentist for this appointment when you save."
+        elif appointment.assigned_dentist == request.user:
+            assignment_info = f"You are the assigned dentist for this appointment."
+    
+    # Handle form submission
     if request.method == 'POST':
         if not can_edit:
             messages.error(request, 'You do not have permission to edit this treatment record.')
@@ -2060,9 +2291,40 @@ def treatment_record_view(request, appointment_pk):
         
         if form.is_valid():
             try:
-                treatment_record = form.save()
-                messages.success(request, 'Treatment notes saved successfully.')
-                return redirect('appointments:appointment_detail', pk=appointment.pk)
+                with transaction.atomic():
+                    # Auto-assign dentist if not assigned (with race condition protection)
+                    assignment_failed = False
+                    assigned_to_other = None
+                    
+                    if request.user.is_active_dentist and not appointment.assigned_dentist:
+                        # Use select_for_update to prevent race conditions
+                        locked_appointment = Appointment.objects.select_for_update().get(pk=appointment.pk)
+                        
+                        if not locked_appointment.assigned_dentist:
+                            # Still no dentist, assign to current user
+                            locked_appointment.assign_dentist(request.user, assigned_by=request.user)
+                            # Refresh local instance
+                            appointment.refresh_from_db()
+                        elif locked_appointment.assigned_dentist != request.user:
+                            # Someone else got assigned in the meantime
+                            assignment_failed = True
+                            assigned_to_other = locked_appointment.assigned_dentist
+                    
+                    # If assignment failed (race condition), abort save
+                    if assignment_failed:
+                        messages.error(
+                            request,
+                            f'Dr. {assigned_to_other.get_full_name()} was assigned to this appointment '
+                            f'while you were editing. Please coordinate with them.'
+                        )
+                        return redirect('appointments:appointment_detail', pk=appointment.pk)
+                    
+                    # Save treatment record
+                    treatment_record = form.save()
+                    
+                    messages.success(request, 'Treatment notes saved successfully.')
+                    return redirect('appointments:appointment_detail', pk=appointment.pk)
+                    
             except Exception as e:
                 messages.error(request, f'Error saving treatment notes: {str(e)}')
         else:
@@ -2110,6 +2372,8 @@ def treatment_record_view(request, appointment_pk):
         'treatment_record': treatment_record,
         'form': form,
         'can_edit': can_edit,
+        'assignment_warning': assignment_warning,
+        'assignment_info': assignment_info,
         'services_json': json.dumps(services_data),
         'products_json': json.dumps(products_data),
         'categories_json': json.dumps(categories_data),
@@ -2117,7 +2381,6 @@ def treatment_record_view(request, appointment_pk):
     }
     
     return render(request, 'appointments/treatment_record_form.html', context)
-
 
 @login_required
 def delete_treatment_record(request, appointment_pk):
@@ -2157,3 +2420,6 @@ def delete_treatment_record(request, appointment_pk):
         return redirect('appointments:appointment_detail', pk=appointment.pk)
     
     return redirect('appointments:appointment_detail', pk=appointment.pk)
+
+
+# asd

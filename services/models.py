@@ -95,7 +95,6 @@ class Service(models.Model):
         """Get duration in hours (as decimal)"""
         return self.duration_minutes / 60
 
-
 class Discount(models.Model):
     name = models.CharField(max_length=100)
     amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
@@ -245,7 +244,179 @@ class Product(models.Model):
         """Display status in user-friendly format"""
         return "Active" if self.is_active else "Inactive"
 
+class ServicePreset(models.Model):
+    """
+    Template/preset for a service with predefined products
+    Allows dentists to save common product combinations for faster documentation
+    PRIVATE: Each dentist sees only their own presets
+    """
+    name = models.CharField(
+        max_length=200,
+        help_text="Preset name (e.g., 'Simple Extraction', 'Surgical Extraction')"
+    )
+    service = models.ForeignKey(
+        Service,
+        on_delete=models.CASCADE,
+        related_name='presets',
+        help_text="Service this preset applies to"
+    )
+    created_by = models.ForeignKey(
+        'users.User',
+        on_delete=models.CASCADE,
+        related_name='service_presets',
+        help_text="Dentist who owns this preset (private)"
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="Optional description (e.g., 'For complicated cases requiring sutures')"
+    )
+    is_default = models.BooleanField(
+        default=False,
+        help_text="Auto-apply this preset when service is selected in treatment record"
+    )
+    
+    # Audit
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['-is_default', 'name']
+        indexes = [
+            models.Index(fields=['service', 'created_by'], name='preset_svc_user_idx'),
+            models.Index(fields=['created_by'], name='preset_user_idx'),
+        ]
+        # Ensure unique default per service per user
+        constraints = [
+            models.UniqueConstraint(
+                fields=['service', 'created_by'],
+                condition=models.Q(is_default=True),
+                name='unique_default_preset_per_service_per_user'
+            )
+        ]
+    
+    def __str__(self):
+        return f"{self.name} - {self.service.name} ({self.created_by.full_name})"
+    
+    def clean(self):
+        """Model-level validation"""
+        # Skip validation if created_by is not set yet (will be validated in form)
+        if not self.created_by_id:
+            return
+        
+        # Check preset limit per service per user (max 5)
+        if not self.pk:  # Only for new presets
+            existing_count = ServicePreset.objects.filter(
+                service=self.service,
+                created_by_id=self.created_by_id
+            ).count()
+            
+            if existing_count >= 5:
+                raise ValidationError(
+                    f'You already have 5 presets for {self.service.name}. '
+                    f'Please delete an existing preset before creating a new one.'
+                )
+        
+        # Validate name uniqueness per service per user
+        existing = ServicePreset.objects.filter(
+            service=self.service,
+            created_by_id=self.created_by_id,
+            name__iexact=self.name
+        )
+        if self.pk:
+            existing = existing.exclude(pk=self.pk)
+        
+        if existing.exists():
+            raise ValidationError({
+                'name': f'You already have a preset named "{self.name}" for {self.service.name}.'
+            })
+    
+    def save(self, *args, **kwargs):
+        # If setting as default, unset other defaults for this service/user
+        if self.is_default:
+            ServicePreset.objects.filter(
+                service=self.service,
+                created_by=self.created_by,
+                is_default=True
+            ).exclude(pk=self.pk).update(is_default=False)
+        
+        super().save(*args, **kwargs)
+    
+    @property
+    def products_count(self):
+        """Get count of products in this preset"""
+        return self.products.count()
+    
+    @property
+    def products_summary(self):
+        """Get brief summary of products (first 3)"""
+        products = self.products.select_related('product')[:3]
+        names = [f"{p.product.name} x{p.quantity}" for p in products]
+        
+        if self.products_count > 3:
+            names.append(f"+{self.products_count - 3} more")
+        
+        return ", ".join(names) if names else "No products"
+    
+    def can_delete(self):
+        """Check if preset can be deleted (always yes, no dependencies)"""
+        return True
+    
+    def get_products_data(self):
+        """Get products data in format suitable for frontend"""
+        products_data = []
+        for preset_product in self.products.select_related('product'):
+            products_data.append({
+                'product_id': preset_product.product.id,
+                'product_name': preset_product.product.name,
+                'quantity': preset_product.quantity,
+                'notes': preset_product.notes
+            })
+        return products_data
 
-# Add to existing Payment model's related name setup (for future use)
-# This creates the relationship without modifying Payment model structure
-# The PaymentItemProduct model will be created in Phase 2 (Payment Integration)
+
+class ServicePresetProduct(models.Model):
+    """
+    Products included in a service preset
+    Junction table between ServicePreset and Product
+    """
+    preset = models.ForeignKey(
+        ServicePreset,
+        on_delete=models.CASCADE,
+        related_name='products',
+        help_text="Parent preset"
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.PROTECT,
+        help_text="Product to include in preset"
+    )
+    quantity = models.PositiveIntegerField(
+        default=1,
+        validators=[MinValueValidator(1)],
+        help_text="Default quantity"
+    )
+    notes = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Optional notes about this product in this preset"
+    )
+    order = models.PositiveIntegerField(
+        default=0,
+        help_text="Display order"
+    )
+    
+    class Meta:
+        ordering = ['order', 'product__name']
+        unique_together = ['preset', 'product']
+        indexes = [
+            models.Index(fields=['preset'], name='preset_prod_preset_idx'),
+        ]
+    
+    def __str__(self):
+        return f"{self.product.name} x{self.quantity} ({self.preset.name})"
+    
+    def clean(self):
+        """Model-level validation"""
+        if self.quantity < 1:
+            raise ValidationError('Quantity must be at least 1.')
+

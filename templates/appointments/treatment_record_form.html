@@ -90,16 +90,26 @@
                         <div id="servicesContainer" class="space-y-6">
                             <!-- Services will be dynamically added here -->
                         </div>
-                        
+
                         <!-- Add Service Button -->
-                        <div class="mt-6 pt-4 border-t border-gray-200">
+                        <div class="mt-6 pt-4 border-t border-gray-200 flex items-center justify-between">
                             <button type="button" id="addServiceBtn" 
-                                    class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                                    class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                                 <svg class="-ml-0.5 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                 </svg>
                                 Add Another Service
                             </button>
+                            
+                            <!-- Manage Presets Button -->
+                            <a href="{% url 'services:preset_list' %}?return_to={{ request.path }}" 
+                            class="inline-flex items-center px-4 py-2 border border-primary-600 shadow-sm text-sm font-medium rounded-md text-primary-700 bg-white hover:bg-primary-50">
+                                <svg class="-ml-0.5 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                Manage My Presets
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -301,7 +311,12 @@ function createServiceHtml(service, index) {
             <div class="space-y-4">
                 <!-- Service Selection -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Service Performed <span class="text-red-500">*</span></label>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-sm font-medium text-gray-700">Service Performed <span class="text-red-500">*</span></label>
+                        <button type="button" class="load-preset-btn text-xs text-primary-600 hover:text-primary-800 font-medium" data-index="${index}">
+                            Load Preset ↓
+                        </button>
+                    </div>
                     <select class="service-select block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" data-index="${index}">
                         <option value="">Select service...</option>
                         ${serviceOptions}
@@ -380,6 +395,12 @@ function attachServiceListeners(index) {
         }
     });
     
+    // Load preset button
+    const loadPresetBtn = item.querySelector('.load-preset-btn');
+    if (loadPresetBtn) {
+        loadPresetBtn.addEventListener('click', () => loadPresetForService(index));
+    }
+
     // Service notes
     const notesTextarea = item.querySelector('.service-notes');
     notesTextarea.addEventListener('input', function() {
@@ -398,6 +419,117 @@ function attachServiceListeners(index) {
     
     // Attach product listeners
     attachProductListeners(index);
+}
+
+async function loadPresetForService(serviceIndex) {
+    const service = servicesData[serviceIndex];
+    
+    if (!service.service_id) {
+        alert('Please select a service first.');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/services/api/presets/service/${service.service_id}/`);
+        const data = await response.json();
+        
+        if (!data.success || !data.presets || data.presets.length === 0) {
+            alert(`No presets found for ${service.service_name}.\n\nCreate presets via "Manage My Presets" to save time on future treatments.`);
+            return;
+        }
+        
+        // Show preset selection modal
+        showPresetSelectionModal(serviceIndex, data.presets, data.service_name);
+        
+    } catch (error) {
+        console.error('Error loading presets:', error);
+        alert('Error loading presets. Please try again.');
+    }
+}
+
+function showPresetSelectionModal(serviceIndex, presets, serviceName) {
+    // Create modal HTML
+    const presetsHtml = presets.map(preset => `
+        <div class="preset-option p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition-colors" 
+             data-preset-id="${preset.id}"
+             onclick="applyPreset(${serviceIndex}, ${JSON.stringify(preset).replace(/"/g, '&quot;')})">
+            <div class="flex items-center justify-between">
+                <div class="flex-1">
+                    <h4 class="font-semibold text-gray-900">${preset.name}</h4>
+                    ${preset.description ? `<p class="text-sm text-gray-600 mt-1">${preset.description}</p>` : ''}
+                    <p class="text-xs text-gray-500 mt-2">${preset.products.length} product(s)</p>
+                </div>
+                ${preset.is_default ? '<span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">★ Default</span>' : ''}
+            </div>
+        </div>
+    `).join('');
+    
+    const modalHtml = `
+        <div id="presetModal" class="fixed inset-0 z-50 overflow-y-auto">
+            <div class="flex items-center justify-center min-h-screen px-4">
+                <div class="fixed inset-0 bg-black opacity-50" onclick="closePresetModal()"></div>
+                <div class="relative bg-white rounded-lg max-w-2xl w-full p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-medium text-gray-900">Load Preset for ${serviceName}</h3>
+                        <button onclick="closePresetModal()" class="text-gray-400 hover:text-gray-600">
+                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="space-y-3 max-h-96 overflow-y-auto">
+                        ${presetsHtml}
+                    </div>
+                    <div class="mt-6 flex justify-between items-center text-sm text-gray-600">
+                        <p>Click a preset to apply its products</p>
+                        <a href="/services/presets/?service=${servicesData[serviceIndex].service_id}&return_to=${encodeURIComponent(window.location.pathname)}" 
+                           class="text-primary-600 hover:text-primary-800 font-medium">
+                            Manage Presets →
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+}
+
+function closePresetModal() {
+    const modal = document.getElementById('presetModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+function applyPreset(serviceIndex, preset) {
+    // Apply preset products to service
+    servicesData[serviceIndex].products = preset.products.map(p => ({
+        product_id: p.product_id,
+        product_name: p.product_name,
+        quantity: p.quantity,
+        notes: p.notes || ''
+    }));
+    
+    // Re-render to show updated products
+    renderServices();
+    
+    // Close modal
+    closePresetModal();
+    
+    // Show success message
+    const successMsg = document.createElement('div');
+    successMsg.className = 'fixed top-4 right-4 bg-green-50 border-l-4 border-green-400 p-4 rounded shadow-lg z-50';
+    successMsg.innerHTML = `
+        <div class="flex items-center">
+            <svg class="h-5 w-5 text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            <p class="text-sm font-medium text-green-800">Preset "${preset.name}" applied! You can adjust quantities as needed.</p>
+        </div>
+    `;
+    document.body.appendChild(successMsg);
+    setTimeout(() => successMsg.remove(), 4000);
 }
 
 function attachProductListeners(serviceIndex) {
@@ -543,6 +675,8 @@ function removeProduct(serviceIndex, productIndex) {
     
     updateHiddenField();
 }
+
+
 
 function handleSubmit(e) {
     updateHiddenField();

@@ -291,6 +291,12 @@ class Appointment(models.Model):
         ('new', 'New Patient'),
         ('existing', 'Existing Patient'),
     ]
+
+    arrived_at = models.DateTimeField(
+        null=True, 
+        blank=True,
+        help_text="Timestamp when patient checked in/arrived"
+    )
     
     # Define blocking statuses as a class attribute
     BLOCKING_STATUSES = ['pending', 'confirmed', 'completed']
@@ -354,6 +360,7 @@ class Appointment(models.Model):
             models.Index(fields=['requested_at'], name='appt_requested_idx'),
             models.Index(fields=['temp_email'], name='appt_temp_email_idx'),
             models.Index(fields=['temp_contact_number'], name='appt_temp_contact_idx'),
+            models.Index(fields=['arrived_at'], name='appt_arrived_at_idx'),
         ]
 
     def __str__(self):
@@ -533,6 +540,62 @@ class Appointment(models.Model):
         # All checks passed
         return True, "All auto-approval criteria met"
     
+    @property
+    def has_arrived(self):
+        """Check if patient has checked in"""
+        return self.arrived_at is not None
+    
+    # ADD THIS NEW METHOD
+    def mark_arrived(self, checked_in_by=None):
+        """
+        Mark patient as arrived (check-in)
+        Does not change status - status changes to 'completed' only after treatment
+        """
+        if not self.arrived_at:
+            self.arrived_at = timezone.now()
+            self.save(update_fields=['arrived_at', 'updated_at'])
+            return True
+        return False
+    
+    # ADD THIS NEW METHOD
+    def assign_dentist(self, dentist, assigned_by=None):
+        """
+        Assign a dentist to this appointment
+        Can be called during check-in or when dentist opens treatment record
+        
+        Args:
+            dentist: User object with is_active_dentist=True
+            assigned_by: User who performed the assignment (optional, for audit)
+        
+        Returns:
+            bool: True if assigned successfully, False if already assigned
+        
+        Raises:
+            ValueError: If dentist is not an active dentist
+        """
+        # Validate dentist
+        if not dentist.is_active_dentist:
+            raise ValueError(f"{dentist.get_full_name()} is not an active dentist")
+        
+        # Only assign if not already assigned
+        if not self.assigned_dentist:
+            self.assigned_dentist = dentist
+            self.save(update_fields=['assigned_dentist', 'updated_at'])
+            
+            # Create audit log if assigned_by provided
+            if assigned_by:
+                from core.models import AuditLog
+                AuditLog.objects.create(
+                    user=assigned_by,
+                    action='assign_dentist',
+                    model_name='Appointment',
+                    object_id=self.pk,
+                    details=f"Assigned dentist: Dr. {dentist.get_full_name()}"
+                )
+            
+            return True
+        return False
+
     def auto_approve_if_eligible(self, default_dentist=None):
         """
         Auto-approve appointment if it meets criteria
@@ -570,9 +633,15 @@ class Appointment(models.Model):
                 
                 # Use approve method which handles patient creation and treatment record
                 assigned_dentist = default_dentist or User.objects.filter(is_active_dentist=True).first()
-                self.approve(approved_by_user=system_user, assigned_dentist=assigned_dentist)
+                self.approve(
+                    approved_by_user=system_user, 
+                    assigned_dentist=default_dentist  # Can be None
+                )
                 
-                return True, f"Auto-approved and assigned to {assigned_dentist.full_name if assigned_dentist else 'dentist'}"
+                if default_dentist:
+                    return True, f"Auto-approved and assigned to Dr. {default_dentist.full_name}"
+                else:
+                    return True, "Auto-approved successfully. Dentist will be assigned during check-in."
                 
         except Exception as e:
             return False, f"Auto-approval failed: {str(e)}"
@@ -655,6 +724,13 @@ class Appointment(models.Model):
         if not self.patient and not (self.temp_first_name and self.temp_last_name and self.temp_email):
             raise ValidationError('Either patient must be linked or temporary patient data must be provided.')
         
+        # Prevent 'did_not_arrive' if patient has arrived
+        if self.status == 'did_not_arrive' and self.arrived_at:
+            raise ValidationError(
+                'Cannot mark as "Did Not Arrive" because patient already checked in at '
+                f'{self.arrived_at.strftime("%I:%M %p on %B %d, %Y")}.'
+            )
+
         # Validate date-restricted statuses
         if self.status in ['completed', 'did_not_arrive']:
             if not self.is_past_or_today:
@@ -1110,15 +1186,65 @@ class TreatmentRecord(models.Model):
     def can_edit(self, user):
         """
         Check if user can edit this treatment record
-        ONLY the assigned dentist can edit - not even admins
+        
+        Rules:
+        - If no dentist assigned: ANY active dentist can edit (first to save gets assigned)
+        - If dentist assigned: ONLY that dentist can edit
+        - Staff with 'billing' permission can always edit (for corrections/admin)
         """
-        # Must have an assigned dentist
-        if not self.appointment.assigned_dentist:
+        # Billing staff can always edit (administrative override)
+        if hasattr(user, 'has_permission') and user.has_permission('billing'):
+            return True
+        
+        # Check if user is an active dentist
+        if not (hasattr(user, 'is_active_dentist') and user.is_active_dentist):
             return False
         
-        # Only the assigned dentist can edit
+        # If no dentist assigned yet, any active dentist can edit
+        if not self.appointment.assigned_dentist:
+            return True
+        
+        # If dentist assigned, only they can edit
         return self.appointment.assigned_dentist == user
     
+    def auto_assign_dentist_on_edit(self, editing_user):
+        """
+        Auto-assign dentist when they first edit the treatment record
+        Uses database-level locking to prevent race conditions
+        
+        Args:
+            editing_user: User object attempting to edit
+        
+        Returns:
+            bool: True if assigned successfully, False if already assigned to someone else
+        
+        Raises:
+            ValueError: If editing_user is not an active dentist
+        """
+        from django.db import transaction
+        
+        # Validate user is an active dentist
+        if not (hasattr(editing_user, 'is_active_dentist') and editing_user.is_active_dentist):
+            raise ValueError(f"{editing_user.get_full_name()} is not an active dentist")
+        
+        # Use select_for_update to prevent race conditions
+        with transaction.atomic():
+            appointment = Appointment.objects.select_for_update().get(pk=self.appointment.pk)
+            
+            # If already assigned to someone else, return False
+            if appointment.assigned_dentist and appointment.assigned_dentist != editing_user:
+                return False
+            
+            # If not assigned, assign to editing user
+            if not appointment.assigned_dentist:
+                appointment.assign_dentist(editing_user, assigned_by=editing_user)
+                # Refresh the local instance
+                self.appointment.refresh_from_db()
+                return True
+            
+            # Already assigned to this user
+            return True
+
     def can_view(self, user):
         """
         Check if user can view this treatment record

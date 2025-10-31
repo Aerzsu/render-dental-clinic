@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% load user_tags %}
+
+{% block title %}My Service Presets - KingJoy Appointment System{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="sm:flex sm:items-center sm:justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">My Service Presets</h1>
+            <p class="mt-2 text-sm text-gray-700">
+                Quick templates for documenting common service + product combinations
+            </p>
+        </div>
+        <div class="mt-4 sm:mt-0">
+            <a href="{% url 'services:preset_create' %}" 
+               class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                Create Preset
+            </a>
+        </div>
+    </div>
+
+    <!-- Info Card -->
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-blue-700">
+                    Presets help you document treatments faster. Create up to 5 presets per service. 
+                    Set one as default to auto-populate when creating treatment records.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter -->
+    <div class="bg-white shadow rounded-lg">
+        <div class="px-6 py-4">
+            <form method="get" class="flex gap-4">
+                <div class="flex-1">
+                    <input type="text" 
+                           name="search" 
+                           value="{{ search_query }}"
+                           placeholder="Search presets by name..." 
+                           class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                </div>
+                <div class="w-64">
+                    <select name="service" 
+                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                            onchange="this.form.submit()">
+                        <option value="">All Services</option>
+                        {% for service in services %}
+                            <option value="{{ service.id }}" {% if selected_service == service.id|stringformat:"s" %}selected{% endif %}>
+                                {{ service.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" 
+                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                    Search
+                </button>
+                <a href="{% url 'services:preset_list' %}" 
+                   class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                    Clear
+                </a>
+            </form>
+        </div>
+    </div>
+
+    <!-- Presets List -->
+    {% if presets_by_service %}
+        {% for service_name, service_presets in presets_by_service.items %}
+        <div class="bg-white shadow rounded-lg overflow-hidden">
+            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">{{ service_name }}</h3>
+                <p class="text-sm text-gray-500">{{ service_presets|length }} preset{{ service_presets|length|pluralize }}</p>
+            </div>
+            <div class="divide-y divide-gray-200">
+                {% for preset in service_presets %}
+                <div class="px-6 py-4 hover:bg-gray-50">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2">
+                                <h4 class="text-base font-semibold text-gray-900">{{ preset.name }}</h4>
+                                {% if preset.is_default %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                        ★ Default
+                                    </span>
+                                {% endif %}
+                            </div>
+                            {% if preset.description %}
+                                <p class="text-sm text-gray-600 mt-1">{{ preset.description }}</p>
+                            {% endif %}
+                            <p class="text-sm text-gray-500 mt-2">
+                                <strong>Products:</strong> {{ preset.products_summary }}
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2 ml-4">
+                            <a href="{% url 'services:preset_detail' preset.pk %}" 
+                               class="text-primary-600 hover:text-primary-900 text-sm font-medium">
+                                View
+                            </a>
+                            <a href="{% url 'services:preset_update' preset.pk %}" 
+                               class="text-gray-600 hover:text-gray-900 text-sm font-medium">
+                                Edit
+                            </a>
+                            <form method="post" action="{% url 'services:preset_delete' preset.pk %}" 
+                                  onsubmit="return confirm('Are you sure you want to delete this preset?')" 
+                                  class="inline">
+                                {% csrf_token %}
+                                <button type="submit" class="text-red-600 hover:text-red-900 text-sm font-medium">
+                                    Delete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="bg-white shadow rounded-lg text-center py-12">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No presets found</h3>
+            <p class="mt-1 text-sm text-gray-500">
+                {% if search_query or selected_service %}
+                    No presets match your search criteria.
+                {% else %}
+                    Get started by creating your first preset.
+                {% endif %}
+            </p>
+            <div class="mt-6">
+                <a href="{% url 'services:preset_create' %}" 
+                   class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                    <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Create First Preset
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

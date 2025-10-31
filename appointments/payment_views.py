@@ -98,7 +98,8 @@ class PaymentListView(LoginRequiredMixin, ListView):
         # Get completed appointments without payment records
         appointments = Appointment.objects.filter(
             status='completed',
-            appointment_date__gte=ninety_days_ago
+            appointment_date__gte=ninety_days_ago,
+            patient__isnull=False
         ).select_related(
             'patient', 'service', 'assigned_dentist'
         ).prefetch_related(

@@ -1,0 +1,336 @@
+{% extends 'base.html' %}
+{% load user_tags %}
+
+{% block title %}{% if object %}Edit{% else %}Create{% endif %} Preset - KingJoy Appointment System{% endblock %}
+
+{% block content %}
+<style>
+    input, select, textarea {
+        padding: 0.5rem 0.75rem;
+    }
+</style>
+
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="sm:flex sm:items-center sm:justify-between">
+        <div>
+            <nav class="flex mb-2" aria-label="Breadcrumb">
+                <ol role="list" class="flex items-center space-x-4">
+                    <li>
+                        <a href="{% url 'services:preset_list' %}" class="text-sm font-medium text-gray-500 hover:text-gray-700">
+                            My Presets
+                        </a>
+                    </li>
+                    <li>
+                        <div class="flex items-center">
+                            <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                            </svg>
+                            <span class="ml-4 text-sm font-medium text-gray-500">{% if object %}Edit{% else %}Create{% endif %}</span>
+                        </div>
+                    </li>
+                </ol>
+            </nav>
+            <h1 class="text-2xl font-bold text-gray-900">{% if object %}Edit Preset{% else %}Create New Preset{% endif %}</h1>
+            <p class="mt-1 text-sm text-gray-600">Define a reusable template for service + products</p>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <!-- Main Form -->
+        <div class="lg:col-span-2">
+            <form method="post" id="presetForm" class="space-y-6">
+                {% csrf_token %}
+                
+                <!-- Hidden field for products data -->
+                {{ form.products_data }}
+                
+                <!-- Basic Info -->
+                <div class="bg-white shadow rounded-lg">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">Basic Information</h3>
+                    </div>
+                    <div class="px-6 py-4 space-y-4">
+                        <!-- Service -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Service <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.service }}
+                            {% if form.service.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.service.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Preset Name -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Preset Name <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.name.errors.0 }}</p>
+                            {% endif %}
+                            <p class="mt-1 text-xs text-gray-500">e.g., "Simple Extraction", "Surgical Extraction"</p>
+                        </div>
+                        
+                        <!-- Description -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                Description
+                            </label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <p class="mt-2 text-sm text-red-600">{{ form.description.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Is Default -->
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                {{ form.is_default }}
+                            </div>
+                            <div class="ml-3 text-sm">
+                                <label for="{{ form.is_default.id_for_label }}" class="font-medium text-gray-700">
+                                    {{ form.is_default.label }}
+                                </label>
+                                <p class="text-gray-500">{{ form.is_default.help_text }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Products Section -->
+                <div class="bg-white shadow rounded-lg">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">Products & Supplies</h3>
+                        <p class="mt-1 text-sm text-gray-500">Add products that are typically used for this service</p>
+                    </div>
+                    <div class="px-6 py-4">
+                        <!-- Products Container -->
+                        <div id="productsContainer" class="space-y-3">
+                            <!-- Products will be dynamically added here -->
+                        </div>
+                        
+                        <!-- Add Product Button -->
+                        <div class="mt-4 pt-4 border-t border-gray-200">
+                            <button type="button" id="addProductBtn" 
+                                    class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                <svg class="-ml-0.5 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                </svg>
+                                Add Product
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Form Actions (Mobile) -->
+                <div class="flex flex-col sm:flex-row sm:justify-end space-y-3 sm:space-y-0 sm:space-x-3 lg:hidden">
+                    <a href="{% url 'services:preset_list' %}" 
+                       class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 text-center">
+                        Cancel
+                    </a>
+                    <button type="submit" id="submitBtnMobile"
+                            class="inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                        <span>Save Preset</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Sidebar -->
+        <div class="lg:col-span-1">
+            <div class="sticky top-4 space-y-6">
+                <!-- Tips Card -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="text-sm font-medium text-blue-900 mb-2">💡 Tips</h4>
+                    <ul class="text-xs text-blue-800 space-y-1">
+                        <li>• Create presets for different complexity levels</li>
+                        <li>• Use clear, descriptive names</li>
+                        <li>• Set default preset for most common case</li>
+                        <li>• Maximum 5 presets per service</li>
+                        <li>• Products can be adjusted when documenting</li>
+                    </ul>
+                </div>
+                
+                <!-- Form Actions (Desktop) -->
+                <div class="hidden lg:flex flex-col space-y-3">
+                    <button type="submit" form="presetForm" id="submitBtn"
+                            class="w-full inline-flex justify-center items-center px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                        <span>Save Preset</span>
+                    </button>
+                    <a href="{% url 'services:preset_list' %}" 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 text-center">
+                        Cancel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Available products from Django context
+const availableProducts = {{ products_json|safe }};
+const productsByCategory = {{ products_by_category|safe }};
+
+// Current products data
+let productsData = [];
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Load initial data if editing
+    const initialData = document.getElementById('id_products_data').value;
+    if (initialData) {
+        try {
+            productsData = JSON.parse(initialData);
+        } catch (e) {
+            console.error('Failed to parse initial products:', e);
+            productsData = [];
+        }
+    }
+    
+    renderProducts();
+    setupEventListeners();
+    
+    // Pre-select service if provided
+    {% if preselected_service %}
+        document.querySelector('select[name="service"]').value = '{{ preselected_service }}';
+    {% endif %}
+});
+
+function setupEventListeners() {
+    document.getElementById('addProductBtn').addEventListener('click', addProduct);
+    document.getElementById('presetForm').addEventListener('submit', handleSubmit);
+}
+
+function renderProducts() {
+    const container = document.getElementById('productsContainer');
+    
+    if (productsData.length === 0) {
+        container.innerHTML = '<p class="text-sm text-gray-500 italic">No products added yet. Click "Add Product" to start.</p>';
+        return;
+    }
+    
+    container.innerHTML = '';
+    
+    productsData.forEach((product, index) => {
+        const productHtml = createProductHtml(product, index);
+        container.insertAdjacentHTML('beforeend', productHtml);
+    });
+    
+    // Attach event listeners
+    productsData.forEach((product, index) => {
+        attachProductListeners(index);
+    });
+}
+
+function createProductHtml(product, index) {
+    // Build category options
+    let categoriesHtml = '<option value="">Select product...</option>';
+    for (const [categoryName, products] of Object.entries(productsByCategory)) {
+        categoriesHtml += `<optgroup label="${categoryName}">`;
+        products.forEach(p => {
+            const selected = p.id == product.product_id ? 'selected' : '';
+            categoriesHtml += `<option value="${p.id}" ${selected}>${p.name}</option>`;
+        });
+        categoriesHtml += '</optgroup>';
+    }
+    
+    return `
+        <div class="product-item flex items-start space-x-2 p-3 bg-gray-50 rounded border border-gray-200" data-product-index="${index}">
+            <div class="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div class="sm:col-span-2">
+                    <select class="product-select block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                        ${categoriesHtml}
+                    </select>
+                </div>
+                <div>
+                    <input type="number" class="product-quantity block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
+                           value="${product.quantity || 1}" min="1" placeholder="Qty">
+                </div>
+            </div>
+            <button type="button" class="remove-product text-red-600 hover:text-red-800 mt-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+    `;
+}
+
+function attachProductListeners(index) {
+    const productElement = document.querySelector(`[data-product-index="${index}"]`);
+    if (!productElement) return;
+    
+    // Product selection
+    const productSelect = productElement.querySelector('.product-select');
+    productSelect.addEventListener('change', function() {
+        updateProduct(index, 'product_id', this.value);
+        const product = availableProducts.find(p => p.id == this.value);
+        if (product) {
+            updateProduct(index, 'product_name', product.name);
+        }
+    });
+    
+    // Quantity
+    const quantityInput = productElement.querySelector('.product-quantity');
+    quantityInput.addEventListener('input', function() {
+        updateProduct(index, 'quantity', parseInt(this.value) || 1);
+    });
+    
+    // Remove product
+    const removeBtn = productElement.querySelector('.remove-product');
+    removeBtn.addEventListener('click', () => removeProduct(index));
+}
+
+function updateProduct(index, field, value) {
+    if (!productsData[index]) return;
+    productsData[index][field] = value;
+    updateHiddenField();
+}
+
+function updateHiddenField() {
+    document.getElementById('id_products_data').value = JSON.stringify(productsData);
+}
+
+function addProduct() {
+    productsData.push({
+        product_id: '',
+        product_name: '',
+        quantity: 1,
+        notes: ''
+    });
+    renderProducts();
+}
+
+function removeProduct(index) {
+    productsData.splice(index, 1);
+    renderProducts();
+}
+
+function handleSubmit(e) {
+    updateHiddenField();
+    
+    // Validate at least one product
+    if (productsData.length === 0) {
+        e.preventDefault();
+        alert('Please add at least one product to the preset.');
+        return false;
+    }
+    
+    // Validate all products have selections
+    for (let i = 0; i < productsData.length; i++) {
+        if (!productsData[i].product_id) {
+            e.preventDefault();
+            alert(`Please select a product for item #${i + 1}.`);
+            return false;
+        }
+    }
+    
+    return true;
+}
+</script>
+{% endblock %}

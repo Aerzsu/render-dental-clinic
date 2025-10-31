@@ -2,13 +2,17 @@
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
-from django.urls import reverse_lazy
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+from django.urls import reverse, reverse_lazy
+from django.http import JsonResponse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, View
 
 from django.db.models import Q, Count
 from users.templatetags.user_tags import has_permission
-from .models import Product, Service, Discount, ProductCategory
-from .forms import ServiceForm, DiscountForm, ProductCategoryForm, ProductForm
+from .models import Product, Service, Discount, ProductCategory, ServicePreset
+from .forms import ServiceForm, DiscountForm, ProductCategoryForm, ProductForm, ServicePresetForm
+import json
 
 class ServiceListView(LoginRequiredMixin, ListView):
     """List all services with search and filtering functionality"""
@@ -611,3 +615,262 @@ class ProductToggleActiveView(LoginRequiredMixin, View):
         messages.success(request, f'Product "{product.name}" has been {status} successfully.')
         
         return redirect('services:product_detail', pk=product.pk)
+    
+class ServicePresetListView(LoginRequiredMixin, ListView):
+    """List all presets created by current user"""
+    model = ServicePreset
+    template_name = 'services/preset_list.html'
+    context_object_name = 'presets'
+    paginate_by = 15
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.has_permission('appointments'):
+            messages.error(request, 'You do not have permission to access this page.')
+            return redirect('core:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_queryset(self):
+        """Return only presets created by current user"""
+        queryset = ServicePreset.objects.filter(
+            created_by=self.request.user
+        ).select_related('service').prefetch_related('products__product')
+        
+        # Filter by service if provided
+        service_id = self.request.GET.get('service')
+        if service_id:
+            queryset = queryset.filter(service_id=service_id)
+        
+        # Search by name
+        search = self.request.GET.get('search', '').strip()
+        if search:
+            queryset = queryset.filter(name__icontains=search)
+        
+        return queryset.order_by('-is_default', 'service__name', 'name')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['services'] = Service.active.all()
+        context['search_query'] = self.request.GET.get('search', '')
+        context['selected_service'] = self.request.GET.get('service', '')
+        
+        # Group presets by service for better display
+        presets_by_service = {}
+        for preset in context['presets']:
+            service_name = preset.service.name
+            if service_name not in presets_by_service:
+                presets_by_service[service_name] = []
+            presets_by_service[service_name].append(preset)
+        
+        context['presets_by_service'] = presets_by_service
+        return context
+
+
+class ServicePresetCreateView(LoginRequiredMixin, CreateView):
+    """Create new service preset"""
+    model = ServicePreset
+    form_class = ServicePresetForm
+    template_name = 'services/preset_form.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.has_permission('appointments'):
+            messages.error(request, 'You do not have permission to access this page.')
+            return redirect('core:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Get available products grouped by category
+        products_by_category = {}
+        for product in Product.objects.filter(is_active=True).select_related('category').order_by('category__display_order', 'category__name', 'name'):
+            cat_name = product.category.name
+            if cat_name not in products_by_category:
+                products_by_category[cat_name] = []
+            products_by_category[cat_name].append({
+                'id': product.id,
+                'name': product.name,
+                'price': float(product.price)
+            })
+        
+        context['products_by_category'] = products_by_category
+        context['products_json'] = json.dumps(
+            list(Product.objects.filter(is_active=True).values('id', 'name', 'category__name'))
+        )
+        
+        # Pre-select service if provided in URL
+        service_id = self.request.GET.get('service')
+        if service_id:
+            context['preselected_service'] = service_id
+        
+        return context
+    
+    def form_valid(self, form):
+        # Set the created_by field before saving
+        form.instance.created_by = self.request.user
+        messages.success(self.request, f'Preset "{form.instance.name}" created successfully.')
+        return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        for field, errors in form.errors.items():
+            for error in errors:
+                messages.error(self.request, f'{field}: {error}')
+        return super().form_invalid(form)
+    
+    def get_success_url(self):
+        # If opened from treatment record, return there
+        return_url = self.request.GET.get('return_to')
+        if return_url:
+            return return_url
+        return reverse('services:preset_list')
+
+
+class ServicePresetUpdateView(LoginRequiredMixin, UpdateView):
+    """Update existing service preset"""
+    model = ServicePreset
+    form_class = ServicePresetForm
+    template_name = 'services/preset_form.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.has_permission('appointments'):
+            messages.error(request, 'You do not have permission to access this page.')
+            return redirect('core:dashboard')
+        
+        # Ensure user can only edit their own presets
+        preset = self.get_object()
+        if preset.created_by != request.user:
+            messages.error(request, 'You can only edit your own presets.')
+            return redirect('services:preset_list')
+        
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Get available products grouped by category
+        products_by_category = {}
+        for product in Product.objects.filter(is_active=True).select_related('category').order_by('category__display_order', 'category__name', 'name'):
+            cat_name = product.category.name
+            if cat_name not in products_by_category:
+                products_by_category[cat_name] = []
+            products_by_category[cat_name].append({
+                'id': product.id,
+                'name': product.name,
+                'price': float(product.price)
+            })
+        
+        context['products_by_category'] = products_by_category
+        context['products_json'] = json.dumps(
+            list(Product.objects.filter(is_active=True).values('id', 'name', 'category__name'))
+        )
+        
+        return context
+    
+    def form_valid(self, form):
+        messages.success(self.request, f'Preset "{form.instance.name}" updated successfully.')
+        return super().form_valid(form)
+    
+    def get_success_url(self):
+        return reverse('services:preset_list')
+
+
+class ServicePresetDetailView(LoginRequiredMixin, DetailView):
+    """View preset details"""
+    model = ServicePreset
+    template_name = 'services/preset_detail.html'
+    context_object_name = 'preset'
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.has_permission('appointments'):
+            messages.error(request, 'You do not have permission to access this page.')
+            return redirect('core:dashboard')
+        
+        # Ensure user can only view their own presets
+        preset = self.get_object()
+        if preset.created_by != request.user:
+            messages.error(request, 'You can only view your own presets.')
+            return redirect('services:preset_list')
+        
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['products'] = self.object.products.select_related('product__category').order_by('order')
+        return context
+
+
+@login_required
+@require_POST
+def delete_service_preset(request, pk):
+    """Delete service preset"""
+    if not request.user.has_permission('appointments'):
+        messages.error(request, 'You do not have permission to perform this action.')
+        return redirect('core:dashboard')
+    
+    preset = get_object_or_404(ServicePreset, pk=pk)
+    
+    # Ensure user can only delete their own presets
+    if preset.created_by != request.user:
+        messages.error(request, 'You can only delete your own presets.')
+        return redirect('services:preset_list')
+    
+    preset_name = preset.name
+    preset.delete()
+    
+    messages.success(request, f'Preset "{preset_name}" deleted successfully.')
+    return redirect('services:preset_list')
+
+
+@login_required
+def get_service_presets_api(request, service_id):
+    """
+    API endpoint to get presets for a specific service
+    Used by treatment record form to load presets
+    """
+    if not request.user.has_permission('appointments'):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+    
+    try:
+        service = Service.objects.get(pk=service_id)
+    except Service.DoesNotExist:
+        return JsonResponse({'error': 'Service not found'}, status=404)
+    
+    # Get presets for this service created by current user
+    presets = ServicePreset.objects.filter(
+        service=service,
+        created_by=request.user
+    ).prefetch_related('products__product')
+    
+    presets_data = []
+    for preset in presets:
+        products_data = []
+        for preset_product in preset.products.all():
+            products_data.append({
+                'product_id': preset_product.product.id,
+                'product_name': preset_product.product.name,
+                'quantity': preset_product.quantity,
+                'notes': preset_product.notes
+            })
+        
+        presets_data.append({
+            'id': preset.id,
+            'name': preset.name,
+            'description': preset.description,
+            'is_default': preset.is_default,
+            'products': products_data
+        })
+    
+    return JsonResponse({
+        'success': True,
+        'service_name': service.name,
+        'presets': presets_data
+    })

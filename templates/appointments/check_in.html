@@ -26,7 +26,6 @@
 
     <!-- Statistics Cards -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <!-- Total Today -->
         <div class="bg-white rounded-lg shadow p-6">
             <div class="flex items-center">
                 <div class="flex-shrink-0">
@@ -41,7 +40,6 @@
             </div>
         </div>
 
-        <!-- Checked In -->
         <div class="bg-white rounded-lg shadow p-6">
             <div class="flex items-center">
                 <div class="flex-shrink-0">
@@ -56,7 +54,6 @@
             </div>
         </div>
 
-        <!-- Remaining -->
         <div class="bg-white rounded-lg shadow p-6">
             <div class="flex items-center">
                 <div class="flex-shrink-0">
@@ -112,6 +109,9 @@
                                     {% if appointment.assigned_dentist %}
                                         <span class="mx-2">•</span>
                                         <span>Dr. {{ appointment.assigned_dentist.get_full_name }}</span>
+                                    {% else %}
+                                        <span class="mx-2">•</span>
+                                        <span class="text-yellow-600 font-medium">⚠️ No dentist assigned</span>
                                     {% endif %}
                                 </div>
                                 
@@ -124,16 +124,50 @@
                                 {% endif %}
                             </div>
                             
-                            <!-- Check-in Button -->
+                            <!-- Check-in Button/Form -->
                             <div class="ml-6 flex-shrink-0">
-                                <form method="post" action="{% url 'appointments:mark_patient_arrived' appointment.pk %}"
-                                      onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').innerHTML='<svg class=\'inline animate-spin h-5 w-5\' fill=\'none\' viewBox=\'0 0 24 24\'><circle class=\'opacity-25\' cx=\'12\' cy=\'12\' r=\'10\' stroke=\'currentColor\' stroke-width=\'4\'></circle><path class=\'opacity-75\' fill=\'currentColor\' d=\'M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z\'></path></svg> Checking in...';">
-                                    {% csrf_token %}
-                                    <button type="submit"
-                                            class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium">
-                                        ✓ Patient Arrived
-                                    </button>
-                                </form>
+                                {% if user.is_active_dentist %}
+                                    <!-- Dentist user: Simple check-in button (auto-assigns) -->
+                                    <form method="post" action="{% url 'appointments:mark_patient_arrived' appointment.pk %}"
+                                          onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').innerHTML='<svg class=\'inline animate-spin h-5 w-5\' fill=\'none\' viewBox=\'0 0 24 24\'><circle class=\'opacity-25\' cx=\'12\' cy=\'12\' r=\'10\' stroke=\'currentColor\' stroke-width=\'4\'></circle><path class=\'opacity-75\' fill=\'currentColor\' d=\'M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z\'></path></svg> Checking in...';">
+                                        {% csrf_token %}
+                                        <button type="submit"
+                                                class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium">
+                                            ✓ Patient Arrived
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <!-- Non-dentist staff: Show dentist dropdown if not assigned -->
+                                    {% if not appointment.assigned_dentist %}
+                                        <form method="post" action="{% url 'appointments:mark_patient_arrived' appointment.pk %}"
+                                              class="flex gap-2 items-center"
+                                              onsubmit="this.querySelector('button').disabled=true;">
+                                            {% csrf_token %}
+                                            <select name="assigned_dentist" 
+                                                    class="rounded-md border-gray-300 shadow-sm text-sm"
+                                                    required>
+                                                <option value="">Select Dentist...</option>
+                                                {% for dentist in available_dentists %}
+                                                    <option value="{{ dentist.pk }}">Dr. {{ dentist.get_full_name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <button type="submit"
+                                                    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium whitespace-nowrap">
+                                                ✓ Check In
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <!-- Already assigned, simple check-in -->
+                                        <form method="post" action="{% url 'appointments:mark_patient_arrived' appointment.pk %}"
+                                              onsubmit="this.querySelector('button').disabled=true;">
+                                            {% csrf_token %}
+                                            <button type="submit"
+                                                    class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium">
+                                                ✓ Patient Arrived
+                                            </button>
+                                        </form>
+                                    {% endif %}
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -188,9 +222,16 @@
                                     {{ appointment.patient_name }}
                                 </p>
                                 
-                                <p class="text-sm text-gray-600">
-                                    {{ appointment.service.name }}
-                                </p>
+                                <div class="text-sm text-gray-600">
+                                    <span>{{ appointment.service.name }}</span>
+                                    {% if appointment.assigned_dentist %}
+                                        <span class="mx-2">•</span>
+                                        <span>Dr. {{ appointment.assigned_dentist.get_full_name }}</span>
+                                    {% else %}
+                                        <span class="mx-2">•</span>
+                                        <span class="text-yellow-700 font-medium">⚠️ Awaiting dentist assignment</span>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                     </div>

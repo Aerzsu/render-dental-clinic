@@ -49,6 +49,13 @@
             min-width: 120px;
             display: inline-block;
         }
+        .info-box {
+            background-color: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            padding: 12px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
         .button {
             display: inline-block;
             padding: 12px 24px;
@@ -102,8 +109,16 @@
                 <p><strong>Date:</strong> {{ appointment_date }}</p>
                 <p><strong>Time:</strong> {{ period }}</p>
                 <p><strong>Service:</strong> {{ service }}</p>
-                <p><strong>Dentist:</strong> {{ dentist }}</p>
+                {% if dentist %}
+                <p><strong>Dentist:</strong> Dr. {{ dentist }}</p>
+                {% endif %}
             </div>
+
+            {% if not dentist %}
+            <div class="info-box">
+                ℹ️ <strong>Note:</strong> Your dentist will be assigned when you arrive at the clinic. Our available dentists will ensure you receive excellent care.
+            </div>
+            {% endif %}
             
             <p><strong>Important reminders:</strong></p>
             <ul>
