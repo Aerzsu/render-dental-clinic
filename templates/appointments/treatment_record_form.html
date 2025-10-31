@@ -447,6 +447,42 @@ function updateHiddenField() {
 }
 
 function addService() {
+    // Check for duplicates before adding
+    const serviceSelect = document.createElement('select');
+    serviceSelect.className = 'service-select block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500';
+    
+    // Build options HTML
+    const serviceOptions = availableServices.map(s => 
+        `<option value="${s.id}">${s.name}</option>`
+    ).join('');
+    
+    serviceSelect.innerHTML = `<option value="">Select service...</option>${serviceOptions}`;
+    
+    // Add event listener to check for duplicates when service is selected
+    serviceSelect.addEventListener('change', function() {
+        const selectedServiceId = this.value;
+        const selectedService = availableServices.find(s => s.id == selectedServiceId);
+        
+        if (!selectedService) return;
+        
+        // Check if service already exists in current services
+        const existingService = servicesData.find(s => s.service_id == selectedServiceId);
+        
+        if (existingService) {
+            const confirmAdd = confirm(
+                `You already added "${selectedService.name}" to this treatment.\n\n` +
+                `Adding the same service twice is unusual. Continue anyway?`
+            );
+            
+            if (!confirmAdd) {
+                // Reset selection
+                this.value = '';
+                return;
+            }
+        }
+    });
+    
+    // Continue with normal flow
     servicesData.push({
         service_id: '',
         service_name: '',

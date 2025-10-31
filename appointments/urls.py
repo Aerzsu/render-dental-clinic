@@ -1,4 +1,4 @@
-# appointments/urls.py - Updated with timeslot system endpoints
+# appointments/urls.py - Updated with treatment record endpoints
 from django.urls import path
 from . import views, payment_views
 
@@ -15,15 +15,23 @@ urlpatterns = [
     path('create/', views.AppointmentCreateView.as_view(), name='appointment_create'),
     path('<int:pk>/', views.AppointmentDetailView.as_view(), name='appointment_detail'),
     path('<int:pk>/edit/', views.AppointmentUpdateView.as_view(), name='appointment_update'),
-    
+
+    # Check-in page
+    path('check-in/', views.CheckInView.as_view(), name='check_in'),
+    path('<int:pk>/mark-arrived/', views.mark_patient_arrived, name='mark_patient_arrived'),
+
     # Appointment actions (BACKEND)
     path('<int:pk>/approve/', views.approve_appointment, name='approve_appointment'),
     path('<int:pk>/reject/', views.reject_appointment, name='reject_appointment'),
     path('appointment/<int:pk>/update-status/', views.update_appointment_status, name='update_appointment_status'),
 
-    # Appointment notes (BACKEND)
-    path('notes/<int:appointment_pk>/update/', views.update_appointment_note, name='appointment_note_update'),
-    path('notes/<int:appointment_pk>/get/', views.get_appointment_notes, name='appointment_notes_get'),
+    # Self-service cancellation (PUBLIC - uses token)
+    path('cancel/<str:token>/', views.cancel_appointment_confirm, name='cancel_confirm'),
+    path('cancel/<str:token>/process/', views.cancel_appointment_process, name='cancel_process'),
+
+    # Treatment Record endpoints (BACKEND)
+    path('treatment/<int:appointment_pk>/notes/update/', views.update_treatment_record_notes, name='treatment_notes_update'),
+    path('treatment/<int:appointment_pk>/notes/get/', views.get_treatment_record_notes, name='treatment_notes_get'),
     
     # TimeSlot Configuration Management (BACKEND)
     path('timeslots/', views.TimeSlotConfigurationListView.as_view(), name='daily_slots_list'),
@@ -39,7 +47,11 @@ urlpatterns = [
     path('payments/<int:payment_pk>/add-item/', payment_views.add_payment_item, name='add_payment_item'),
     path('payment-items/<int:pk>/delete/', payment_views.delete_payment_item, name='delete_payment_item'),
     path('payments/<int:payment_pk>/add-payment/', payment_views.add_payment_transaction, name='add_payment_transaction'),
+    path('payments/<int:payment_pk>/force-add-item/', payment_views.force_add_payment_item, name='force_add_payment_item'),
     path('payments/dashboard/', payment_views.payment_dashboard, name='payment_dashboard'),
+    
+    # Helper endpoint to clear invoice modal flag
+    path('clear-invoice-modal/', views.clear_invoice_modal, name='clear_invoice_modal'),
     
     # Patient Payment Summary
     path('patients/<int:pk>/payment-summary/', payment_views.PatientPaymentSummaryView.as_view(), name='patient_payment_summary'),
@@ -59,7 +71,7 @@ urlpatterns = [
     # API endpoint for pending appointments count (for notification badge)
     path('api/pending-count/', views.pending_count_api, name='pending_count_api'),
 
-    # Treatment Records
+    # Treatment Records (Keep existing URLs if you have them for the full treatment record management)
     path('<int:appointment_pk>/treatment/', views.treatment_record_view, name='treatment_record'),
     path('<int:appointment_pk>/treatment/delete/', views.delete_treatment_record, name='treatment_record_delete'),
 ]

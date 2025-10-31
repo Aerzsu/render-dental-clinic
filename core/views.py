@@ -364,6 +364,20 @@ class BookAppointmentView(TemplateView):
                     temp_address=patient_data.get('address', ''),
                 )
                 
+                # Try auto-approval
+                was_auto_approved, approval_reason = appointment.auto_approve_if_eligible()
+                
+                if was_auto_approved:
+                    # Send confirmation email for auto-approved appointment
+                    from core.email_service import EmailService
+                    EmailService.send_appointment_approved_email(appointment)
+                    
+                    status_message = 'confirmed'
+                    logger.info(f'Appointment {appointment.id} auto-approved: {approval_reason}')
+                else:
+                    status_message = 'pending'
+                    logger.info(f'Appointment {appointment.id} requires manual approval: {approval_reason}')
+                
                 # Generate reference number
                 reference_number = f'APT-{appointment.id:06d}'
                 
@@ -378,7 +392,9 @@ class BookAppointmentView(TemplateView):
                     'start_time': start_time.strftime('%I:%M %p'),
                     'end_time': end_time.strftime('%I:%M %p'),
                     'time_range': appointment.time_display,
-                    'patient_name': appointment.patient_name
+                    'patient_name': appointment.patient_name,
+                    'status': status_message,  # 'confirmed' or 'pending'
+                    'auto_approved': was_auto_approved
                 })
                 
         except Exception as e:

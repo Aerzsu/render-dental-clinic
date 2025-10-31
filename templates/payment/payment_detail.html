@@ -14,7 +14,7 @@
                     <li>
                         <div class="flex">
                             <a href="{% url 'appointments:payment_list' %}" class="text-sm font-medium text-gray-500 hover:text-gray-700">
-                                Payments
+                                Invoices
                             </a>
                         </div>
                     </li>
@@ -28,7 +28,7 @@
                     </li>
                 </ol>
             </nav>
-            <h1 class="mt-2 text-2xl font-bold text-gray-900">Payment Details</h1>
+            <h1 class="mt-2 text-2xl font-bold text-gray-900">Invoice</h1>
             <p class="mt-1 text-sm text-gray-600">
                 {{ payment.patient.full_name }} - {{ payment.created_at|date:"F d, Y" }}
             </p>
@@ -37,7 +37,7 @@
             {% if payment.outstanding_balance > 0 %}
                 <button type="button" onclick="showAddPaymentModal()" 
                         class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors duration-150">
-                    Add Payment
+                    Record Payment
                 </button>
             {% endif %}
             <button type="button" onclick="showAddItemModal()" 
@@ -760,8 +760,37 @@ document.getElementById('addItemForm').addEventListener('submit', async function
         const result = await response.json();
         
         if (result.success) {
-            // Reload page to show success message from server
             location.reload();
+        } else if (result.error === 'duplicate') {
+            // Handle duplicate service detection
+            const confirmAdd = confirm(
+                result.message + '\n\n' +
+                'Adding the same service twice may indicate:\n' +
+                '• Multiple procedures on different teeth\n' +
+                '• Follow-up treatment\n' +
+                '• Data entry error\n\n' +
+                'Click OK to add anyway, or Cancel to review.'
+            );
+            
+            if (confirmAdd) {
+                // Force add the item
+                const forceResponse = await fetch(`/appointments/payments/{{ payment.pk }}/force-add-item/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const forceResult = await forceResponse.json();
+                
+                if (forceResult.success) {
+                    location.reload();
+                } else {
+                    alert(forceResult.error || 'Error adding service item');
+                }
+            }
         } else {
             alert(result.error || 'Error adding service item');
         }

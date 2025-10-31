@@ -5,6 +5,7 @@ from django.utils import timezone
 from datetime import datetime, date, timedelta, time
 from decimal import Decimal
 from django.core.validators import MinValueValidator
+import secrets
 
 
 class TimeSlotConfiguration(models.Model):
@@ -327,14 +328,18 @@ class Appointment(models.Model):
     confirmed_at = models.DateTimeField(null=True, blank=True)
     confirmed_by = models.ForeignKey('users.User', on_delete=models.SET_NULL, null=True, blank=True, 
                                    related_name='confirmed_appointments')
-    
-    # Clinical Notes (REMOVE THESE, USE CLINICAL_NOTES FIELD IN TREATMENTRECORD MODEL INSTEAD)
-    symptoms = models.TextField(blank=True, help_text="Patient symptoms and complaints")
-    procedures = models.TextField(blank=True, help_text="Procedures performed during appointment")
-    diagnosis = models.TextField(blank=True, help_text="Diagnosis and treatment notes")
 
     # Notes
     staff_notes = models.TextField(blank=True)
+
+    # Token for self-service cancellation/rescheduling
+    reschedule_token = models.CharField(
+        max_length=32, 
+        unique=True, 
+        blank=True, 
+        db_index=True,
+        help_text="Unique token for patient self-service actions"
+    )
 
     # Audit
     updated_at = models.DateTimeField(auto_now=True)
@@ -350,13 +355,19 @@ class Appointment(models.Model):
             models.Index(fields=['temp_email'], name='appt_temp_email_idx'),
             models.Index(fields=['temp_contact_number'], name='appt_temp_contact_idx'),
         ]
-    
+
     def __str__(self):
         end_time = self.get_end_time()
         if self.patient:
             return f"{self.patient.full_name} - {self.appointment_date} {self.start_time.strftime('%I:%M %p')}-{end_time.strftime('%I:%M %p')}"
         else:
             return f"{self.temp_first_name} {self.temp_last_name} - {self.appointment_date} {self.start_time.strftime('%I:%M %p')}-{end_time.strftime('%I:%M %p')} (Pending)"
+    
+    def save(self, *args, **kwargs):
+        # Generate reschedule token if not exists
+        if not self.reschedule_token:
+            self.reschedule_token = secrets.token_urlsafe(16)
+        super().save(*args, **kwargs)
     
     @property
     def patient_name(self):
@@ -429,7 +440,7 @@ class Appointment(models.Model):
 
     def approve(self, approved_by_user, assigned_dentist=None):
         """
-        Approve/Confirm the appointment, create patient record if needed, and assign a dentist
+        Approve/Confirm the appointment, create patient record if needed, assign dentist, and create treatment record
         """
         from django.db import transaction
         
@@ -456,6 +467,115 @@ class Appointment(models.Model):
             
             # Clear temp data after successful approval
             self.clear_temp_data()
+            
+            # ✅ NEW: Auto-create TreatmentRecord with booked service
+            if not hasattr(self, 'treatment_record'):
+                treatment_record = TreatmentRecord.objects.create(
+                    appointment=self,
+                    created_by=approved_by_user,
+                    last_modified_by=approved_by_user
+                )
+                
+                # Add the booked service as the initial service performed
+                TreatmentRecordService.objects.create(
+                    treatment_record=treatment_record,
+                    service=self.service,
+                    order=0
+                )
+
+    @classmethod
+    def should_auto_approve(cls, appointment_data):
+        """
+        Check if appointment meets auto-approval criteria based on system settings
+        
+        Args:
+            appointment_data: dict with keys:
+                - patient: Patient object or None
+                - patient_type: 'new' or 'existing'
+                - appointment_date: date object
+                - start_time: time object
+                - service: Service object
+        
+        Returns:
+            Tuple of (should_approve: bool, reason: str)
+        """
+        from core.models import SystemSetting
+        
+        # Check if auto-approval is enabled
+        if not SystemSetting.get_bool_setting('auto_approval_enabled', False):
+            return False, "Auto-approval is disabled"
+        
+        patient = appointment_data.get('patient')
+        patient_type = appointment_data.get('patient_type')
+        appointment_date = appointment_data.get('appointment_date')
+        start_time = appointment_data.get('start_time')
+        
+        # Check 1: Not first-time patient (if setting enabled)
+        if SystemSetting.get_bool_setting('auto_approve_require_existing', True):
+            if patient:
+                # Existing patient - check if they have completed appointments
+                completed_count = cls.objects.filter(
+                    patient=patient,
+                    status='completed'
+                ).count()
+                
+                if completed_count == 0:
+                    return False, "First-time patient requires manual approval"
+            else:
+                # New patient booking (patient_type='new')
+                if patient_type == 'new':
+                    return False, "New patient requires manual approval"
+        
+        # Check 2: Booking is at least 24 hours in advance (always enforced - no setting)
+        # This is already enforced by _validate_appointment_datetime in BookAppointmentView
+        # which doesn't allow same-day or past-day bookings
+        
+        # All checks passed
+        return True, "All auto-approval criteria met"
+    
+    def auto_approve_if_eligible(self, default_dentist=None):
+        """
+        Auto-approve appointment if it meets criteria
+        Creates patient record if new, assigns dentist, creates treatment record
+        
+        Args:
+            default_dentist: User object to assign if auto-approved (optional)
+        
+        Returns:
+            Tuple of (was_approved: bool, reason: str)
+        """
+        # Prepare data for checking
+        appointment_data = {
+            'patient': self.patient,
+            'patient_type': self.patient_type,
+            'appointment_date': self.appointment_date,
+            'start_time': self.start_time,
+            'service': self.service,
+        }
+        
+        should_approve, reason = self.should_auto_approve(appointment_data)
+        
+        if not should_approve:
+            return False, reason
+        
+        # Auto-approve the appointment
+        try:
+            with transaction.atomic():
+                # Get system user for auto-approval
+                from users.models import User
+                system_user = User.objects.filter(is_superuser=True).first()
+                
+                if not system_user:
+                    return False, "No system user found for auto-approval"
+                
+                # Use approve method which handles patient creation and treatment record
+                assigned_dentist = default_dentist or User.objects.filter(is_active_dentist=True).first()
+                self.approve(approved_by_user=system_user, assigned_dentist=assigned_dentist)
+                
+                return True, f"Auto-approved and assigned to {assigned_dentist.full_name if assigned_dentist else 'dentist'}"
+                
+        except Exception as e:
+            return False, f"Auto-approval failed: {str(e)}"
     
     def clear_temp_data(self):
         """Clear temporary patient data fields"""
@@ -488,6 +608,19 @@ class Appointment(models.Model):
         
         return self.appointment_date > timezone.now().date() + timedelta(days=1)
     
+    @property
+    def can_be_cancelled_by_patient(self):
+        """
+        Can be cancelled by patient if:
+        - Status is confirmed or pending
+        - At least 24 hours before appointment
+        """
+        if self.status not in ['confirmed', 'pending']:
+            return False
+        
+        hours_until = (self.appointment_datetime - timezone.now()).total_seconds() / 3600
+        return hours_until >= 24
+
     @property
     def blocks_time_slot(self):
         """Whether this appointment blocks its time slot"""
@@ -607,8 +740,6 @@ class Appointment(models.Model):
         
         return conflicting
 
-
-# Payment models remain unchanged
 class Payment(models.Model):
     """Enhanced Payment model for cash-only dental clinic billing"""
     STATUS_CHOICES = [
@@ -977,11 +1108,23 @@ class TreatmentRecord(models.Model):
         return f"Treatment Record - {self.appointment.patient_name} - {self.appointment.appointment_date}"
     
     def can_edit(self, user):
-        """Check if user can edit this treatment record"""
-        # Only assigned dentist or admin can edit
-        if user.is_superuser:
-            return True
+        """
+        Check if user can edit this treatment record
+        ONLY the assigned dentist can edit - not even admins
+        """
+        # Must have an assigned dentist
+        if not self.appointment.assigned_dentist:
+            return False
+        
+        # Only the assigned dentist can edit
         return self.appointment.assigned_dentist == user
+    
+    def can_view(self, user):
+        """
+        Check if user can view this treatment record
+        Anyone with 'patients' module permission can view
+        """
+        return user.has_permission('patients')
     
     def get_services_with_products(self):
         """Get all services with their products for easy iteration"""
@@ -1091,3 +1234,4 @@ class TreatmentRecordAuditLog(models.Model):
     
     def __str__(self):
         return f"{self.action.title()} by {self.modified_by} at {self.modified_at}"
+    

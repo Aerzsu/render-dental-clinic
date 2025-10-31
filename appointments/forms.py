@@ -428,50 +428,6 @@ class BulkTimeSlotConfigurationForm(forms.Form):
         
         return cleaned_data
 
-
-class AppointmentNotesForm(forms.ModelForm):
-    """Form for editing clinical notes of an appointment"""
-
-    class Meta:
-        model = Appointment
-        fields = ['symptoms', 'procedures', 'diagnosis']
-        widgets = {
-            'symptoms': forms.Textarea(attrs={
-                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent',
-                'rows': 3,
-                'placeholder': 'Enter patient symptoms and complaints...'
-            }),
-            'procedures': forms.Textarea(attrs={
-                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent',
-                'rows': 3,
-                'placeholder': 'Enter procedures performed...'
-            }),
-            'diagnosis': forms.Textarea(attrs={
-                'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent',
-                'rows': 3,
-                'placeholder': 'Enter diagnosis and treatment notes...'
-            }),
-        }
-        labels = {
-            'symptoms': 'Symptoms & Complaints',
-            'procedures': 'Procedures Performed',
-            'diagnosis': 'Diagnosis & Treatment Notes',
-        }
-
-
-class AppointmentNoteFieldForm(forms.Form):
-    """Form for editing individual clinical note fields via AJAX"""
-    field_name = forms.ChoiceField(choices=[
-        ('symptoms', 'Symptoms'),
-        ('procedures', 'Procedures'),
-        ('diagnosis', 'Diagnosis'),
-    ])
-    field_value = forms.CharField(widget=forms.Textarea(attrs={
-        'rows': 3,
-        'class': 'w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent'
-    }), required=False)
-
-
 class PaymentForm(forms.ModelForm):
     """
     Enhanced payment form with product tracking
@@ -528,6 +484,9 @@ class PaymentForm(forms.ModelForm):
                 'rows': 3
             }),
         }
+        labels = {
+        'notes': 'Pricing Notes (Optional)',
+    }
     
     def __init__(self, *args, **kwargs):
         self.appointment = kwargs.pop('appointment', None)
@@ -1081,3 +1040,4 @@ class TreatmentRecordForm(forms.ModelForm):
                 )
         
         return instance
+    

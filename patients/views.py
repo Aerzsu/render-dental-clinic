@@ -11,6 +11,7 @@ from django.http import JsonResponse, HttpResponse
 from django.template.loader import render_to_string
 from django.utils import timezone as django_timezone
 from datetime import date, timedelta, timezone
+from decimal import Decimal
 import csv
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter
@@ -18,6 +19,7 @@ from io import BytesIO
 from xhtml2pdf import pisa
 
 from .models import Patient
+from appointments.models import Payment, PaymentTransaction
 from .forms import PatientForm, PatientSearchForm, FindPatientForm
 from appointments.models import Appointment
 
@@ -356,7 +358,10 @@ class PatientListView(LoginRequiredMixin, ListView):
 
 
 class PatientDetailView(LoginRequiredMixin, DetailView):
-    """View patient details with appointment history - UPDATED for AM/PM system and payment context"""
+    """
+    View patient details with appointment history and treatment records
+    Updated for timeslot system and payment context
+    """
     model = Patient
     template_name = 'patients/patient_detail.html'
     context_object_name = 'patient'
@@ -370,26 +375,34 @@ class PatientDetailView(LoginRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         patient = self.object
-        
-        # Get all appointments ordered by date (most recent first) - UPDATED for AM/PM system
-        appointments = Appointment.objects.filter(patient=patient).select_related(
-            'service', 'assigned_dentist'
-        ).order_by('-appointment_date','-requested_at')
-        
-        # Categorize appointments - UPDATED to use appointment_date
         today = date.today()
-        completed_appointments = appointments.filter(status='completed')
-        upcoming_appointments = appointments.filter(
+        
+        # Get all appointments with optimized queries
+        # Prefetch treatment records and related data for clinical notes display
+        all_appointments = patient.appointments.select_related(
+            'service',
+            'assigned_dentist',
+            'treatment_record__created_by',
+            'treatment_record__last_modified_by'
+        ).prefetch_related(
+            'treatment_record__service_records__service'
+        ).order_by('-appointment_date', '-start_time')
+        
+        # Filter appointments with treatment records (confirmed/completed only)
+        # These are the ones that will show clinical notes
+        appointments_with_treatment = all_appointments.filter(
+            status__in=['confirmed', 'completed']
+        )
+        
+        # Categorize appointments
+        completed_appointments = all_appointments.filter(status='completed')
+        upcoming_appointments = all_appointments.filter(
             appointment_date__gte=today, 
             status__in=['confirmed', 'pending']
         )
-        cancelled_appointments = appointments.filter(status__in=['cancelled', 'rejected'])
+        cancelled_appointments = all_appointments.filter(status__in=['cancelled', 'rejected'])
         
-        # Payment context - NEW
-        from appointments.models import Payment, PaymentTransaction
-        from decimal import Decimal
-        
-        # Get all payments for this patient
+        # Payment context
         patient_payments = Payment.objects.filter(patient=patient).select_related('appointment__service')
         
         # Calculate payment summary
@@ -426,7 +439,9 @@ class PatientDetailView(LoginRequiredMixin, DetailView):
             ).order_by('-payment_datetime').first()
         
         context.update({
-            'appointments': appointments,
+            # Appointment context
+            'appointments': appointments_with_treatment,  # For clinical notes section
+            'all_appointments': all_appointments,  # For statistics/other sections if needed
             'completed_appointments': completed_appointments,
             'upcoming_appointments': upcoming_appointments,
             'cancelled_appointments': cancelled_appointments,

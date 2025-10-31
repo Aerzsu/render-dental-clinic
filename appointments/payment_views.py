@@ -2,6 +2,7 @@
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
@@ -294,9 +295,8 @@ class PatientPaymentSummaryView(LoginRequiredMixin, DetailView):
         
         return context
 
-
 class PaymentCreateView(LoginRequiredMixin, CreateView):
-    """Enhanced payment creation with product tracking"""
+    """Enhanced invoice creation with smart pre-fill from treatment record"""
     model = Payment
     form_class = PaymentForm
     template_name = 'payment/payment_form.html'
@@ -309,10 +309,10 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
             messages.error(request, 'You do not have permission to access this page.')
             return redirect('core:dashboard')
         
-        # Check if payment already exists for this appointment
+        # Check if invoice already exists for this appointment
         existing_payment = Payment.objects.filter(appointment=self.appointment).first()
         if existing_payment:
-            messages.info(request, 'Payment record already exists for this appointment.')
+            messages.info(request, 'Invoice already exists for this appointment.')
             return redirect('appointments:payment_detail', pk=existing_payment.pk)
         
         return super().dispatch(request, *args, **kwargs)
@@ -326,12 +326,59 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
         context = super().get_context_data(**kwargs)
         context['appointment'] = self.appointment
         
-        # Check if treatment record exists
+        # Check if treatment record exists and has services
         treatment_record = None
+        treatment_services = []
+        treatment_products = []
+        
         try:
             treatment_record = self.appointment.treatment_record
+            # Get services from treatment record
+            treatment_services_qs = treatment_record.services.all().select_related('service')
+            
+            for tr_service in treatment_services_qs:
+                service_products = []
+                # Get products for this service from treatment record
+                for product_link in tr_service.products.all().select_related('product__category'):
+                    service_products.append({
+                        'id': product_link.product.id,
+                        'name': product_link.product.name,
+                        'category_name': product_link.product.category.name,
+                        'quantity': product_link.quantity,
+                        'unit_price': float(product_link.product.price),
+                        'notes': product_link.notes or ''
+                    })
+                
+                treatment_services.append({
+                    'service_id': tr_service.service.id,
+                    'service_name': tr_service.service.name,
+                    'min_price': float(tr_service.service.min_price or 0),
+                    'max_price': float(tr_service.service.max_price or 999999),
+                    'default_price': float(tr_service.service.min_price or 0),
+                    'products': service_products
+                })
+                
         except TreatmentRecord.DoesNotExist:
             pass
+        
+        # NEW: Smart pre-fill logic
+        if treatment_services:
+            # Use treatment record data (what was actually performed)
+            initial_items = treatment_services
+            context['data_source'] = 'treatment_record'
+            context['data_source_message'] = 'Services and products pre-filled from treatment record (what was actually performed)'
+        else:
+            # Fallback to booked service
+            initial_items = [{
+                'service_id': self.appointment.service.id,
+                'service_name': self.appointment.service.name,
+                'min_price': float(self.appointment.service.min_price or 0),
+                'max_price': float(self.appointment.service.max_price or 999999),
+                'default_price': float(self.appointment.service.min_price or 0),
+                'products': []
+            }]
+            context['data_source'] = 'appointment'
+            context['data_source_message'] = 'Service pre-filled from appointment booking (update if actual service differed)'
         
         # Add services data
         services_data = []
@@ -377,6 +424,7 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
         context['discounts_json'] = json.dumps(discounts_data)
         context['products_json'] = json.dumps(products_data)
         context['categories_json'] = json.dumps(categories_data)
+        context['initial_items_json'] = json.dumps(initial_items)  # NEW: Pre-filled items
         
         return context
     
@@ -457,13 +505,13 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
                 
                 messages.success(
                     self.request, 
-                    f'Payment record created successfully for {self.appointment.patient.full_name}.'
+                    f'Invoice created successfully for {self.appointment.patient.full_name}.'
                 )
                 
             return response
                 
         except Exception as e:
-            messages.error(self.request, f'Error creating payment record: {str(e)}')
+            messages.error(self.request, f'Error creating invoice: {str(e)}')
             return self.form_invalid(form)
     
     def get_success_url(self):
@@ -506,72 +554,147 @@ def verify_admin_password(request):
 
 
 @login_required
+@require_POST
 def add_payment_item(request, payment_pk):
-    """Add service item to payment via AJAX"""
-    if not hasattr(request.user, 'has_permission') or not request.user.has_permission('billing'):
-        return JsonResponse({'error': 'Permission denied'}, status=403)
+    """Add service item to payment with duplicate detection"""
+    if not request.user.has_permission('billing'):
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
     
     payment = get_object_or_404(Payment, pk=payment_pk)
     
-    if request.method == 'POST':
+    try:
+        data = json.loads(request.body)
+        service_id = data.get('service_id')
+        price = Decimal(data.get('price', 0))
+        discount_id = data.get('discount_id')
+        notes = data.get('notes', '').strip()
+        
+        # Validate service
         try:
-            data = json.loads(request.body)
-            
-            service = get_object_or_404(Service, pk=data['service_id'])
-            
-            # Validate price against service price range
-            price = Decimal(str(data['price']))
-            if service.min_price and price < service.min_price:
-                return JsonResponse({
-                    'error': f'Price must be at least ₱{service.min_price}'
-                }, status=400)
-            
-            if service.max_price and price > service.max_price:
-                return JsonResponse({
-                    'error': f'Price cannot exceed ₱{service.max_price}'
-                }, status=400)
-            
-            # Get discount if specified
-            discount = None
-            if data.get('discount_id'):
-                discount = get_object_or_404(Discount, pk=data['discount_id'])
-            
-            with transaction.atomic():
-                # Create payment item
-                item = PaymentItem.objects.create(
-                    payment=payment,
-                    service=service,
-                    price=price,
-                    discount=discount,
-                    notes=data.get('notes', '')
-                )
-                
-                # Update payment total
-                payment.total_amount = payment.calculate_total_from_items()
-                payment.save()
-                payment.update_status()
-            
-            # Add success message
-            messages.success(request, f'Service item "{service.name}" added successfully.')
-            
+            service = Service.objects.get(pk=service_id)
+        except Service.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Invalid service selected'})
+        
+        # ✅ NEW: Check for duplicate service
+        existing_items = payment.items.filter(service=service, price__gte=0)
+        if existing_items.exists():
+            # Return special response indicating duplicate
             return JsonResponse({
-                'success': True,
-                'item': {
-                    'id': item.id,
-                    'service_name': service.name,
-                    'price': float(item.price),
-                    'discount_amount': float(item.discount_amount),
-                    'total': float(item.total),
-                },
-                'payment_total': float(payment.total_amount),
-                'outstanding_balance': float(payment.outstanding_balance)
+                'success': False,
+                'error': 'duplicate',
+                'message': f'Patient already has {service.name} in this payment. Continue?',
+                'service_name': service.name
             })
+        
+        # Validate price within range
+        if service.min_price and price < service.min_price:
+            return JsonResponse({
+                'success': False, 
+                'error': f'Price must be at least ₱{service.min_price:,.0f}'
+            })
+        
+        if service.max_price and price > service.max_price:
+            return JsonResponse({
+                'success': False, 
+                'error': f'Price cannot exceed ₱{service.max_price:,.0f}'
+            })
+        
+        # Get discount if provided
+        discount = None
+        if discount_id:
+            try:
+                discount = Discount.objects.get(pk=discount_id, is_active=True)
+            except Discount.DoesNotExist:
+                pass
+        
+        with transaction.atomic():
+            # Create payment item
+            payment_item = PaymentItem.objects.create(
+                payment=payment,
+                service=service,
+                price=price,
+                discount=discount,
+                notes=notes
+            )
             
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
-    
-    return JsonResponse({'error': 'Method not allowed'}, status=405)
+            # Recalculate payment total
+            payment.total_amount = payment.calculate_total_from_items()
+            payment.save(update_fields=['total_amount'])
+            payment.update_status()
+            
+            messages.success(request, f'Added {service.name} to payment')
+            return JsonResponse({'success': True})
+            
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid data format'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
+@login_required
+@require_POST
+def force_add_payment_item(request, payment_pk):
+    """Force add service item even if duplicate (after user confirmation)"""
+    if not request.user.has_permission('billing'):
+        return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+    
+    payment = get_object_or_404(Payment, pk=payment_pk)
+    
+    try:
+        data = json.loads(request.body)
+        service_id = data.get('service_id')
+        price = Decimal(data.get('price', 0))
+        discount_id = data.get('discount_id')
+        notes = data.get('notes', '').strip()
+        
+        # Validate service
+        try:
+            service = Service.objects.get(pk=service_id)
+        except Service.DoesNotExist:
+            return JsonResponse({'success': False, 'error': 'Invalid service selected'})
+        
+        # Validate price within range
+        if service.min_price and price < service.min_price:
+            return JsonResponse({
+                'success': False, 
+                'error': f'Price must be at least ₱{service.min_price:,.0f}'
+            })
+        
+        if service.max_price and price > service.max_price:
+            return JsonResponse({
+                'success': False, 
+                'error': f'Price cannot exceed ₱{service.max_price:,.0f}'
+            })
+        
+        # Get discount if provided
+        discount = None
+        if discount_id:
+            try:
+                discount = Discount.objects.get(pk=discount_id, is_active=True)
+            except Discount.DoesNotExist:
+                pass
+        
+        with transaction.atomic():
+            # Create payment item (skip duplicate check)
+            payment_item = PaymentItem.objects.create(
+                payment=payment,
+                service=service,
+                price=price,
+                discount=discount,
+                notes=notes
+            )
+            
+            # Recalculate payment total
+            payment.total_amount = payment.calculate_total_from_items()
+            payment.save(update_fields=['total_amount'])
+            payment.update_status()
+            
+            messages.success(request, f'Added {service.name} to payment')
+            return JsonResponse({'success': True})
+            
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid data format'}, status=400)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 @login_required
 def delete_payment_item(request, pk):

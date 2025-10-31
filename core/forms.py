@@ -90,12 +90,34 @@ class SystemSettingsForm(forms.Form):
         }),
     )
     
+
+    # Auto-Approval Settings
+    auto_approval_enabled = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded'
+        }),
+        help_text='Automatically approve eligible appointments without manual review'
+    )
+    
+    auto_approve_require_existing = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={
+            'class': 'h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded'
+        }),
+        help_text='Only auto-approve patients who have completed at least one appointment'
+    )
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Load current values from database
         for field_name in self.fields:
-            current_value = SystemSetting.get_setting(field_name, '')
-            if current_value:
+            if isinstance(self.fields[field_name], forms.BooleanField):
+                current_value = SystemSetting.get_bool_setting(field_name, False)
+            else:
+                current_value = SystemSetting.get_setting(field_name, '')
+            
+            if current_value is not None and current_value != '':
                 self.fields[field_name].initial = current_value
     
     def save(self, user=None):
@@ -103,14 +125,28 @@ class SystemSettingsForm(forms.Form):
         changes = {}
         
         for field_name, value in self.cleaned_data.items():
-            old_value = SystemSetting.get_setting(field_name, '')
-            
-            if old_value != value:
-                SystemSetting.set_setting(field_name, value)
-                changes[field_name] = {
-                    'old': old_value or '(empty)',
-                    'new': value or '(empty)',
-                    'label': self.fields[field_name].label
-                }
+            # Handle boolean fields
+            if isinstance(self.fields[field_name], forms.BooleanField):
+                old_value = SystemSetting.get_bool_setting(field_name, False)
+                new_value = bool(value)
+                
+                if old_value != new_value:
+                    SystemSetting.set_setting(field_name, 'true' if new_value else 'false')
+                    changes[field_name] = {
+                        'old': 'Enabled' if old_value else 'Disabled',
+                        'new': 'Enabled' if new_value else 'Disabled',
+                        'label': self.fields[field_name].label
+                    }
+            else:
+                # Handle text fields
+                old_value = SystemSetting.get_setting(field_name, '')
+                
+                if old_value != value:
+                    SystemSetting.set_setting(field_name, value)
+                    changes[field_name] = {
+                        'old': old_value or '(empty)',
+                        'new': value or '(empty)',
+                        'label': self.fields[field_name].label
+                    }
         
         return changes

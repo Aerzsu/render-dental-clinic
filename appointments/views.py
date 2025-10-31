@@ -9,25 +9,28 @@ from datetime import datetime, date, timedelta, time
 from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import Q
 from django.http import JsonResponse, HttpResponse
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.utils import timezone
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, TemplateView
 from django.views.decorators.http import require_POST, require_http_methods
+from django.contrib.contenttypes.models import ContentType
+import logging
 
 # Local imports
-from .models import Appointment, TimeSlotConfiguration, TreatmentRecord, TreatmentRecordService, TreatmentRecordProduct, TreatmentRecordAuditLog
-from .forms import AppointmentForm, TimeSlotConfigurationForm, AppointmentNoteFieldForm, TreatmentRecordForm
+from .models import Appointment, Payment, TimeSlotConfiguration, TreatmentRecord, TreatmentRecordService, TreatmentRecordProduct, TreatmentRecordAuditLog
+from .forms import AppointmentForm, TimeSlotConfigurationForm, TreatmentRecordForm
 from patients.models import Patient
 from services.models import Service, Product, ProductCategory
 from users.models import User
 from core.models import AuditLog
 from core.email_service import EmailService
 
+logger = logging.getLogger(__name__)
 
 # BACKEND ADMIN/STAFF VIEWS
 # ============================================================================
@@ -278,6 +281,66 @@ class AppointmentRequestsView(LoginRequiredMixin, ListView):
         return context
 
 
+class CheckInView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+    """
+    Staff check-in page - shows today's appointments for quick patient arrival tracking
+    """
+    template_name = 'appointments/check_in.html'
+    permission_required = 'appointments'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Get today's date
+        today = timezone.now().date()
+        
+        # Get all appointments for today (confirmed, pending, completed)
+        appointments = Appointment.objects.filter(
+            appointment_date=today,
+            status__in=['confirmed', 'pending', 'completed']
+        ).select_related(
+            'patient', 'service', 'assigned_dentist'
+        ).order_by('start_time')
+        
+        # Separate into upcoming and checked-in
+        now = timezone.now()
+        upcoming = []
+        checked_in = []
+        
+        for appointment in appointments:
+            # Calculate if appointment time has passed
+            appt_datetime = appointment.appointment_datetime
+            
+            # Check if already completed
+            if appointment.status == 'completed':
+                checked_in.append({
+                    'appointment': appointment,
+                    'checked_in_time': appointment.confirmed_at or appt_datetime,
+                    'is_completed': True
+                })
+            else:
+                upcoming.append({
+                    'appointment': appointment,
+                    'has_passed': appt_datetime < now,
+                    'minutes_until': int((appt_datetime - now).total_seconds() / 60) if appt_datetime > now else 0
+                })
+        
+        # Get statistics
+        total_today = len(appointments)
+        checked_in_count = len(checked_in)
+        remaining_count = len(upcoming)
+        
+        context.update({
+            'today': today,
+            'upcoming_appointments': upcoming,
+            'checked_in_appointments': checked_in,
+            'total_today': total_today,
+            'checked_in_count': checked_in_count,
+            'remaining_count': remaining_count,
+        })
+        
+        return context
+
 @login_required
 @require_http_methods(["GET"])
 def appointment_requests_partial(request):
@@ -479,6 +542,14 @@ class AppointmentCreateView(LoginRequiredMixin, CreateView):
                 # Invalid patient ID format
                 pass
         
+        # Pre-fill date if provided (for walk-ins from check-in page)
+        if 'date' in self.request.GET:
+            initial['appointment_date'] = self.request.GET.get('date')
+        
+        # Pre-fill patient if provided
+        if 'patient' in self.request.GET:
+            initial['patient'] = self.request.GET.get('patient')
+        
         return initial
     
     def get_context_data(self, **kwargs):
@@ -611,6 +682,15 @@ class AppointmentDetailView(LoginRequiredMixin, DetailView):
         
         return context
 
+@login_required
+@require_POST
+def clear_invoice_modal(request):
+    """Clear the invoice creation modal flag from session"""
+    if 'show_invoice_modal' in request.session:
+        del request.session['show_invoice_modal']
+    if 'invoice_appointment_id' in request.session:
+        del request.session['invoice_appointment_id']
+    return JsonResponse({'success': True})
 
 class AppointmentUpdateView(LoginRequiredMixin, UpdateView):
     """
@@ -653,69 +733,190 @@ class AppointmentUpdateView(LoginRequiredMixin, UpdateView):
     def get_success_url(self):
         return reverse_lazy('appointments:appointment_detail', kwargs={'pk': self.object.pk})
 
-
-@login_required
-@require_POST
-def update_appointment_note(request, appointment_pk):
-    """Update individual clinical note field via AJAX"""
-    if not request.user.has_permission('patients'):
-        return JsonResponse({'error': 'Permission denied'}, status=403)
-    
-    appointment = get_object_or_404(Appointment, pk=appointment_pk)
-    
-    # Ensure user can edit this appointment's notes
-    if not appointment.patient:
-        return JsonResponse({'error': 'Cannot edit notes for unconfirmed appointments'}, status=400)
-    
-    try:
-        data = json.loads(request.body)
-        field_name = data.get('field_name')
-        field_value = data.get('field_value', '').strip()
-        
-        # Validate field name
-        valid_fields = ['symptoms', 'procedures', 'diagnosis']
-        if field_name not in valid_fields:
-            return JsonResponse({'error': 'Invalid field name'}, status=400)
-        
-        # Update the field
-        setattr(appointment, field_name, field_value)
-        appointment.save(update_fields=[field_name, 'updated_at'])
-        
-        return JsonResponse({
-            'success': True,
-            'message': f'{field_name.title()} updated successfully',
-            'field_name': field_name,
-            'field_value': field_value
-        })
-        
-    except json.JSONDecodeError:
-        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
-
-
-@login_required
-def get_appointment_notes(request, appointment_pk):
-    """Get appointment clinical notes via AJAX"""
-    if not request.user.has_permission('patients'):
-        return JsonResponse({'error': 'Permission denied'}, status=403)
-    
-    appointment = get_object_or_404(Appointment, pk=appointment_pk)
-    
-    return JsonResponse({
-        'appointment_id': appointment.pk,
-        'symptoms': appointment.symptoms,
-        'procedures': appointment.procedures,
-        'diagnosis': appointment.diagnosis,
-        'patient_name': appointment.patient_name,
-        'service_name': appointment.service.name,
-        'appointment_date': appointment.appointment_date.strftime('%Y-%m-%d'),
-        'time_display': appointment.time_display,
-    })
-
 # ============================================================================
 # SECTION 5: BACKEND - APPOINTMENT ACTIONS
 # ============================================================================
+@login_required
+@require_POST
+def mark_patient_arrived(request, pk):
+    """ACTION VIEW: Mark patient as arrived - HTMX compatible"""
+    if not request.user.has_permission('appointments'):
+        if request.headers.get('HX-Request'):
+            return HttpResponse('<div class="text-red-600">Permission denied</div>', status=403)
+        messages.error(request, 'You do not have permission to perform this action.')
+        return redirect('core:dashboard')
+    
+    try:
+        appointment = get_object_or_404(Appointment, pk=pk)
+        
+        # Only mark as arrived if appointment is today
+        if appointment.appointment_date != timezone.now().date():
+            if request.headers.get('HX-Request'):
+                return HttpResponse('<div class="text-yellow-600">Can only mark today\'s appointments</div>')
+            messages.error(request, 'Can only mark today\'s appointments as arrived.')
+            return redirect('appointments:check_in')
+        
+        # Update status if not already completed
+        if appointment.status != 'completed':
+            old_status = appointment.status
+            
+            # Mark as completed (patient arrived and service provided)
+            appointment.status = 'completed'
+            appointment.save()
+            
+            # Log the action
+            AuditLog.log_action(
+                user=request.user,
+                action='update',
+                model_instance=appointment,
+                changes={
+                    'status': {'old': old_status, 'new': 'completed', 'label': 'Status'}
+                },
+                description=f"Marked patient {appointment.patient_name} as arrived and completed check-in",
+                request=request
+            )
+            
+            # HTMX Response
+            if request.headers.get('HX-Request'):
+                # Return updated check-in page section
+                response = HttpResponse()
+                response['HX-Redirect'] = request.META.get('HTTP_REFERER', reverse('appointments:check_in'))
+                return response
+            
+            messages.success(request, f'Patient {appointment.patient_name} marked as arrived.')
+        else:
+            if request.headers.get('HX-Request'):
+                return HttpResponse('<div class="text-yellow-600">Already checked in</div>')
+            messages.info(request, 'Patient already marked as arrived.')
+        
+    except Exception as e:
+        if request.headers.get('HX-Request'):
+            return HttpResponse(f'<div class="text-red-600">Error: {str(e)}</div>', status=500)
+        messages.error(request, f'Error marking patient as arrived: {str(e)}')
+    
+    return redirect('appointments:check_in')
+
+# PUBLIC VIEW - No login required (uses token authentication)
+def cancel_appointment_confirm(request, token):
+    """
+    Show cancellation confirmation page
+    Accessible via email link - no login required
+    """
+    try:
+        appointment = get_object_or_404(
+            Appointment.objects.select_related('patient', 'service', 'assigned_dentist'),
+            reschedule_token=token
+        )
+        
+        # Check if appointment can be cancelled
+        if appointment.status in ['cancelled', 'completed', 'did_not_arrive']:
+            return render(request, 'appointments/cancel_error.html', {
+                'error_message': f'This appointment has already been {appointment.get_status_display().lower()}.',
+                'appointment': appointment
+            })
+        
+        # Check if cancellation is within allowed timeframe (24 hours before)
+        hours_until = (appointment.appointment_datetime - timezone.now()).total_seconds() / 3600
+        
+        if hours_until < 24:
+            return render(request, 'appointments/cancel_error.html', {
+                'error_message': 'Appointments can only be cancelled at least 24 hours in advance. Please contact the clinic directly.',
+                'appointment': appointment,
+                'too_late': True
+            })
+        
+        # Show confirmation page
+        context = {
+            'appointment': appointment,
+            'hours_until': int(hours_until),
+            'cancellation_deadline': (appointment.appointment_datetime - timedelta(hours=24)).strftime('%B %d, %Y at %I:%M %p')
+        }
+        
+        return render(request, 'appointments/cancel_confirm.html', context)
+        
+    except Appointment.DoesNotExist:
+        return render(request, 'appointments/cancel_error.html', {
+            'error_message': 'Invalid cancellation link. This link may have expired or been used already.'
+        })
+
+
+# PUBLIC VIEW - No login required (uses token authentication)
+@require_POST
+def cancel_appointment_process(request, token):
+    """
+    Process appointment cancellation
+    Accessible via email link - no login required
+    """
+    try:
+        with transaction.atomic():
+            appointment = get_object_or_404(
+                Appointment.objects.select_for_update().select_related('patient', 'service'),
+                reschedule_token=token
+            )
+            
+            # Validate cancellation eligibility again
+            if appointment.status in ['cancelled', 'completed', 'did_not_arrive']:
+                return render(request, 'appointments/cancel_error.html', {
+                    'error_message': f'This appointment has already been {appointment.get_status_display().lower()}.'
+                })
+            
+            # Check timeframe
+            hours_until = (appointment.appointment_datetime - timezone.now()).total_seconds() / 3600
+            if hours_until < 24:
+                return render(request, 'appointments/cancel_error.html', {
+                    'error_message': 'Appointments can only be cancelled at least 24 hours in advance.',
+                    'too_late': True
+                })
+            
+            # Get optional cancellation reason
+            cancellation_reason = request.POST.get('reason', '').strip()
+            
+            # Store cancellation info in staff_notes
+            old_status = appointment.status
+            cancellation_note = f"\n[Patient Self-Cancellation - {timezone.now().strftime('%Y-%m-%d %I:%M %p')}]"
+            if cancellation_reason:
+                cancellation_note += f"\nReason: {cancellation_reason}"
+            
+            appointment.staff_notes = (appointment.staff_notes or '') + cancellation_note
+            appointment.status = 'cancelled'
+            appointment.save()
+            
+            # Log the cancellation (no user since this is patient-initiated)
+            AuditLog.objects.create(
+                user=None,  # Patient-initiated, no user
+                action='cancel',
+                content_type=ContentType.objects.get_for_model(Appointment),
+                object_id=appointment.id,
+                object_repr=str(appointment),
+                changes={
+                    'status': {'old': old_status, 'new': 'cancelled', 'label': 'Status'},
+                    'cancellation_type': {'old': None, 'new': 'Patient Self-Service', 'label': 'Cancelled By'}
+                },
+                description=f"Patient {appointment.patient_name} cancelled appointment via email link" + (f" - Reason: {cancellation_reason}" if cancellation_reason else ""),
+                ip_address=request.META.get('REMOTE_ADDR'),
+                user_agent=request.META.get('HTTP_USER_AGENT', '')[:200]
+            )
+            
+            # Send cancellation confirmation to patient
+            EmailService.send_appointment_cancelled_email(appointment, cancelled_by_patient=True)
+            
+            # Show success page
+            context = {
+                'appointment': appointment,
+                'cancellation_reason': cancellation_reason
+            }
+            
+            return render(request, 'appointments/cancel_success.html', context)
+            
+    except Appointment.DoesNotExist:
+        return render(request, 'appointments/cancel_error.html', {
+            'error_message': 'Invalid cancellation link. This link may have expired or been used already.'
+        })
+    except Exception as e:
+        logger.error(f"Error processing cancellation for token {token}: {str(e)}")
+        return render(request, 'appointments/cancel_error.html', {
+            'error_message': 'An error occurred while processing your cancellation. Please contact the clinic directly.'
+        })
 
 @login_required
 @require_POST
@@ -1015,6 +1216,15 @@ def update_appointment_status(request, pk):
                     appointment, 
                     cancelled_by_patient=False
                 )
+            
+            # NEW: Check if invoice already exists before prompting
+            if new_status == 'completed':
+                existing_invoice = Payment.objects.filter(appointment=appointment).exists()
+                
+                if not existing_invoice:
+                    # Store a session flag to show the invoice creation modal
+                    request.session['show_invoice_modal'] = True
+                    request.session['invoice_appointment_id'] = appointment.id
             
             # Success message
             status_display = appointment.get_status_display()
@@ -1700,6 +1910,114 @@ bulk_create_daily_slots_preview = bulk_create_timeslot_configs_preview
 bulk_create_daily_slots_confirm = bulk_create_timeslot_configs_confirm
 get_slot_availability_api = get_timeslot_availability_api
 
+@login_required
+@require_POST
+def update_treatment_record_notes(request, appointment_pk):
+    """
+    Update treatment record clinical notes via AJAX
+    Only the assigned dentist can edit
+    """
+    if not request.user.has_permission('patients'):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+    
+    appointment = get_object_or_404(
+        Appointment.objects.select_related('assigned_dentist', 'treatment_record'),
+        pk=appointment_pk
+    )
+    
+    # Check if appointment has a treatment record
+    if not hasattr(appointment, 'treatment_record'):
+        return JsonResponse({
+            'error': 'No treatment record found. Treatment records are created when appointments are confirmed.'
+        }, status=400)
+    
+    treatment_record = appointment.treatment_record
+    
+    # Permission check: Only assigned dentist can edit
+    if not treatment_record.can_edit(request.user):
+        return JsonResponse({
+            'error': 'Only the assigned dentist can edit clinical notes for this appointment.'
+        }, status=403)
+    
+    try:
+        data = json.loads(request.body)
+        clinical_notes = data.get('clinical_notes', '').strip()
+        
+        # Update clinical notes
+        treatment_record.clinical_notes = clinical_notes
+        treatment_record.last_modified_by = request.user
+        treatment_record.save(update_fields=['clinical_notes', 'last_modified_by', 'updated_at'])
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Clinical notes updated successfully',
+            'clinical_notes': clinical_notes,
+            'last_modified_by': request.user.get_full_name() or request.user.username,
+            'updated_at': treatment_record.updated_at.strftime('%b %d, %Y at %I:%M %p')
+        })
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+@login_required
+def get_treatment_record_notes(request, appointment_pk):
+    """
+    Get treatment record details via AJAX
+    Anyone with patients permission can view
+    """
+    if not request.user.has_permission('patients'):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+    
+    appointment = get_object_or_404(
+        Appointment.objects.select_related(
+            'assigned_dentist',
+            'treatment_record__created_by',
+            'treatment_record__last_modified_by',
+            'service',
+            'patient'
+        ).prefetch_related(
+            'treatment_record__service_records__service'
+        ),
+        pk=appointment_pk
+    )
+    
+    # Check if appointment has a treatment record
+    if not hasattr(appointment, 'treatment_record'):
+        return JsonResponse({
+            'error': 'No treatment record found',
+            'has_treatment_record': False
+        })
+    
+    treatment_record = appointment.treatment_record
+    
+    # Get services performed
+    services_performed = [
+        {
+            'name': sr.service.name,
+            'notes': sr.notes
+        }
+        for sr in treatment_record.service_records.all()
+    ]
+    
+    return JsonResponse({
+        'success': True,
+        'has_treatment_record': True,
+        'appointment_id': appointment.pk,
+        'clinical_notes': treatment_record.clinical_notes,
+        'services_performed': services_performed,
+        'patient_name': appointment.patient_name,
+        'appointment_date': appointment.appointment_date.strftime('%B %d, %Y'),
+        'time_display': appointment.time_display,
+        'assigned_dentist': appointment.assigned_dentist.get_full_name() if appointment.assigned_dentist else 'Not assigned',
+        'created_by': treatment_record.created_by.get_full_name() if treatment_record.created_by else 'Unknown',
+        'last_modified_by': treatment_record.last_modified_by.get_full_name() if treatment_record.last_modified_by else 'Unknown',
+        'created_at': treatment_record.created_at.strftime('%b %d, %Y at %I:%M %p'),
+        'updated_at': treatment_record.updated_at.strftime('%b %d, %Y at %I:%M %p'),
+        'can_edit': treatment_record.can_edit(request.user)
+    })
 
 @login_required
 def treatment_record_view(request, appointment_pk):
@@ -1803,6 +2121,7 @@ def treatment_record_view(request, appointment_pk):
 
 @login_required
 def delete_treatment_record(request, appointment_pk):
+    
     """Delete treatment record (admin only or assigned dentist)"""
     appointment = get_object_or_404(Appointment, pk=appointment_pk)
     
@@ -1838,4 +2157,3 @@ def delete_treatment_record(request, appointment_pk):
         return redirect('appointments:appointment_detail', pk=appointment.pk)
     
     return redirect('appointments:appointment_detail', pk=appointment.pk)
-

@@ -252,7 +252,7 @@ class PatientPortalDashboardView(TemplateView):
             patient=patient,
             appointment_date__gte=timezone.now().date(),
             status__in=['pending', 'confirmed']
-        ).select_related('service', 'assigned_dentist').order_by('appointment_date', 'period')
+        ).select_related('service', 'assigned_dentist').order_by('appointment_date')
         
         pending_count = upcoming_base.filter(status='pending').count()
         upcoming_appointments = upcoming_base[:5]
@@ -260,7 +260,7 @@ class PatientPortalDashboardView(TemplateView):
         recent_appointments = Appointment.objects.filter(
             patient=patient,
             appointment_date__lt=timezone.now().date()
-        ).select_related('service', 'assigned_dentist').order_by('-appointment_date', '-period')[:5]
+        ).select_related('service', 'assigned_dentist').order_by('-appointment_date')[:5]
         
         from appointments.models import Payment
         payments = Payment.objects.filter(patient=patient)
@@ -314,7 +314,7 @@ class PatientPortalAppointmentsView(TemplateView):
         
         appointments = Appointment.objects.filter(
             patient=patient
-        ).select_related('service', 'assigned_dentist').order_by('-appointment_date', '-period')
+        ).select_related('service', 'assigned_dentist').order_by('-appointment_date')
         
         status_filter = self.request.GET.get('status')
         if status_filter:

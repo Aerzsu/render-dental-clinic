@@ -184,7 +184,7 @@
     </div>
 </div>
 <script>
-// Simple CSRF token function
+// CSRF token helper
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -203,27 +203,38 @@ function getCookie(name) {
 document.addEventListener('DOMContentLoaded', function() {
     const csrfToken = getCookie('csrftoken');
     
-    // Handle save buttons
+    // Handle clinical note interactions
     document.addEventListener('click', function(e) {
-        if (e.target.classList.contains('clinical-note-save')) {
+        const field = e.target.closest('.clinical-note-field');
+        if (!field) return;
+        
+        const canEdit = field.getAttribute('data-can-edit') === 'true';
+        
+        // Handle save button
+        if (e.target.classList.contains('clinical-note-save') || e.target.closest('.clinical-note-save')) {
             e.preventDefault();
             
-            const field = e.target.closest('.clinical-note-field');
+            const saveBtn = e.target.classList.contains('clinical-note-save') ? e.target : e.target.closest('.clinical-note-save');
             const appointmentId = field.getAttribute('data-appointment-id');
-            const fieldName = field.getAttribute('data-field');
             const textarea = field.querySelector('.clinical-note-textarea');
-            const fieldValue = textarea.value.trim();
+            const clinicalNotes = textarea.value.trim();
             
-            // Simple fetch request
-            fetch(`/appointments/notes/${appointmentId}/update/`, {
+            // Show loading state
+            const saveText = saveBtn.querySelector('.save-text');
+            const savingText = saveBtn.querySelector('.saving-text');
+            saveText.classList.add('hidden');
+            savingText.classList.remove('hidden');
+            saveBtn.disabled = true;
+            
+            // Send update request
+            fetch(`/appointments/treatment/${appointmentId}/notes/update/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': csrfToken
                 },
                 body: JSON.stringify({
-                    field_name: fieldName,
-                    field_value: fieldValue
+                    clinical_notes: clinicalNotes
                 })
             })
             .then(response => response.json())
@@ -234,36 +245,94 @@ document.addEventListener('DOMContentLoaded', function() {
                     field.querySelector('.clinical-note-display').classList.remove('hidden');
                     
                     // Update display text
-                    const displaySpan = field.querySelector('.clinical-note-display span:first-child');
-                    if (fieldValue) {
-                        displaySpan.textContent = fieldValue;
-                        displaySpan.className = 'text-sm text-gray-900';
+                    const displayDiv = field.querySelector('.clinical-note-display');
+                    const contentDiv = displayDiv.querySelector('div.text-sm') || displayDiv.querySelector('span');
+                    
+                    if (clinicalNotes) {
+                        // Replace or create content div
+                        if (contentDiv.tagName === 'SPAN') {
+                            // Was empty, create new div
+                            const newDiv = document.createElement('div');
+                            newDiv.className = 'text-sm text-gray-900 whitespace-pre-wrap';
+                            newDiv.textContent = clinicalNotes;
+                            contentDiv.replaceWith(newDiv);
+                        } else {
+                            contentDiv.textContent = clinicalNotes;
+                            contentDiv.className = 'text-sm text-gray-900 whitespace-pre-wrap';
+                        }
                     } else {
-                        displaySpan.textContent = `Click to add ${fieldName}...`;
-                        displaySpan.className = 'text-gray-400 italic text-sm';
+                        // Empty notes
+                        if (contentDiv.tagName === 'DIV') {
+                            const newSpan = document.createElement('span');
+                            newSpan.className = 'text-gray-400 italic text-sm';
+                            newSpan.textContent = canEdit ? 'Click to add clinical notes...' : 'No clinical notes recorded yet';
+                            contentDiv.replaceWith(newSpan);
+                        } else {
+                            contentDiv.textContent = canEdit ? 'Click to add clinical notes...' : 'No clinical notes recorded yet';
+                            contentDiv.className = 'text-gray-400 italic text-sm';
+                        }
                     }
+                    
+                    // Update metadata if exists
+                    const metadataDiv = field.querySelector('.text-xs.text-gray-400');
+                    if (metadataDiv && data.updated_at) {
+                        const lastUpdatedDiv = metadataDiv.querySelector('div:last-child');
+                        if (lastUpdatedDiv && lastUpdatedDiv.textContent.includes('Last updated')) {
+                            lastUpdatedDiv.textContent = `Last updated ${data.updated_at}`;
+                        } else {
+                            const newDiv = document.createElement('div');
+                            newDiv.textContent = `Last updated ${data.updated_at}`;
+                            metadataDiv.appendChild(newDiv);
+                        }
+                    }
+                    
+                    // Show success feedback
+                    const feedback = document.createElement('div');
+                    feedback.className = 'mt-2 text-sm text-green-600 bg-green-50 border border-green-200 rounded px-3 py-2';
+                    feedback.textContent = '✓ Clinical notes saved successfully';
+                    field.appendChild(feedback);
+                    setTimeout(() => feedback.remove(), 3000);
+                    
                 } else {
-                    alert('Error saving: ' + (data.error || 'Unknown error'));
+                    alert('Error: ' + (data.error || 'Failed to save clinical notes'));
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Failed to save clinical note');
+                alert('Failed to save clinical notes. Please try again.');
+            })
+            .finally(() => {
+                // Reset button state
+                saveText.classList.remove('hidden');
+                savingText.classList.add('hidden');
+                saveBtn.disabled = false;
             });
         }
         
-        // Handle cancel buttons
+        // Handle cancel button
         if (e.target.classList.contains('clinical-note-cancel')) {
             e.preventDefault();
-            const field = e.target.closest('.clinical-note-field');
+            
+            // Restore original content
+            const appointmentId = field.getAttribute('data-appointment-id');
+            const textarea = field.querySelector('.clinical-note-textarea');
+            
+            // Fetch original content
+            fetch(`/appointments/treatment/${appointmentId}/notes/get/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        textarea.value = data.clinical_notes || '';
+                    }
+                });
+            
             field.querySelector('.clinical-note-edit').classList.add('hidden');
             field.querySelector('.clinical-note-display').classList.remove('hidden');
         }
         
-        // Handle display clicks (to edit)
-        if (e.target.closest('.clinical-note-display')) {
+        // Handle display click (to edit) - only if user can edit
+        if (canEdit && e.target.closest('.clinical-note-display') && !e.target.closest('.clinical-note-edit')) {
             e.preventDefault();
-            const field = e.target.closest('.clinical-note-field');
             field.querySelector('.clinical-note-display').classList.add('hidden');
             field.querySelector('.clinical-note-edit').classList.remove('hidden');
             field.querySelector('.clinical-note-textarea').focus();

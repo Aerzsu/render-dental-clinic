@@ -77,6 +77,9 @@ function appointmentBooking() {
         submitted: false,
         referenceNumber: '',
         errorMessage: '',
+
+        autoApproved: false,
+        appointmentStatus: 'pending',
         
         errors: {},
         services: servicesData || [],
@@ -901,6 +904,11 @@ function appointmentBooking() {
                 if (data.success) {
                     this.submitted = true;
                     this.referenceNumber = data.reference_number;
+
+                    // Store auto-approval status for success message
+                    this.autoApproved = data.auto_approved || false;
+                    this.appointmentStatus = data.status || 'pending';
+
                     this.errorMessage = '';
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 } else {

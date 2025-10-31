@@ -1,0 +1,64 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unable to Cancel - KingJoy Dental</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-2xl mx-auto">
+        <!-- Error Header -->
+        <div class="text-center mb-8">
+            <div class="w-16 h-16 bg-red-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                <span class="text-3xl">❌</span>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Unable to Cancel</h1>
+            <p class="text-gray-600">We couldn't process your cancellation request</p>
+        </div>
+
+        <!-- Error Message -->
+        <div class="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-red-800">Error</h3>
+                    <p class="mt-2 text-sm text-red-700">{{ error_message }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Info for "Too Late" Cancellations -->
+        {% if too_late %}
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+            <h3 class="text-base font-semibold text-blue-900 mb-3">Need to Cancel?</h3>
+            <p class="text-sm text-blue-800 mb-3">
+                Since your appointment is within 24 hours, please contact us directly to cancel or reschedule.
+            </p>
+            <p class="text-sm font-medium text-blue-900">
+                📞 Call us at: +63 956 631 6581<br>
+                📧 Email us at: clinic@kingjoy.com
+            </p>
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-3">
+            <a href="{% url 'core:home' %}" 
+               class="flex-1 text-center px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium">
+                Return to Homepage
+            </a>
+            
+            <a href="{% url 'core:book_appointment' %}" 
+               class="flex-1 text-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                Book New Appointment
+            </a>
+        </div>
+    </div>
+</body>
+</html>

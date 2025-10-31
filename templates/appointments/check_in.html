@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Patient Check-In - KingJoy Dental{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">Patient Check-In</h1>
+                <p class="mt-1 text-sm text-gray-600">
+                    {{ today|date:"l, F j, Y" }}
+                </p>
+            </div>
+            
+            <!-- Add Walk-in Button -->
+            <a href="{% url 'appointments:appointment_create' %}?date={{ today|date:'Y-m-d' }}&type=walkin" 
+               class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                <span class="mr-2">+</span>
+                Add Walk-in
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <!-- Total Today -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <span class="text-2xl">📅</span>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Total Today</p>
+                    <p class="text-2xl font-bold text-gray-900">{{ total_today }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Checked In -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <span class="text-2xl">✓</span>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Checked In</p>
+                    <p class="text-2xl font-bold text-green-600">{{ checked_in_count }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Remaining -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <span class="text-2xl">⏰</span>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Remaining</p>
+                    <p class="text-2xl font-bold text-yellow-600">{{ remaining_count }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upcoming Appointments -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900">⏰ Upcoming Appointments</h2>
+        </div>
+        
+        <div class="divide-y divide-gray-200">
+            {% if upcoming_appointments %}
+                {% for item in upcoming_appointments %}
+                    {% with appointment=item.appointment %}
+                    <div class="px-6 py-4 hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center justify-between">
+                            <!-- Appointment Info -->
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center mb-2">
+                                    <span class="text-lg font-semibold text-gray-900 mr-3">
+                                        {{ appointment.start_time|time:"g:i A" }}
+                                    </span>
+                                    {% if item.has_passed %}
+                                        <span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 rounded">
+                                            Time Passed
+                                        </span>
+                                    {% else %}
+                                        <span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 rounded">
+                                            In {{ item.minutes_until }} min
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                
+                                <p class="text-base font-medium text-gray-900">
+                                    {{ appointment.patient_name }}
+                                </p>
+                                
+                                <div class="mt-1 text-sm text-gray-600">
+                                    <span>{{ appointment.service.name }}</span>
+                                    <span class="mx-2">•</span>
+                                    <span>{{ appointment.service.duration_display }}</span>
+                                    {% if appointment.assigned_dentist %}
+                                        <span class="mx-2">•</span>
+                                        <span>Dr. {{ appointment.assigned_dentist.get_full_name }}</span>
+                                    {% endif %}
+                                </div>
+                                
+                                {% if appointment.status == 'pending' %}
+                                    <div class="mt-2">
+                                        <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">
+                                            ⚠️ Pending Approval
+                                        </span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Check-in Button -->
+                            <div class="ml-6 flex-shrink-0">
+                                <form method="post" action="{% url 'appointments:mark_patient_arrived' appointment.pk %}"
+                                      onsubmit="this.querySelector('button').disabled=true; this.querySelector('button').innerHTML='<svg class=\'inline animate-spin h-5 w-5\' fill=\'none\' viewBox=\'0 0 24 24\'><circle class=\'opacity-25\' cx=\'12\' cy=\'12\' r=\'10\' stroke=\'currentColor\' stroke-width=\'4\'></circle><path class=\'opacity-75\' fill=\'currentColor\' d=\'M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z\'></path></svg> Checking in...';">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                            class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium">
+                                        ✓ Patient Arrived
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endwith %}
+                {% endfor %}
+            {% else %}
+                <div class="px-6 py-12 text-center">
+                    <span class="text-4xl mb-2 block">📭</span>
+                    <p class="text-gray-500">No upcoming appointments for today</p>
+                    <a href="{% url 'appointments:appointment_create' %}?date={{ today|date:'Y-m-d' }}" 
+                       class="mt-4 inline-block text-primary-600 hover:text-primary-700 font-medium">
+                        + Add an appointment
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Checked-In Appointments -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900">✅ Checked In</h2>
+        </div>
+        
+        <div class="divide-y divide-gray-200">
+            {% if checked_in_appointments %}
+                {% for item in checked_in_appointments %}
+                    {% with appointment=item.appointment %}
+                    <div class="px-6 py-4 bg-green-50">
+                        <div class="flex items-center">
+                            <!-- Green Checkmark -->
+                            <div class="flex-shrink-0 mr-4">
+                                <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            
+                            <!-- Appointment Info -->
+                            <div class="flex-1">
+                                <div class="flex items-center mb-1">
+                                    <span class="text-base font-semibold text-gray-900 mr-3">
+                                        {{ appointment.start_time|time:"g:i A" }}
+                                    </span>
+                                    <span class="text-xs text-gray-500">
+                                        Checked in at {{ item.checked_in_time|time:"g:i A" }}
+                                    </span>
+                                </div>
+                                
+                                <p class="text-base font-medium text-gray-900">
+                                    {{ appointment.patient_name }}
+                                </p>
+                                
+                                <p class="text-sm text-gray-600">
+                                    {{ appointment.service.name }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endwith %}
+                {% endfor %}
+            {% else %}
+                <div class="px-6 py-8 text-center text-gray-500">
+                    <span class="text-2xl mb-2 block">⏳</span>
+                    <p>No patients checked in yet</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

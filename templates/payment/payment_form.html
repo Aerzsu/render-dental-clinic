@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load user_tags %}
 
-{% block title %}Create Payment - {{ appointment.patient.full_name }}{% endblock %}
+{% block title %}Create Invoice - {{ appointment.patient.full_name }}{% endblock %}
 
 {% block content %}
 <style> 
@@ -73,14 +73,14 @@
                             <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
                             </svg>
-                            <span class="ml-4 text-sm font-medium text-gray-500">Create Payment</span>
+                            <span class="ml-4 text-sm font-medium text-gray-500">Create Invoice</span>
                         </div>
                     </li>
                 </ol>
             </nav>
-            <h1 class="text-2xl font-bold text-gray-900">Create Payment Record</h1>
+            <h1 class="text-2xl font-bold text-gray-900">Create Invoice</h1>
             <p class="mt-1 text-sm text-gray-600">
-                Create payment tracking for {{ appointment.patient.full_name }}
+                Create an invoice for {{ appointment.patient.full_name }}
             </p>
         </div>
     </div>
@@ -130,21 +130,23 @@
                         <fieldset>
                             <legend class="sr-only">Discount application method</legend>
                             <div class="space-y-4">
-                                <div class="flex items-start">
-                                    {{ form.discount_application.0 }}
-                                    <label for="{{ form.discount_application.0.id_for_label }}" class="ml-3 block">
-                                        <span class="text-sm font-medium text-gray-900">Apply to Individual Services</span>
-                                        <span class="block text-sm text-gray-500">Discounts apply only to service base fees (products excluded)</span>
-                                    </label>
+                                <!-- Option 1: Apply to Individual Services -->
+                                <div>
+                                    <div class="flex items-center">
+                                        {{ form.discount_application.0 }}
+                                    </div>
+                                    <span class="block text-sm text-gray-500 ml-6 mt-1">Discounts apply only to service base fees (products excluded)</span>
                                 </div>
-                                <div class="flex items-start">
-                                    {{ form.discount_application.1 }}
-                                    <label for="{{ form.discount_application.1.id_for_label }}" class="ml-3 block">
-                                        <span class="text-sm font-medium text-gray-900">Apply to Total Bill</span>
-                                        <span class="block text-sm text-gray-500">One discount applied to total service fees only</span>
-                                    </label>
+                                
+                                <!-- Option 2: Apply to Total Bill -->
+                                <div>
+                                    <div class="flex items-center">
+                                        {{ form.discount_application.1 }}
+                                    </div>
+                                    <span class="block text-sm text-gray-500 ml-6 mt-1">One discount applied to total service fees only</span>
                                 </div>
                             </div>
+                            
                             {% if form.discount_application.errors %}
                                 <p class="mt-2 text-sm text-red-600">{{ form.discount_application.errors.0 }}</p>
                             {% endif %}
@@ -180,13 +182,13 @@
                                         <div class="flex items-center">
                                             {{ form.payment_type.0 }}
                                             <label for="{{ form.payment_type.0.id_for_label }}" class="ml-3 text-sm font-medium text-gray-900">
-                                                Full Payment
+                                                <!-- Django renders the label text automatically, so no need to add label here-->
                                             </label>
                                         </div>
                                         <div class="flex items-center">
                                             {{ form.payment_type.1 }}
                                             <label for="{{ form.payment_type.1.id_for_label }}" class="ml-3 text-sm font-medium text-gray-900">
-                                                Installment
+                                                <!-- Django renders the label text automatically, so no need to add label here-->
                                             </label>
                                         </div>
                                     </div>
@@ -243,7 +245,7 @@
                     </a>
                     <button type="submit" id="submitBtnMobile"
                             class="inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                        <span>Create Payment Record</span>
+                        <span>Create Invoice</span>
                     </button>
                 </div>
             </form>
@@ -255,7 +257,7 @@
                 <!-- Payment Summary Card -->
                 <div class="bg-white shadow rounded-lg">
                     <div class="px-6 py-4 border-b border-gray-200 bg-primary-50">
-                        <h3 class="text-lg font-medium text-gray-900">💰 Payment Summary</h3>
+                        <h3 class="text-lg font-medium text-gray-900">Payment Summary</h3>
                     </div>
                     <div class="px-6 py-4">
                         <dl class="space-y-3">
@@ -334,7 +336,7 @@
                 <div class="hidden lg:flex flex-col space-y-3 mt-6">
                     <button type="submit" form="paymentForm" id="submitBtn"
                             class="w-full inline-flex justify-center items-center px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                        <span id="submitBtnText">Create Payment Record</span>
+                        <span id="submitBtnText">Create Invoice</span>
                     </button>
                     <a href="{% url 'appointments:appointment_detail' appointment.pk %}" 
                        class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 text-center">

@@ -184,6 +184,75 @@
 
             </div>
 
+            <!-- Auto-Approval Settings Section -->
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-4 pb-2 border-b">
+                        Appointment Auto-Approval
+                    </h3>
+                    
+                    <div class="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-blue-800">
+                                    <strong>About Auto-Approval:</strong> When enabled, eligible appointments will be automatically confirmed without manual review. This reduces your workload while maintaining control over first-time patients and edge cases.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <!-- Enable Auto-Approval -->
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                {{ form.auto_approval_enabled }}
+                            </div>
+                            <div class="ml-3">
+                                <label for="{{ form.auto_approval_enabled.id_for_label }}" class="font-medium text-gray-700">
+                                    Enable Auto-Approval
+                                </label>
+                                <p class="text-sm text-gray-500">
+                                    {{ form.auto_approval_enabled.help_text }}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- Require Existing Patients -->
+                        <div class="flex items-start pl-7 border-l-2 border-gray-200">
+                            <div class="flex items-center h-5">
+                                {{ form.auto_approve_require_existing }}
+                            </div>
+                            <div class="ml-3">
+                                <label for="{{ form.auto_approve_require_existing.id_for_label }}" class="font-medium text-gray-700">
+                                    Require Existing Patients
+                                </label>
+                                <p class="text-sm text-gray-500">
+                                    {{ form.auto_approve_require_existing.help_text }}
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- Info Box -->
+                        <div class="bg-gray-50 border border-gray-200 rounded-md p-4">
+                            <p class="text-sm text-gray-700 font-medium mb-2">How Auto-Approval Works:</p>
+                            <ul class="text-sm text-gray-600 space-y-1 list-disc list-inside">
+                                <li><strong>Automatically approves</strong> appointments from patients with completed appointment history (if "Require Existing Patients" is checked)</li>
+                                <li><strong>Requires manual review</strong> for first-time patients to maintain quality control</li>
+                                <li><strong>Always blocks</strong> same-day bookings (bookings must be at least 24 hours in advance)</li>
+                                <li><strong>Prevents double-booking</strong> - same patient cannot book multiple appointments on the same day</li>
+                                <li><strong>Sends confirmation email</strong> immediately for auto-approved appointments</li>
+                            </ul>
+                            <p class="text-sm text-gray-600 mt-3">
+                                💡 <strong>Tip:</strong> Start with "Require Existing Patients" enabled to ensure first-timers get personal attention, then adjust based on your workflow.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
             <!-- Form Actions -->
             <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-between items-center">
                 <a href="{% url 'core:maintenance_hub' %}" 

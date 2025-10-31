@@ -66,22 +66,6 @@ def send_email_via_api(recipient_email, subject, html_content, recipient_name=No
         return False
 
 
-def get_period_with_time(period):
-    """
-    Get formatted period with time range from SystemSettings
-    Args:
-        period: 'am' or 'pm'
-    Returns:
-        Formatted string like "AM (8:00 AM - 12:00 PM)"
-    """
-    if period.lower() == 'am':
-        time_range = SystemSetting.get_setting('am_period_display', '8:00 AM - 12:00 PM')
-        return f"AM ({time_range})"
-    else:  # pm
-        time_range = SystemSetting.get_setting('pm_period_display', '1:00 PM - 6:00 PM')
-        return f"PM ({time_range})"
-
-
 class EmailService:
     """Email service wrapper using Brevo API"""
     
@@ -93,13 +77,26 @@ class EmailService:
             
             subject = 'Appointment Confirmed'
             
+            # Build cancellation URL - handles both development and production
+            if settings.DEBUG:
+                # Development mode
+                domain = 'localhost:8000'
+                protocol = 'http'
+            else:
+                # Production mode - use ALLOWED_HOSTS
+                domain = settings.ALLOWED_HOSTS[0] if settings.ALLOWED_HOSTS else 'kingjoy-dental-clinic.onrender.com'
+                protocol = 'https'
+
+            cancel_url = f"{protocol}://{domain}/appointments/cancel/{appointment.reschedule_token}/"
+
             context = {
                 'patient_name': appointment.patient_name,
                 'appointment_date': appointment.appointment_date.strftime('%B %d, %Y'),
-                'period': get_period_with_time(appointment.period),
+                'period': appointment.time_display,  # FIXED: Use time_display instead of period
                 'service': appointment.service.name,
                 'dentist': appointment.assigned_dentist.get_full_name() if appointment.assigned_dentist else 'To be assigned',
                 'clinic_name': settings.DEFAULT_FROM_NAME,
+                'cancel_url': cancel_url,
             }
             
             # Render HTML email
@@ -136,7 +133,7 @@ class EmailService:
             context = {
                 'patient_name': appointment.patient_name,
                 'appointment_date': appointment.appointment_date.strftime('%B %d, %Y'),
-                'period': get_period_with_time(appointment.period),
+                'period': appointment.time_display,  # FIXED: Use time_display instead of period
                 'service': appointment.service.name,
                 'clinic_name': settings.DEFAULT_FROM_NAME,
             }
@@ -173,7 +170,7 @@ class EmailService:
             context = {
                 'patient_name': appointment.patient_name,
                 'appointment_date': appointment.appointment_date.strftime('%B %d, %Y'),
-                'period': get_period_with_time(appointment.period),
+                'period': appointment.time_display,  # FIXED: Use time_display instead of period
                 'service': appointment.service.name,
                 'cancelled_by_patient': cancelled_by_patient,
                 'clinic_name': settings.DEFAULT_FROM_NAME,

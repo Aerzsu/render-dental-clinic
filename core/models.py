@@ -74,6 +74,24 @@ class SystemSetting(models.Model):
             setting.is_active = True
             setting.save()
         return setting
+    
+    @classmethod
+    def initialize_auto_approval_settings(cls):
+        """Initialize auto-approval settings with defaults"""
+        defaults = {
+            'auto_approval_enabled': ('false', 'Enable automatic approval for eligible appointments'),
+            'auto_approve_require_existing': ('true', 'Require existing patients with completed appointments for auto-approval'),
+        }
+        
+        for key, (value, description) in defaults.items():
+            cls.objects.get_or_create(
+                key=key,
+                defaults={
+                    'value': value,
+                    'description': description,
+                    'is_active': True
+                }
+            )
 
 
 class AuditLog(models.Model):

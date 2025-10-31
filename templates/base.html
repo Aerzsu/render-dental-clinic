@@ -233,6 +233,12 @@
                                 </svg>
                             </button>
                             <div x-show="open && !collapsed" x-collapse class="ml-6 space-y-1">
+                                <!-- Check in-->
+                                 <a href="{% url 'appointments:check_in' %}" 
+                                class="group flex items-center px-2 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">
+                                    <span>Check-In</span>
+                                </a>
+                                
                                 <a href="{% url 'appointments:appointment_calendar' %}" class="group flex items-center px-2 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md relative">
                                     <span>Calendar View</span>
                                     {% if pending_count > 0 %}

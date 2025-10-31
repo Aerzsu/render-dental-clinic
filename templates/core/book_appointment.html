@@ -94,18 +94,41 @@
     <!-- Success Message -->
     <div x-show="submitted" class="max-w-3xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden mb-8">
         <div class="p-8 text-center">
-            <div class="w-16 h-16 bg-green-100 rounded-full mx-auto mb-4 flex items-center justify-center">
-                <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <!-- Dynamic Icon based on auto-approval -->
+            <div class="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center"
+                :class="autoApproved ? 'bg-green-100' : 'bg-blue-100'">
+                <svg class="w-8 h-8" :class="autoApproved ? 'text-green-600' : 'text-blue-600'" 
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                 </svg>
             </div>
-            <h2 class="text-2xl font-bold text-gray-900 mb-2">Request Submitted!</h2>
-            <p class="text-gray-600 mb-6">Your appointment request has been received. We'll review it and contact you within 24 hours to confirm.</p>
+            
+            <!-- Dynamic Heading -->
+            <h2 class="text-2xl font-bold text-gray-900 mb-2" 
+                x-text="autoApproved ? 'Appointment Confirmed!' : 'Request Submitted!'">
+            </h2>
+            
+            <!-- Dynamic Description -->
+            <template x-if="autoApproved">
+                <p class="text-gray-600 mb-6">
+                    Great news! Your appointment has been automatically confirmed. 
+                    You will receive a confirmation email shortly with all the details.
+                </p>
+            </template>
+            
+            <template x-if="!autoApproved">
+                <p class="text-gray-600 mb-6">
+                    Your appointment request has been received. We'll review it and contact you within 24 hours to confirm.
+                </p>
+            </template>
             
             <!-- Reference Details -->
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                <p class="text-sm text-blue-700 text-left space-y-1">
+            <div class="border rounded-lg p-4 mb-6"
+                :class="autoApproved ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'">
+                <p class="text-sm text-left space-y-1"
+                :class="autoApproved ? 'text-green-700' : 'text-blue-700'">
                     <strong>Reference Number:</strong> <span x-text="referenceNumber"></span><br>
+                    <strong>Status:</strong> <span x-text="autoApproved ? 'Confirmed ✓' : 'Pending Review'"></span><br>
                     <strong>Service:</strong> <span x-text="getSelectedServiceName()"></span><br>
                     <strong>Date:</strong> <span x-text="formatDate(form.appointment_date)"></span><br>
                     <strong>Time:</strong> <span x-text="form.start_time"></span><br>
@@ -113,45 +136,98 @@
                 </p>
             </div>
 
-            <!-- What Happens Next -->
+            <!-- What Happens Next - Dynamic based on auto-approval -->
             <div class="space-y-3 mb-6 text-left">
-                <div class="flex items-start">
-                    <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                    </svg>
-                    <div>
-                        <p class="font-medium text-gray-900">What happens next?</p>
-                        <p class="text-sm text-gray-600 mt-1">We'll review your request and send a confirmation email with your exact appointment time.</p>
-                    </div>
-                </div>
                 
-                <div class="flex items-start">
-                    <svg class="w-5 h-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
-                        <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
-                    </svg>
+                <!-- Auto-Approved Flow -->
+                <template x-if="autoApproved">
                     <div>
-                        <p class="font-medium text-gray-900">Check your email</p>
-                        <p class="text-sm text-gray-600 mt-1">
-                            Check <strong x-text="form.patient_type === 'existing' ? otp.email : form.email"></strong> for our confirmation.
-                        </p>
+                        <div class="flex items-start mb-3">
+                            <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                            <div>
+                                <p class="font-medium text-gray-900">Your appointment is confirmed!</p>
+                                <p class="text-sm text-gray-600 mt-1">No further action needed. We look forward to seeing you at your scheduled time.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start mb-3">
+                            <svg class="w-5 h-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+                            </svg>
+                            <div>
+                                <p class="font-medium text-gray-900">Check your email</p>
+                                <p class="text-sm text-gray-600 mt-1">
+                                    A confirmation email has been sent to <strong x-text="form.patient_type === 'existing' ? otp.email : form.email"></strong>.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <svg class="w-5 h-5 text-purple-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+                            </svg>
+                            <div>
+                                <p class="font-medium text-gray-900">Add to calendar</p>
+                                <p class="text-sm text-gray-600 mt-1">Save the date and arrive 10 minutes early for check-in.</p>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </template>
                 
-                <div class="flex items-start">
-                    <svg class="w-5 h-5 text-purple-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                    </svg>
+                <!-- Pending Approval Flow -->
+                <template x-if="!autoApproved">
                     <div>
-                        <p class="font-medium text-gray-900">No confirmation yet?</p>
-                        <p class="text-sm text-gray-600 mt-1">Contact us directly if you don't hear back within 24 hours.</p>
+                        <div class="flex items-start mb-3">
+                            <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                            <div>
+                                <p class="font-medium text-gray-900">What happens next?</p>
+                                <p class="text-sm text-gray-600 mt-1">We'll review your request and send a confirmation email with your exact appointment time.</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start mb-3">
+                            <svg class="w-5 h-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/>
+                                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
+                            </svg>
+                            <div>
+                                <p class="font-medium text-gray-900">Check your email</p>
+                                <p class="text-sm text-gray-600 mt-1">
+                                    Check <strong x-text="form.patient_type === 'existing' ? otp.email : form.email"></strong> for our confirmation.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <svg class="w-5 h-5 text-purple-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                            <div>
+                                <p class="font-medium text-gray-900">No confirmation yet?</p>
+                                <p class="text-sm text-gray-600 mt-1">Contact us directly if you don't hear back within 24 hours.</p>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </template>
             </div>
 
-            <a href="{% url 'core:home' %}" class="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-                Return to Home
-            </a>
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                <a href="{% url 'patient_portal:login' %}" 
+                class="inline-block px-6 py-3 text-white rounded-lg transition-colors"
+                :class="autoApproved ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'">
+                    View in Patient Portal
+                </a>
+                <a href="{% url 'core:home' %}" 
+                class="inline-block px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors">
+                    Return to Home
+                </a>
+            </div>
         </div>
     </div>
 

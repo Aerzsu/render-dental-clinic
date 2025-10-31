@@ -1,121 +1,140 @@
 <!-- templates/patients/partials/_medical_notes.html -->
 {% load user_tags %}
+{% load treatment_filters %}
 <div class="bg-white shadow rounded-lg overflow-hidden">
     <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
         <h3 class="text-lg leading-6 font-medium text-gray-900">Clinical Notes</h3>
-        <p class="mt-1 text-sm text-gray-500">Symptoms, procedures, and diagnosis per appointment</p>
+        <p class="mt-1 text-sm text-gray-500">Treatment records and clinical observations</p>
     </div>
     <div class="px-4 py-5 sm:p-6">
         {% if appointments %}
-            <div class="space-y-6">
+            <div class="space-y-8">
                 {% for appointment in appointments %}
-                    <!-- Show all appointments, regardless of whether they have notes -->
-                    <div class="border-l-4 {% if appointment.status == 'completed' %}border-green-400{% elif appointment.status == 'confirmed' %}border-blue-400{% else %}border-yellow-400{% endif %} pl-4">
-                        <div class="flex items-center justify-between mb-2">
+                    <!-- Only show confirmed/completed appointments with treatment records -->
+                    {% if appointment.treatment_record %}
+                    <div class="border-l-4 {% if appointment.status == 'completed' %}border-green-400{% else %}border-blue-400{% endif %} pl-4">
+                        <!-- Appointment Header -->
+                        <div class="flex items-center justify-between mb-3">
                             <div>
                                 <h4 class="text-sm font-medium text-gray-900">
-                                    {{ appointment.service.name }}
+                                    {{ appointment.appointment_date|date:"F d, Y" }} - {{ appointment.time_display }}
                                 </h4>
-                                <p class="text-sm text-gray-500">
-                                    {{ appointment.appointment_date|date:"M j, Y" }} {{ appointment.get_period_display }}
+                                <p class="text-xs text-gray-500 mt-1">
                                     {% if appointment.assigned_dentist %}
-                                        - Dr. {{ appointment.assigned_dentist.get_full_name|default:appointment.assigned_dentist.username }}
+                                        Assigned to: Dr. {{ appointment.assigned_dentist.get_full_name|default:appointment.assigned_dentist.username }}
+                                    {% else %}
+                                        No dentist assigned
                                     {% endif %}
                                 </p>
                             </div>
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                                 {% if appointment.status == 'completed' %}bg-green-100 text-green-800
-                                {% elif appointment.status == 'confirmed' %}bg-blue-100 text-blue-800
-                                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                {% else %}bg-blue-100 text-blue-800{% endif %}">
                                 {{ appointment.get_status_display }}
                             </span>
                         </div>
                         
-                        <!-- Clinical Notes - Only show for appointments with patients (confirmed) -->
-                        {% if user|has_permission:'patients' and appointment.patient %}
-                            <div class="space-y-3 mt-3">
-                                <!-- Symptoms -->
-                                <div class="clinical-note-field" data-appointment-id="{{ appointment.pk }}" data-field="symptoms">
-                                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Symptoms & Complaints</dt>
-                                    <dd class="mt-1">
-                                        <div class="clinical-note-display cursor-pointer hover:bg-gray-50 p-2 rounded border border-transparent hover:border-gray-200 transition-all duration-150">
-                                            {% if appointment.symptoms %}
-                                                <span class="text-sm text-gray-900">{{ appointment.symptoms|linebreaksbr }}</span>
-                                            {% else %}
-                                                <span class="text-gray-400 italic text-sm">Click to add symptoms and complaints...</span>
+                        <!-- Services Performed -->
+                        <div class="mb-3">
+                            <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Services Performed</dt>
+                            <dd>
+                                <div class="space-y-1">
+                                    {% for service_record in appointment.treatment_record.service_records.all %}
+                                        <div class="flex items-start">
+                                            <span class="inline-flex items-center text-xs text-gray-600">
+                                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                                </svg>
+                                                {{ service_record.service.name }}
+                                            </span>
+                                            {% if service_record.notes %}
+                                                <span class="ml-2 text-xs text-gray-500 italic">- {{ service_record.notes }}</span>
                                             {% endif %}
-                                            <svg class="inline-block w-4 h-4 ml-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                            </svg>
                                         </div>
-                                        <div class="clinical-note-edit hidden mt-2">
-                                            <textarea class="clinical-note-textarea w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" rows="3" placeholder="Enter symptoms and complaints...">{{ appointment.symptoms }}</textarea>
-                                            <div class="mt-2 flex justify-end space-x-2">
-                                                <button type="button" class="clinical-note-cancel px-3 py-1 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded">Cancel</button>
-                                                <button type="button" class="clinical-note-save px-3 py-1 text-sm bg-primary-600 text-white rounded hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500">Save</button>
-                                            </div>
-                                        </div>
-                                    </dd>
+                                    {% empty %}
+                                        <span class="text-xs text-gray-500 italic">No services recorded</span>
+                                    {% endfor %}
                                 </div>
-
-                                <!-- Procedures -->
-                                <div class="clinical-note-field" data-appointment-id="{{ appointment.pk }}" data-field="procedures">
-                                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Procedures Performed</dt>
-                                    <dd class="mt-1">
-                                        <div class="clinical-note-display cursor-pointer hover:bg-gray-50 p-2 rounded border border-transparent hover:border-gray-200 transition-all duration-150">
-                                            {% if appointment.procedures %}
-                                                <span class="text-sm text-gray-900">{{ appointment.procedures|linebreaksbr }}</span>
-                                            {% else %}
-                                                <span class="text-gray-400 italic text-sm">Click to add procedures performed...</span>
-                                            {% endif %}
+                            </dd>
+                        </div>
+                        
+                        <!-- Clinical Notes Section -->
+                        {% if user|has_permission:'patients' %}
+                            <div class="clinical-note-field" 
+                                 data-appointment-id="{{ appointment.pk }}"
+                                 data-can-edit="{{ appointment.treatment_record|can_edit_treatment:user }}">
+                                <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Clinical Notes</dt>
+                                <dd class="mt-1">
+                                    <!-- Display Mode -->
+                                    <div class="clinical-note-display {% if appointment.treatment_record|can_edit_treatment:user %}cursor-pointer hover:bg-gray-50{% endif %} p-3 rounded border border-transparent {% if appointment.treatment_record|can_edit_treatment:user %}hover:border-gray-200{% endif %} transition-all duration-150">
+                                        {% if appointment.treatment_record.clinical_notes %}
+                                            <div class="text-sm text-gray-900 whitespace-pre-wrap">{{ appointment.treatment_record.clinical_notes }}</div>
+                                        {% else %}
+                                            <span class="text-gray-400 italic text-sm">
+                                                {% if appointment.treatment_record|can_edit_treatment:user %}
+                                                    Click to add clinical notes...
+                                                {% else %}
+                                                    No clinical notes recorded yet
+                                                {% endif %}
+                                            </span>
+                                        {% endif %}
+                                        {% if appointment.treatment_record|can_edit_treatment:user %}
                                             <svg class="inline-block w-4 h-4 ml-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                                             </svg>
-                                        </div>
-                                        <div class="clinical-note-edit hidden mt-2">
-                                            <textarea class="clinical-note-textarea w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" rows="3" placeholder="Enter procedures performed...">{{ appointment.procedures }}</textarea>
-                                            <div class="mt-2 flex justify-end space-x-2">
-                                                <button type="button" class="clinical-note-cancel px-3 py-1 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded">Cancel</button>
-                                                <button type="button" class="clinical-note-save px-3 py-1 text-sm bg-primary-600 text-white rounded hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500">Save</button>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Edit Mode (Hidden by default) -->
+                                    {% if appointment.treatment_record|can_edit_treatment:user %}
+                                    <div class="clinical-note-edit hidden mt-2">
+                                        <textarea class="clinical-note-textarea w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" 
+                                                  rows="6" 
+                                                  placeholder="Enter clinical observations, diagnosis, treatment plan, and follow-up notes...">{{ appointment.treatment_record.clinical_notes }}</textarea>
+                                        <div class="mt-2 flex justify-between items-center">
+                                            <span class="text-xs text-gray-500">
+                                                Last modified by {{ appointment.treatment_record.last_modified_by.get_full_name|default:appointment.treatment_record.last_modified_by.username }}
+                                                on {{ appointment.treatment_record.updated_at|date:"M d, Y \a\t g:i A" }}
+                                            </span>
+                                            <div class="flex space-x-2">
+                                                <button type="button" class="clinical-note-cancel px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded hover:bg-gray-50 transition-colors">
+                                                    Cancel
+                                                </button>
+                                                <button type="button" class="clinical-note-save px-3 py-1.5 text-sm bg-primary-600 text-white rounded hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors">
+                                                    <span class="save-text">Save</span>
+                                                    <span class="saving-text hidden">Saving...</span>
+                                                </button>
                                             </div>
                                         </div>
-                                    </dd>
-                                </div>
-
-                                <!-- Diagnosis -->
-                                <div class="clinical-note-field" data-appointment-id="{{ appointment.pk }}" data-field="diagnosis">
-                                    <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Diagnosis & Treatment Notes</dt>
-                                    <dd class="mt-1">
-                                        <div class="clinical-note-display cursor-pointer hover:bg-gray-50 p-2 rounded border border-transparent hover:border-gray-200 transition-all duration-150">
-                                            {% if appointment.diagnosis %}
-                                                <span class="text-sm text-gray-900">{{ appointment.diagnosis|linebreaksbr }}</span>
-                                            {% else %}
-                                                <span class="text-gray-400 italic text-sm">Click to add diagnosis and treatment notes...</span>
-                                            {% endif %}
-                                            <svg class="inline-block w-4 h-4 ml-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                            </svg>
-                                        </div>
-                                        <div class="clinical-note-edit hidden mt-2">
-                                            <textarea class="clinical-note-textarea w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent" rows="3" placeholder="Enter diagnosis and treatment notes...">{{ appointment.diagnosis }}</textarea>
-                                            <div class="mt-2 flex justify-end space-x-2">
-                                                <button type="button" class="clinical-note-cancel px-3 py-1 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded">Cancel</button>
-                                                <button type="button" class="clinical-note-save px-3 py-1 text-sm bg-primary-600 text-white rounded hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500">Save</button>
-                                            </div>
-                                        </div>
-                                    </dd>
+                                    </div>
+                                    {% endif %}
+                                </dd>
+                                
+                                <!-- Record Metadata -->
+                                <div class="mt-2 text-xs text-gray-400 space-y-0.5">
+                                    <div>Created by {{ appointment.treatment_record.created_by.get_full_name|default:appointment.treatment_record.created_by.username }} on {{ appointment.treatment_record.created_at|date:"M d, Y" }}</div>
+                                    {% if appointment.treatment_record.updated_at != appointment.treatment_record.created_at %}
+                                        <div>Last updated {{ appointment.treatment_record.updated_at|date:"M d, Y \a\t g:i A" }}</div>
+                                    {% endif %}
                                 </div>
                             </div>
+                            
+                            <!-- Permission note for non-assigned dentists -->
+                            {% if not appointment.treatment_record|can_edit_treatment:user and user.role.name == 'dentist' %}
+                                <div class="mt-2 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+                                    <svg class="inline w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                    </svg>
+                                    Only the assigned dentist can edit this patient's clinical notes
+                                </div>
+                            {% endif %}
                         {% else %}
                             <p class="text-sm text-gray-500 italic mt-2">
-                                {% if not appointment.patient %}
-                                    Clinical notes will be available after appointment approval.
-                                {% else %}
-                                    You don't have permission to view clinical notes.
-                                {% endif %}
+                                You don't have permission to view clinical notes.
                             </p>
                         {% endif %}
                     </div>
+                    {% endif %}
                 {% endfor %}
             </div>
         {% else %}
@@ -123,8 +142,8 @@
                 <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <h4 class="text-sm font-medium text-gray-900 mb-1">No Appointments</h4>
-                <p class="text-sm text-gray-500">Clinical notes will appear here once appointments are created.</p>
+                <h4 class="text-sm font-medium text-gray-900 mb-1">No Treatment Records</h4>
+                <p class="text-sm text-gray-500">Clinical notes will appear here once appointments are confirmed.</p>
             </div>
         {% endif %}
     </div>
