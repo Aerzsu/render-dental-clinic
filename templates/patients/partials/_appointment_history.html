@@ -1,42 +1,143 @@
 <!-- templates/patients/partials/_appointment_history.html -->
 {% load user_tags %}
-<div class="bg-white shadow rounded-lg overflow-hidden">
-    <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
-        <h3 class="text-lg leading-6 font-medium text-gray-900">Appointment History</h3>
-        <p class="mt-1 text-sm text-gray-500">Complete appointment history for this patient</p>
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+        <div class="flex items-center">
+            <svg class="w-5 h-5 text-primary-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900">Appointment History</h3>
+                <p class="text-xs text-gray-500 mt-0.5">Complete appointment history for this patient</p>
+            </div>
+        </div>
     </div>
-    <div class="px-4 py-5 sm:p-6">
+    <div class="px-6 py-6">
         {% if appointments %}
             <div class="space-y-4">
                 {% for appointment in appointments %}
-                    <div class="border-l-4 {% if appointment.status == 'completed' %}border-green-400{% elif appointment.status == 'confirmed' %}border-blue-400{% elif appointment.status == 'pending' %}border-yellow-400{% else %}border-red-400{% endif %} pl-4">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <h4 class="text-sm font-medium text-gray-900">
+                    <div class="group relative bg-white hover:bg-gray-50 border-2 {% if appointment.status == 'completed' %}border-green-200 hover:border-green-300{% elif appointment.status == 'confirmed' %}border-blue-200 hover:border-blue-300{% elif appointment.status == 'pending' %}border-yellow-200 hover:border-yellow-300{% else %}border-red-200 hover:border-red-300{% endif %} rounded-lg p-4 transition-all">
+                        <!-- Status Indicator -->
+                        <div class="absolute left-0 top-0 bottom-0 w-1.5 {% if appointment.status == 'completed' %}bg-green-500{% elif appointment.status == 'confirmed' %}bg-blue-500{% elif appointment.status == 'pending' %}bg-yellow-500{% else %}bg-red-500{% endif %} rounded-l-lg"></div>
+                        
+                        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 pl-4">
+                            <div class="flex-1 min-w-0">
+                                <!-- Service Name -->
+                                <h4 class="text-base font-semibold text-gray-900 mb-2 flex items-center">
+                                    <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                    </svg>
                                     {{ appointment.service.name }}
                                 </h4>
-                                <p class="text-sm text-gray-500">
-                                    {{ appointment.appointment_date|date:"M j, Y" }} {{ appointment.get_period_display }}
+                                
+                                <!-- Date and Time -->
+                                <div class="flex flex-wrap items-center gap-3 text-sm text-gray-600 mb-2">
+                                    <span class="flex items-center">
+                                        <svg class="w-4 h-4 mr-1.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+                                        </svg>
+                                        {{ appointment.appointment_date|date:"M j, Y" }}
+                                    </span>
+                                    <span class="flex items-center">
+                                        <svg class="w-4 h-4 mr-1.5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                                        </svg>
+                                        {{ appointment.get_period_display }}
+                                    </span>
                                     {% if appointment.assigned_dentist %}
-                                        - Dr. {{ appointment.assigned_dentist.get_full_name|default:appointment.assigned_dentist.username }}
+                                    <span class="flex items-center">
+                                        <svg class="w-4 h-4 mr-1.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        Dr. {{ appointment.assigned_dentist.get_full_name|default:appointment.assigned_dentist.username }}
+                                    </span>
                                     {% endif %}
-                                </p>
+                                </div>
+                                
+                                <!-- Reason -->
                                 {% if appointment.reason %}
-                                    <p class="text-xs text-gray-400 mt-1">{{ appointment.reason|truncatewords:10 }}</p>
+                                    <p class="text-sm text-gray-500 mb-3 line-clamp-2">{{ appointment.reason }}</p>
+                                {% endif %}
+                                
+                                <!-- Clinical Details Preview -->
+                                {% if appointment.symptoms or appointment.procedures or appointment.diagnosis %}
+                                    <div class="mt-3 pt-3 border-t border-gray-200">
+                                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                            {% if appointment.symptoms %}
+                                                <div class="bg-blue-50 rounded-lg px-3 py-2 border border-blue-200">
+                                                    <p class="text-xs font-semibold text-blue-700 uppercase tracking-wide mb-1">Symptoms</p>
+                                                    <p class="text-xs text-blue-900 line-clamp-2">{{ appointment.symptoms }}</p>
+                                                </div>
+                                            {% endif %}
+                                            {% if appointment.procedures %}
+                                                <div class="bg-green-50 rounded-lg px-3 py-2 border border-green-200">
+                                                    <p class="text-xs font-semibold text-green-700 uppercase tracking-wide mb-1">Procedures</p>
+                                                    <p class="text-xs text-green-900 line-clamp-2">{{ appointment.procedures }}</p>
+                                                </div>
+                                            {% endif %}
+                                            {% if appointment.diagnosis %}
+                                                <div class="bg-purple-50 rounded-lg px-3 py-2 border border-purple-200">
+                                                    <p class="text-xs font-semibold text-purple-700 uppercase tracking-wide mb-1">Diagnosis</p>
+                                                    <p class="text-xs text-purple-900 line-clamp-2">{{ appointment.diagnosis }}</p>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+
+                                <!-- Payment Status for Completed Appointments -->
+                                {% if appointment.status == 'completed' %}
+                                    {% for payment in appointment.payments.all %}
+                                        <div class="mt-3 flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                            <div class="flex items-center">
+                                                <svg class="w-5 h-5 mr-2 {% if payment.status == 'completed' %}text-green-600{% elif payment.status == 'partially_paid' %}text-yellow-600{% else %}text-red-600{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                                </svg>
+                                                <span class="text-xs font-medium text-gray-600">Payment Status:</span>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                {% if payment.outstanding_balance > 0 %}
+                                                    <span class="text-xs font-semibold text-gray-900">₱{{ payment.outstanding_balance|floatformat:2 }} due</span>
+                                                {% endif %}
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold
+                                                    {% if payment.status == 'completed' %}bg-green-100 text-green-800 border border-green-200
+                                                    {% elif payment.status == 'partially_paid' %}bg-yellow-100 text-yellow-800 border border-yellow-200
+                                                    {% else %}bg-red-100 text-red-800 border border-red-200{% endif %}">
+                                                    {{ payment.get_status_display }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    {% empty %}
+                                        {% if user|has_permission:'billing' %}
+                                            <div class="mt-3">
+                                                <a href="{% url 'appointments:payment_create' appointment_pk=appointment.pk %}" 
+                                                   class="inline-flex items-center text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors group">
+                                                    <svg class="w-4 h-4 mr-1.5 transform group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                                    </svg>
+                                                    Create payment record
+                                                </a>
+                                            </div>
+                                        {% endif %}
+                                    {% endfor %}
                                 {% endif %}
                             </div>
-                            <div class="flex items-center space-x-2">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                    {% if appointment.status == 'completed' %}bg-green-100 text-green-800
-                                    {% elif appointment.status == 'confirmed' %}bg-blue-100 text-blue-800
-                                    {% elif appointment.status == 'pending' %}bg-yellow-100 text-yellow-800
-                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                            
+                            <!-- Right Side: Status Badge and Actions -->
+                            <div class="flex flex-row sm:flex-col items-center sm:items-end gap-2">
+                                <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap
+                                    {% if appointment.status == 'completed' %}bg-green-100 text-green-800 border border-green-200
+                                    {% elif appointment.status == 'confirmed' %}bg-blue-100 text-blue-800 border border-blue-200
+                                    {% elif appointment.status == 'pending' %}bg-yellow-100 text-yellow-800 border border-yellow-200
+                                    {% else %}bg-red-100 text-red-800 border border-red-200{% endif %}">
+                                    <span class="w-2 h-2 mr-1.5 rounded-full {% if appointment.status == 'completed' %}bg-green-500{% elif appointment.status == 'confirmed' %}bg-blue-500{% elif appointment.status == 'pending' %}bg-yellow-500{% else %}bg-red-500{% endif %}"></span>
                                     {{ appointment.get_status_display }}
                                 </span>
                                 {% if user|has_permission:'appointments' %}
                                     <a href="{% url 'appointments:appointment_detail' appointment.pk %}" 
-                                       class="text-primary-600 hover:text-primary-700">
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                       class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 transition-all group"
+                                       title="View details">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                         </svg>
@@ -44,110 +145,45 @@
                                 {% endif %}
                             </div>
                         </div>
-                        
-                        <!-- Show quick preview of clinical notes if available -->
-                        {% if appointment.symptoms or appointment.procedures or appointment.diagnosis %}
-                            <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
-                                {% if appointment.symptoms %}
-                                    <div class="text-xs">
-                                        <span class="font-medium text-gray-500">Symptoms:</span>
-                                        <span class="text-gray-600">{{ appointment.symptoms|truncatewords:5 }}</span>
-                                    </div>
-                                {% endif %}
-                                {% if appointment.procedures %}
-                                    <div class="text-xs">
-                                        <span class="font-medium text-gray-500">Procedures:</span>
-                                        <span class="text-gray-600">{{ appointment.procedures|truncatewords:5 }}</span>
-                                    </div>
-                                {% endif %}
-                                {% if appointment.diagnosis %}
-                                    <div class="text-xs">
-                                        <span class="font-medium text-gray-500">Diagnosis:</span>
-                                        <span class="text-gray-600">{{ appointment.diagnosis|truncatewords:5 }}</span>
-                                    </div>
-                                {% endif %}
-                            </div>
-                        {% endif %}
-
-                        <!-- Payment status for completed appointments -->
-                        {% if appointment.status == 'completed' %}
-                            {% for payment in appointment.payments.all %}
-                                <div class="mt-2 flex items-center justify-between text-xs">
-                                    <span class="text-gray-500">Payment Status:</span>
-                                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                                        {% if payment.status == 'completed' %}bg-green-100 text-green-700
-                                        {% elif payment.status == 'partially_paid' %}bg-yellow-100 text-yellow-700
-                                        {% else %}bg-red-100 text-red-700{% endif %}">
-                                        {{ payment.get_status_display }}
-                                        {% if payment.outstanding_balance > 0 %}
-                                            - ₱{{ payment.outstanding_balance|floatformat:2 }} due
-                                        {% endif %}
-                                    </span>
-                                </div>
-                            {% empty %}
-                                {% if user|has_permission:'billing' %}
-                                    <div class="mt-2 text-xs">
-                                        <a href="{% url 'appointments:payment_create' appointment_pk=appointment.pk %}" 
-                                           class="text-primary-600 hover:text-primary-700">
-                                            Create payment record →
-                                        </a>
-                                    </div>
-                                {% endif %}
-                            {% endfor %}
-                        {% endif %}
                     </div>
                 {% endfor %}
                 
+                <!-- Show More Link -->
                 {% if appointments.count > 10 %}
-                    <div class="text-center pt-4 border-t border-gray-200">
-                        <p class="text-sm text-gray-500">Showing recent 10 appointments</p>
+                    <div class="text-center pt-6 border-t border-gray-200">
+                        <p class="text-sm text-gray-500 mb-3">Showing recent 10 appointments</p>
                         {% if user|has_permission:'appointments' %}
                             <a href="{% url 'appointments:appointment_list' %}?patient={{ patient.pk }}" 
-                               class="mt-2 inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                               class="inline-flex items-center px-5 py-2.5 border-2 border-gray-300 text-sm font-semibold rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all group">
                                 View All Appointments
+                                <svg class="ml-2 w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
                             </a>
                         {% endif %}
                     </div>
                 {% endif %}
             </div>
         {% else %}
-            <div class="text-center py-8">
-                <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                </svg>
-                <h4 class="text-sm font-medium text-gray-900 mb-1">No Appointments</h4>
-                <p class="text-sm text-gray-500">This patient has no appointment history.</p>
+            <!-- Empty State -->
+            <div class="text-center py-12">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                <h4 class="text-base font-semibold text-gray-900 mb-2">No Appointments</h4>
+                <p class="text-sm text-gray-500 mb-6 max-w-sm mx-auto">This patient has no appointment history. Create their first appointment to get started.</p>
                 {% if user|has_permission:'appointments' %}
-                    <div class="mt-4">
-                        <a href="{% url 'appointments:appointment_create' %}?patient={{ patient.pk }}" 
-                           class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                            Book First Appointment
-                        </a>
-                    </div>
+                    <a href="{% url 'appointments:appointment_create' %}?patient={{ patient.pk }}" 
+                       class="inline-flex items-center px-5 py-2.5 border border-transparent rounded-lg text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all shadow-sm hover:shadow">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Book First Appointment
+                    </a>
                 {% endif %}
             </div>
         {% endif %}
     </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Handle appointment quick actions if needed
-    const appointmentLinks = document.querySelectorAll('[data-appointment-action]');
-    
-    appointmentLinks.forEach(function(link) {
-        link.addEventListener('click', function(e) {
-            // Add any appointment-specific JavaScript functionality here
-            // For example: quick status updates, notes preview, etc.
-        });
-    });
-    
-    // Add smooth scrolling for appointment navigation
-    const appointmentItems = document.querySelectorAll('.appointment-item');
-    appointmentItems.forEach(function(item) {
-        item.addEventListener('mouseenter', function() {
-            // Subtle hover effects handled by CSS
-        });
-    });
-});
-</script>

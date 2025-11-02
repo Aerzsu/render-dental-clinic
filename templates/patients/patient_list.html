@@ -5,42 +5,29 @@
 
 {% block content %}
 <div class="space-y-6">
-    <!-- Header -->
+    <!-- Header Section -->
     <div class="sm:flex sm:items-center sm:justify-between">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Patient Management</h1>
-            <p class="mt-2 text-sm text-gray-700">Manage patient records and information</p>
+            <p class="mt-1 text-sm text-gray-600">Manage patient records and medical history</p>
         </div>
         <div class="mt-4 sm:mt-0">
             <a href="{% url 'patients:patient_create' %}" 
-               class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
-                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                 </svg>
-                Add New Patient
+                <span>Add New Patient</span>
             </a>
         </div>
     </div>
 
-    <!-- Search and Filters -->
-    <div class="bg-white shadow rounded-lg">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <div class="flex items-center justify-between">
-                <h3 class="text-lg font-medium text-gray-900">Search & Filter Patients</h3>
-                <button type="button" id="toggleFilters" 
-                        class="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                    <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                    </svg>
-                    Filters
-                </button>
-            </div>
-        </div>
-        
-        <div class="px-6 py-4">
-            <!-- Main Search -->
+    <!-- Search and Filters Card -->
+    <div class="bg-white shadow-sm rounded-lg border border-gray-200">
+        <div class="px-4 sm:px-6 py-4">
             <form method="get" class="space-y-4" id="searchForm">
-                <div class="flex space-x-4">
+                <!-- Main Search Bar -->
+                <div class="flex flex-col sm:flex-row gap-3">
                     <div class="flex-1">
                         <label for="search" class="sr-only">Search patients</label>
                         <div class="relative">
@@ -54,42 +41,40 @@
                                    id="search"
                                    value="{{ current_filters.search }}"
                                    placeholder="Search by name, email, or phone..." 
-                                   class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500">
+                                   class="block w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
+                            {% if current_filters.search %}
+                            <button type="button" 
+                                    onclick="document.getElementById('search').value=''; document.getElementById('searchForm').submit();"
+                                    class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                <svg class="h-5 w-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                            {% endif %}
                         </div>
                     </div>
-                    <div class="flex space-x-2">
-                        <button type="submit" 
-                                class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 transition-colors">
-                            Search
+                    <div class="flex gap-2">
+                        <button type="button" 
+                                id="toggleFilters"
+                                class="inline-flex items-center px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                            <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                            </svg>
+                            <span>Filters</span>
                         </button>
-                        <a href="{% url 'patients:patient_list' %}" 
-                           class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                            Clear
-                        </a>
                     </div>
                 </div>
 
                 <!-- Advanced Filters (Collapsible) -->
-                <div id="advancedFilters" class="hidden border-t border-gray-200 pt-4 mt-4">
+                <div id="advancedFilters" class="hidden border-t border-gray-200 pt-4 space-y-4">
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                        <!-- Status Filter -->
-                        <div>
-                            <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
-                            <select name="status" 
-                                    id="status"
-                                    class="mt-1 block w-full rounded-md px-3 py-2 border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                                <option value="">All Patients</option>
-                                <option value="active" {% if current_filters.status == 'active' %}selected{% endif %}>Active Only</option>
-                                <option value="inactive" {% if current_filters.status == 'inactive' %}selected{% endif %}>Inactive Only</option>
-                            </select>
-                        </div>
 
                         <!-- Contact Method Filter -->
                         <div>
-                            <label for="contact" class="block text-sm font-medium text-gray-700">Contact Method</label>
+                            <label for="contact" class="block text-sm font-medium text-gray-700 mb-1">Contact Method</label>
                             <select name="contact" 
                                     id="contact"
-                                    class="mt-1 block w-full rounded-md px-3 py-2 border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                    class="block w-full rounded-lg px-3 py-2 border border-gray-300 shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
                                 <option value="">All Contact Types</option>
                                 <option value="email_only" {% if current_filters.contact == 'email_only' %}selected{% endif %}>Email Only</option>
                                 <option value="phone_only" {% if current_filters.contact == 'phone_only' %}selected{% endif %}>Phone Only</option>
@@ -98,10 +83,10 @@
 
                         <!-- Recent Activity Filter -->
                         <div>
-                            <label for="activity" class="block text-sm font-medium text-gray-700">Recent Activity</label>
+                            <label for="activity" class="block text-sm font-medium text-gray-700 mb-1">Recent Activity</label>
                             <select name="activity" 
                                     id="activity"
-                                    class="mt-1 block w-full rounded-md px-3 py-2 border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                    class="block w-full rounded-lg px-3 py-2 border border-gray-300 shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
                                 <option value="">All Patients</option>
                                 <option value="recent" {% if current_filters.activity == 'recent' %}selected{% endif %}>Recent Visit (30 days)</option>
                                 <option value="upcoming" {% if current_filters.activity == 'upcoming' %}selected{% endif %}>Upcoming Appointment</option>
@@ -111,10 +96,10 @@
 
                         <!-- Sort By -->
                         <div>
-                            <label for="sort" class="block text-sm font-medium text-gray-700">Sort By</label>
+                            <label for="sort" class="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
                             <select name="sort" 
                                     id="sort"
-                                    class="mt-1 block w-full rounded-md px-3 py-2 border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                    class="block w-full rounded-lg px-3 py-2 border border-gray-300 shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
                                 <option value="name_asc" {% if current_filters.sort == 'name_asc' %}selected{% endif %}>Name (A-Z)</option>
                                 <option value="name_desc" {% if current_filters.sort == 'name_desc' %}selected{% endif %}>Name (Z-A)</option>
                                 <option value="date_added_desc" {% if current_filters.sort == 'date_added_desc' %}selected{% endif %}>Newest First</option>
@@ -125,136 +110,150 @@
                         </div>
                     </div>
                     
-                    <div class="flex justify-between items-center mt-4">
-                        <div class="flex space-x-2">
+                    <!-- Active Filters Display -->
+                    {% if active_filters %}
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <span class="text-xs font-medium text-gray-500">Active filters:</span>
+                        {% for filter in active_filters %}
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-primary-50 text-primary-700">
+                            {{ filter }}
+                        </span>
+                        {% endfor %}
+                        <a href="{% url 'patients:patient_list' %}" class="text-xs font-medium text-primary-600 hover:text-primary-700">
+                            Clear all
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    <!-- Filter Actions -->
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-2">
+                        <div class="flex gap-2 w-full sm:w-auto">
                             <button type="submit" 
-                                    class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 transition-colors">
+                                    class="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
                                 Apply Filters
                             </button>
-                            <button type="button" id="clearFilters"
-                                    class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                                Clear Filters
+                            <button type="button" 
+                                    id="clearFilters"
+                                    class="flex-1 sm:flex-none inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                                Reset
                             </button>
                         </div>
                         
                         <!-- Export PDF Button -->
-                        <div>
-                            <button type="button" id="exportPdfBtn"
-                               class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                                <svg class="-ml-1 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
-                                </svg>
-                                Export PDF
-                            </button>
-                        </div>
+                        <button type="button" 
+                                id="exportPdfBtn"
+                                class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <span>Export PDF</span>
+                        </button>
                     </div>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Active Filters Display -->
-    {% if active_filters %}
-    <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
-        <div class="flex items-center justify-between">
-            <div class="flex">
-                <div class="flex-shrink-0">
-                    <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                </div>
-                <div class="ml-3">
-                    <p class="text-sm text-blue-700">
-                        <strong>Active Filters:</strong>
-                        {% for filter in active_filters %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 ml-1">
-                                {{ filter }}
-                            </span>
-                        {% endfor %}
-                    </p>
-                </div>
-            </div>
-            <a href="{% url 'patients:patient_list' %}" 
-               class="text-blue-600 hover:text-blue-500 text-sm font-medium">
-                Clear All
-            </a>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Results Count -->
-    <div class="flex items-center justify-between">
-        <p class="text-sm text-gray-700">
-            Showing {{ patients|length }} of {{ total_count }} patients
-            {% if current_filters.search %}for "{{ current_filters.search }}"{% endif %}
+    <!-- Results Summary -->
+    <div class="flex items-center justify-between px-1">
+        <p class="text-sm text-gray-600">
+            <span class="font-medium text-gray-900">{{ patients|length }}</span> 
+            of 
+            <span class="font-medium text-gray-900">{{ total_count }}</span> 
+            patients
+            {% if current_filters.search %}
+            <span class="text-gray-500">matching "{{ current_filters.search }}"</span>
+            {% endif %}
         </p>
     </div>
 
-    <!-- Patients Table -->
-    <div class="bg-white shadow rounded-lg overflow-hidden">
+    <!-- Patients Table/Cards -->
+    <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
         {% if patients %}
-            <div class="overflow-x-auto">
+            <!-- Desktop Table View -->
+            <div class="hidden md:block overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                 Patient
                             </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                 Visit History
                             </th>
-                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                 Financial Status
                             </th>
-                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                 Actions
                             </th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
+                    <tbody class="bg-white divide-y divide-gray-100">
                         {% for patient in patients %}
                             <tr class="hover:bg-gray-50 transition-colors">
                                 <td class="px-6 py-4">
                                     <div class="flex items-center">
-                                        <div>
+                                        <div class="flex-shrink-0 h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
+                                            <span class="text-primary-700 font-semibold text-sm">
+                                                {{ patient.first_name.0 }}{{ patient.last_name.0 }}
+                                            </span>
+                                        </div>
+                                        <div class="ml-3">
                                             <div class="text-sm font-medium text-gray-900">
                                                 {{ patient.full_name }}
                                             </div>
-                                            <div class="text-sm text-gray-500">
+                                            <div class="text-xs text-gray-500">
                                                 {% if patient.email %}
-                                                    <div>{{ patient.email }}</div>
+                                                    <div class="flex items-center">
+                                                        <svg class="w-3 h-3 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                                        </svg>
+                                                        <span>{{ patient.email }}</span>
+                                                    </div>
                                                 {% endif %}
                                                 {% if patient.contact_number %}
-                                                    <div>{{ patient.contact_number }}</div>
+                                                    <div class="flex items-center mt-0.5">
+                                                        <svg class="w-3 h-3 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                                                        </svg>
+                                                        <span>{{ patient.contact_number }}</span>
+                                                    </div>
                                                 {% endif %}
                                                 {% if not patient.email and not patient.contact_number %}
-                                                    <span class="text-gray-400">No contact info</span>
+                                                    <span class="text-gray-400 italic text-xs">No contact info</span>
                                                 {% endif %}
                                             </div>
                                         </div>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="text-sm text-gray-900">
+                                    <div class="text-sm">
                                         {% if patient.completed_appointments %}
                                             {% with patient.completed_appointments.0 as last_appt %}
-                                                <div class="font-medium">Last Visit:</div>
-                                                <div class="text-gray-600">
-                                                    {{ last_appt.appointment_date|date:"M d, Y" }}
-                                                    ({{ last_appt.service.name|truncatechars:20 }})
+                                                <div class="text-gray-900">
+                                                    <span class="font-medium">Last Visit:</span>
+                                                    <div class="text-gray-600 text-xs mt-0.5">
+                                                        {{ last_appt.appointment_date|date:"M d, Y" }}
+                                                    </div>
+                                                    <div class="text-gray-500 text-xs truncate max-w-xs">
+                                                        {{ last_appt.service.name|truncatechars:25 }}
+                                                    </div>
                                                 </div>
                                             {% endwith %}
                                         {% else %}
-                                            <div class="text-gray-400">No visits yet</div>
+                                            <div class="text-gray-400 text-xs italic">No visits yet</div>
                                         {% endif %}
 
                                         {% if patient.upcoming_appointments %}
                                             {% with patient.upcoming_appointments.0 as next_appt %}
-                                            <div class="mt-2">
-                                                <div class="font-medium text-green-700">Next Appointment:</div>
-                                                <div class="text-gray-600">
-                                                    {{ next_appt.appointment_date|date:"M d, Y" }} - {{ next_appt.get_period_display }}
-                                                </div>
+                                            <div class="mt-2 pt-2 border-t border-gray-100">
+                                                <span class="inline-flex items-center text-xs font-medium text-green-700">
+                                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
+                                                    </svg>
+                                                    Next: {{ next_appt.appointment_date|date:"M d, Y" }}
+                                                </span>
                                             </div>
                                             {% endwith %}
                                         {% endif %}
@@ -262,38 +261,48 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="text-sm">
-                                        <div class="font-medium text-gray-900">
-                                            Total Visits: {{ patient.visit_count|default:0 }}
+                                        <div class="flex items-center text-gray-900">
+                                            <svg class="w-4 h-4 mr-1.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                            </svg>
+                                            <span class="font-medium">{{ patient.visit_count|default:0 }} visits</span>
                                         </div>
                                         {% if patient.outstanding_balance %}
-                                            <div class="mt-1">
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium 
-                                                    {% if patient.outstanding_balance > 0 %}bg-red-100 text-red-800{% else %}bg-green-100 text-green-800{% endif %}">
-                                                    {% if patient.outstanding_balance > 0 %}
-                                                        Balance: ₱{{ patient.outstanding_balance|floatformat:2 }}
-                                                    {% else %}
+                                            <div class="mt-2">
+                                                {% if patient.outstanding_balance > 0 %}
+                                                    <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+                                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                                        </svg>
+                                                        ₱{{ patient.outstanding_balance|floatformat:2 }} due
+                                                    </span>
+                                                {% else %}
+                                                    <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                                        </svg>
                                                         Paid in Full
-                                                    {% endif %}
-                                                </span>
+                                                    </span>
+                                                {% endif %}
                                             </div>
                                         {% else %}
-                                            <div class="text-gray-500 text-xs mt-1">No pending bills</div>
+                                            <div class="text-gray-400 text-xs mt-1.5 italic">No pending bills</div>
                                         {% endif %}
                                     </div>
                                 </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                    <div class="flex items-center justify-end space-x-2">
+                                <td class="px-6 py-4 whitespace-nowrap text-right">
+                                    <div class="flex items-center justify-end space-x-3">
                                         <a href="{% url 'patients:patient_detail' patient.pk %}" 
-                                           class="text-primary-600 hover:text-primary-900 transition-colors">
+                                           class="text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
                                             View
                                         </a>
                                         <a href="{% url 'patients:patient_update' patient.pk %}" 
-                                           class="text-gray-600 hover:text-gray-900 transition-colors">
+                                           class="text-gray-600 hover:text-gray-700 text-sm font-medium transition-colors">
                                             Edit
                                         </a>
                                         {% if user|has_permission:'appointments' %}
                                         <a href="{% url 'appointments:appointment_create' %}?patient={{ patient.pk }}" 
-                                           class="text-green-600 hover:text-green-900 transition-colors">
+                                           class="text-green-600 hover:text-green-700 text-sm font-medium transition-colors">
                                             Book
                                         </a>
                                         {% endif %}
@@ -305,104 +314,282 @@
                 </table>
             </div>
 
+            <!-- Mobile Card View -->
+            <div class="md:hidden divide-y divide-gray-100">
+                {% for patient in patients %}
+                    <div class="p-4 hover:bg-gray-50 transition-colors">
+                        <!-- Patient Header -->
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="flex items-center flex-1 min-w-0 mr-3">
+                                <div class="flex-shrink-0 h-12 w-12 rounded-full bg-primary-100 flex items-center justify-center">
+                                    <span class="text-primary-700 font-semibold">
+                                        {{ patient.first_name.0 }}{{ patient.last_name.0 }}
+                                    </span>
+                                </div>
+                                <div class="ml-3 min-w-0">
+                                    <h3 class="text-base font-semibold text-gray-900 truncate">
+                                        {{ patient.full_name }}
+                                    </h3>
+                                    <div class="text-xs text-gray-500 space-y-0.5 mt-1">
+                                        {% if patient.email %}
+                                            <div class="flex items-center truncate">
+                                                <svg class="w-3 h-3 mr-1 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                                </svg>
+                                                <span class="truncate">{{ patient.email }}</span>
+                                            </div>
+                                        {% endif %}
+                                        {% if patient.contact_number %}
+                                            <div class="flex items-center">
+                                                <svg class="w-3 h-3 mr-1 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                                                </svg>
+                                                <span>{{ patient.contact_number }}</span>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Patient Details -->
+                        <div class="space-y-2 mb-3 text-sm">
+                            <!-- Visit History -->
+                            <div class="flex items-start">
+                                <svg class="w-4 h-4 mr-2 text-gray-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                </svg>
+                                <div class="flex-1">
+                                    <span class="text-gray-900 font-medium">{{ patient.visit_count|default:0 }} total visits</span>
+                                    {% if patient.completed_appointments %}
+                                        {% with patient.completed_appointments.0 as last_appt %}
+                                            <div class="text-gray-500 text-xs mt-0.5">
+                                                Last: {{ last_appt.appointment_date|date:"M d, Y" }}
+                                            </div>
+                                        {% endwith %}
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Upcoming Appointment -->
+                            {% if patient.upcoming_appointments %}
+                                {% with patient.upcoming_appointments.0 as next_appt %}
+                                <div class="flex items-start">
+                                    <svg class="w-4 h-4 mr-2 text-green-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <div class="flex-1">
+                                        <span class="text-green-700 font-medium">Next appointment</span>
+                                        <div class="text-gray-600 text-xs mt-0.5">
+                                            {{ next_appt.appointment_date|date:"M d, Y" }}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endwith %}
+                            {% endif %}
+
+                            <!-- Financial Status -->
+                            <div class="flex items-start">
+                                <svg class="w-4 h-4 mr-2 text-gray-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <div class="flex-1">
+                                    {% if patient.outstanding_balance %}
+                                        {% if patient.outstanding_balance > 0 %}
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+                                                ₱{{ patient.outstanding_balance|floatformat:2 }} due
+                                            </span>
+                                        {% else %}
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                                                Paid in Full
+                                            </span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-gray-400 text-xs italic">No pending bills</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex gap-2">
+                            <a href="{% url 'patients:patient_detail' patient.pk %}" 
+                               class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                                View
+                            </a>
+                            <a href="{% url 'patients:patient_update' patient.pk %}" 
+                               class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                                Edit
+                            </a>
+                            {% if user|has_permission:'appointments' %}
+                            <a href="{% url 'appointments:appointment_create' %}?patient={{ patient.pk }}" 
+                               class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-green-300 rounded-lg text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
+                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                                Book
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
             <!-- Pagination -->
             {% if is_paginated %}
-            <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
-                <div class="flex items-center justify-between">
-                    <div class="flex-1 flex justify-between sm:hidden">
-                        {% if page_obj.has_previous %}
-                            <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" 
-                               class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                                Previous
-                            </a>
-                        {% endif %}
-                        {% if page_obj.has_next %}
-                            <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" 
-                               class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                                Next
-                            </a>
-                        {% endif %}
+            <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                <!-- Mobile Pagination -->
+                <div class="flex-1 flex justify-between sm:hidden">
+                    {% if page_obj.has_previous %}
+                        <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" 
+                           class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                            Previous
+                        </a>
+                    {% else %}
+                        <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-400 bg-gray-50 cursor-not-allowed">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                            Previous
+                        </span>
+                    {% endif %}
+                    {% if page_obj.has_next %}
+                        <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" 
+                           class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                            Next
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </a>
+                    {% else %}
+                        <span class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-400 bg-gray-50 cursor-not-allowed">
+                            Next
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </span>
+                    {% endif %}
+                </div>
+
+                <!-- Desktop Pagination -->
+                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-sm text-gray-700">
+                            Showing
+                            <span class="font-medium">{{ page_obj.start_index }}</span>
+                            to
+                            <span class="font-medium">{{ page_obj.end_index }}</span>
+                            of
+                            <span class="font-medium">{{ paginator.count }}</span>
+                            results
+                        </p>
                     </div>
-                    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                        <div>
-                            <p class="text-sm text-gray-700">
-                                Showing
-                                <span class="font-medium">{{ page_obj.start_index }}</span>
-                                to
-                                <span class="font-medium">{{ page_obj.end_index }}</span>
-                                of
-                                <span class="font-medium">{{ paginator.count }}</span>
-                                results
-                            </p>
-                        </div>
-                        <div>
-                            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                                {% if page_obj.has_previous %}
-                                    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" 
-                                       class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors">
-                                        <span class="sr-only">Previous</span>
-                                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                        </svg>
-                                    </a>
-                                {% endif %}
+                    <div>
+                        <nav class="relative z-0 inline-flex rounded-lg shadow-sm -space-x-px" aria-label="Pagination">
+                            <!-- Previous Button -->
+                            {% if page_obj.has_previous %}
+                                <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" 
+                                   class="relative inline-flex items-center px-2 py-2 rounded-l-lg border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors">
+                                    <span class="sr-only">Previous</span>
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                    </svg>
+                                </a>
+                            {% else %}
+                                <span class="relative inline-flex items-center px-2 py-2 rounded-l-lg border border-gray-300 bg-gray-50 text-sm font-medium text-gray-300 cursor-not-allowed">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                    </svg>
+                                </span>
+                            {% endif %}
 
-                                {% for num in page_obj.paginator.page_range %}
-                                    {% if page_obj.number == num %}
-                                        <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-primary-50 text-sm font-medium text-primary-600">
-                                            {{ num }}
-                                        </span>
-                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                                        <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}" 
-                                           class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                                            {{ num }}
-                                        </a>
-                                    {% endif %}
-                                {% endfor %}
-
-                                {% if page_obj.has_next %}
-                                    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" 
-                                       class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors">
-                                        <span class="sr-only">Next</span>
-                                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-                                        </svg>
+                            <!-- Page Numbers -->
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                    <span class="relative inline-flex items-center px-4 py-2 border border-primary-500 bg-primary-50 text-sm font-medium text-primary-600 z-10">
+                                        {{ num }}
+                                    </span>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}" 
+                                       class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                                        {{ num }}
                                     </a>
+                                {% elif num == 1 or num == page_obj.paginator.num_pages %}
+                                    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}" 
+                                       class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                                        {{ num }}
+                                    </a>
+                                {% elif num == page_obj.number|add:'-3' or num == page_obj.number|add:'3' %}
+                                    <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                                        ...
+                                    </span>
                                 {% endif %}
-                            </nav>
-                        </div>
+                            {% endfor %}
+
+                            <!-- Next Button -->
+                            {% if page_obj.has_next %}
+                                <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" 
+                                   class="relative inline-flex items-center px-2 py-2 rounded-r-lg border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors">
+                                    <span class="sr-only">Next</span>
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                </a>
+                            {% else %}
+                                <span class="relative inline-flex items-center px-2 py-2 rounded-r-lg border border-gray-300 bg-gray-50 text-sm font-medium text-gray-300 cursor-not-allowed">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                </span>
+                            {% endif %}
+                        </nav>
                     </div>
                 </div>
             </div>
             {% endif %}
         {% else %}
-            <div class="text-center py-12">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
-                </svg>
-                <h3 class="mt-2 text-sm font-medium text-gray-900">No patients found</h3>
-                <p class="mt-1 text-sm text-gray-500">
+            <!-- Empty State -->
+            <div class="text-center py-12 px-4">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-base font-semibold text-gray-900 mb-1">No patients found</h3>
+                <p class="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
                     {% if current_filters.search or active_filters %}
-                        No patients match your search criteria or filters.
+                        No patients match your search criteria or filters. Try adjusting your search.
                     {% else %}
-                        Get started by adding your first patient.
+                        Get started by adding your first patient to the system.
                     {% endif %}
                 </p>
-                <div class="mt-6">
+                <div class="flex flex-col sm:flex-row gap-3 justify-center">
                     {% if current_filters.search or active_filters %}
                         <a href="{% url 'patients:patient_list' %}" 
-                           class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
-                            Clear Search & Filters
-                        </a>
-                    {% else %}
-                        <a href="{% url 'patients:patient_create' %}" 
-                           class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
-                            <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                           class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
-                            Add Your First Patient
+                            Clear Filters
                         </a>
                     {% endif %}
+                    <a href="{% url 'patients:patient_create' %}" 
+                       class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Add Your First Patient
+                    </a>
                 </div>
             </div>
         {% endif %}
@@ -410,31 +597,30 @@
 </div>
 
 <!-- Warning Modal for Large Exports -->
-<div id="warningModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+<div id="warningModal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 overflow-y-auto h-full w-full z-50" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="relative top-20 mx-auto p-5 border border-gray-200 w-full max-w-md shadow-xl rounded-lg bg-white">
         <div class="mt-3">
             <div class="flex items-center justify-center w-12 h-12 mx-auto bg-yellow-100 rounded-full">
                 <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                 </svg>
             </div>
-            <h3 class="text-lg font-medium text-gray-900 text-center mt-4">Large Dataset Warning</h3>
-            <div class="mt-2 px-4 py-3">
+            <h3 id="modal-title" class="text-lg font-semibold text-gray-900 text-center mt-4">Large Dataset Warning</h3>
+            <div class="mt-3 px-4 py-3">
                 <p class="text-sm text-gray-600 text-center">
-                    You are about to export <strong id="exportCount">0</strong> patients. 
-                    For better performance, we recommend exporting fewer than 500 patients at a time.
+                    You are about to export <strong id="exportCount" class="text-gray-900">0</strong> patients. 
                 </p>
                 <p class="text-sm text-gray-600 text-center mt-2">
-                    Consider using filters to narrow down your results.
+                    For better performance, we recommend exporting fewer than 500 patients at a time. Consider using filters to narrow your results.
                 </p>
             </div>
-            <div class="flex space-x-3 mt-4 px-4">
+            <div class="flex gap-3 mt-5 px-4">
                 <button id="continueExport" 
-                        class="flex-1 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors">
+                        class="flex-1 px-4 py-2 bg-primary-600 text-white text-sm font-medium rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
                     Continue Anyway
                 </button>
                 <button id="cancelExport" 
-                        class="flex-1 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors">
+                        class="flex-1 px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors">
                     Cancel
                 </button>
             </div>
@@ -443,8 +629,8 @@
 </div>
 
 <!-- Loading Overlay -->
-<div id="loadingOverlay" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-    <div class="relative top-1/2 mx-auto p-5 w-96 transform -translate-y-1/2">
+<div id="loadingOverlay" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 overflow-y-auto h-full w-full z-50" role="alert" aria-live="polite">
+    <div class="relative top-1/2 mx-auto p-5 w-full max-w-sm transform -translate-y-1/2">
         <div class="bg-white rounded-lg shadow-xl p-6">
             <div class="text-center">
                 <svg class="animate-spin h-12 w-12 mx-auto text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -458,88 +644,100 @@
     </div>
 </div>
 
+<!-- Minimal JavaScript -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const toggleFilters = document.getElementById('toggleFilters');
-    const advancedFilters = document.getElementById('advancedFilters');
-    const clearFilters = document.getElementById('clearFilters');
-    const searchForm = document.getElementById('searchForm');
-    const exportPdfBtn = document.getElementById('exportPdfBtn');
+(function() {
+    'use strict';
+    
+    const toggleBtn = document.getElementById('toggleFilters');
+    const filtersDiv = document.getElementById('advancedFilters');
+    const clearBtn = document.getElementById('clearFilters');
+    const exportBtn = document.getElementById('exportPdfBtn');
     const loadingOverlay = document.getElementById('loadingOverlay');
     const warningModal = document.getElementById('warningModal');
-    const continueExport = document.getElementById('continueExport');
-    const cancelExport = document.getElementById('cancelExport');
-    const exportCount = document.getElementById('exportCount');
+    const continueBtn = document.getElementById('continueExport');
+    const cancelBtn = document.getElementById('cancelExport');
+    const exportCountEl = document.getElementById('exportCount');
     
     const EXPORT_WARNING_THRESHOLD = 500;
     const TOTAL_PATIENTS = {{ total_count }};
     
-    // Toggle advanced filters
-    toggleFilters.addEventListener('click', function() {
-        if (advancedFilters.classList.contains('hidden')) {
-            advancedFilters.classList.remove('hidden');
-            toggleFilters.innerHTML = `
-                <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-                </svg>
-                Hide Filters
-            `;
-        } else {
-            advancedFilters.classList.add('hidden');
-            toggleFilters.innerHTML = `
-                <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                </svg>
-                Filters
-            `;
-        }
-    });
+    // Check if filters are active on page load
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasActiveFilters = ['status', 'contact', 'activity', 'sort'].some(p => urlParams.has(p));
     
-    // Clear filters and immediately redirect
-    clearFilters.addEventListener('click', function() {
-        window.location.href = '{% url "patients:patient_list" %}';
-    });
+    if (hasActiveFilters) {
+        filtersDiv.classList.remove('hidden');
+        updateToggleButton(true);
+    }
     
-    // Export PDF with validation and loading state
-    exportPdfBtn.addEventListener('click', function() {
-        // Check if export count exceeds threshold
-        if (TOTAL_PATIENTS > EXPORT_WARNING_THRESHOLD) {
-            exportCount.textContent = TOTAL_PATIENTS;
-            warningModal.classList.remove('hidden');
-        } else {
+    // Toggle filters
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', function() {
+            const isHidden = filtersDiv.classList.contains('hidden');
+            filtersDiv.classList.toggle('hidden');
+            updateToggleButton(!isHidden);
+        });
+    }
+    
+    function updateToggleButton(isOpen) {
+        toggleBtn.innerHTML = isOpen 
+            ? '<svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg><span>Hide Filters</span>'
+            : '<svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg><span>Filters</span>';
+    }
+    
+    // Clear filters
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            window.location.href = '{% url "patients:patient_list" %}';
+        });
+    }
+    
+    // Export PDF with validation
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function() {
+            if (TOTAL_PATIENTS > EXPORT_WARNING_THRESHOLD) {
+                exportCountEl.textContent = TOTAL_PATIENTS;
+                warningModal.classList.remove('hidden');
+            } else {
+                triggerPdfExport();
+            }
+        });
+    }
+    
+    // Continue export
+    if (continueBtn) {
+        continueBtn.addEventListener('click', function() {
+            warningModal.classList.add('hidden');
             triggerPdfExport();
-        }
-    });
-    
-    // Continue export despite warning
-    continueExport.addEventListener('click', function() {
-        warningModal.classList.add('hidden');
-        triggerPdfExport();
-    });
+        });
+    }
     
     // Cancel export
-    cancelExport.addEventListener('click', function() {
-        warningModal.classList.add('hidden');
-    });
-    
-    // Close modal when clicking outside
-    warningModal.addEventListener('click', function(e) {
-        if (e.target === warningModal) {
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
             warningModal.classList.add('hidden');
-        }
-    });
+        });
+    }
+    
+    // Close modal on backdrop click
+    if (warningModal) {
+        warningModal.addEventListener('click', function(e) {
+            if (e.target === warningModal) {
+                warningModal.classList.add('hidden');
+            }
+        });
+    }
     
     function triggerPdfExport() {
         loadingOverlay.classList.remove('hidden');
         
-        const urlParams = new URLSearchParams(window.location.search);
-        urlParams.set('export', 'pdf');
+        const params = new URLSearchParams(window.location.search);
+        params.set('export', 'pdf');
         
-        fetch(window.location.pathname + '?' + urlParams.toString())
+        fetch(window.location.pathname + '?' + params.toString())
             .then(response => {
-                if (!response.ok) {
-                    throw new Error('PDF generation failed');
-                }
+                if (!response.ok) throw new Error('PDF generation failed');
                 return response.blob();
             })
             .then(blob => {
@@ -552,7 +750,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 a.click();
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
-                
                 loadingOverlay.classList.add('hidden');
             })
             .catch(error => {
@@ -561,19 +758,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert('Failed to generate PDF. Please try again or contact support if the problem persists.');
             });
     }
-    
-    // Show advanced filters if any filters are active
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasFilters = ['status', 'contact', 'activity', 'sort'].some(param => urlParams.has(param));
-    if (hasFilters) {
-        advancedFilters.classList.remove('hidden');
-        toggleFilters.innerHTML = `
-            <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-            </svg>
-            Hide Filters
-        `;
-    }
-});
+})();
 </script>
 {% endblock %}

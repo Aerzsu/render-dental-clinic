@@ -4,55 +4,123 @@
 
 {% block content %}
 <div class="space-y-6">
-    <!-- Header -->
+    <!-- Success/Error Messages -->
+    {% if messages %}
+    <div class="space-y-3" id="messages-container">
+        {% for message in messages %}
+        <div class="rounded-lg p-4 flex items-start gap-3 {% if message.tags == 'success' %}bg-green-50 border border-green-200{% elif message.tags == 'error' %}bg-red-50 border border-red-200{% elif message.tags == 'warning' %}bg-yellow-50 border border-yellow-200{% else %}bg-blue-50 border border-blue-200{% endif %} animate-fade-in" role="alert">
+            <div class="flex-shrink-0">
+                {% if message.tags == 'success' %}
+                <svg class="h-5 w-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+                {% elif message.tags == 'error' %}
+                <svg class="h-5 w-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                </svg>
+                {% elif message.tags == 'warning' %}
+                <svg class="h-5 w-5 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                {% else %}
+                <svg class="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+                {% endif %}
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium {% if message.tags == 'success' %}text-green-800{% elif message.tags == 'error' %}text-red-800{% elif message.tags == 'warning' %}text-yellow-800{% else %}text-blue-800{% endif %}">
+                    {{ message }}
+                </p>
+            </div>
+            <button type="button" 
+                    onclick="this.closest('.animate-fade-in').remove();" 
+                    class="flex-shrink-0 inline-flex rounded-lg p-1.5 {% if message.tags == 'success' %}text-green-600 hover:bg-green-100{% elif message.tags == 'error' %}text-red-600 hover:bg-red-100{% elif message.tags == 'warning' %}text-yellow-600 hover:bg-yellow-100{% else %}text-blue-600 hover:bg-blue-100{% endif %} focus:outline-none focus:ring-2 focus:ring-offset-2 {% if message.tags == 'success' %}focus:ring-green-500{% elif message.tags == 'error' %}focus:ring-red-500{% elif message.tags == 'warning' %}focus:ring-yellow-500{% else %}focus:ring-blue-500{% endif %} transition-colors"
+                    aria-label="Dismiss message">
+                <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                </svg>
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Header with improved hierarchy -->
     <div class="sm:flex sm:items-center sm:justify-between">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Appointment Requests</h1>
-            <p class="mt-2 text-sm text-gray-700">
-                Manage pending appointment requests from patients
-                <span id="pending-badge" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 ml-2">
-                    {{ pending_count }} pending
-                </span>
+            <p class="mt-1 text-sm text-gray-600">
+                Review and manage pending appointment requests
             </p>
+            {% if pending_count > 0 %}
+            <div class="mt-2">
+                <span id="pending-badge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                    </svg>
+                    {{ pending_count }} pending request{{ pending_count|pluralize }}
+                </span>
+            </div>
+            {% endif %}
         </div>
-        <div class="mt-4 sm:mt-0 flex flex-col sm:flex-row gap-2 sm:gap-3">
+        <div class="mt-4 sm:mt-0 flex gap-3">
             <a href="{% url 'appointments:appointment_calendar' %}" 
-               class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                <span class="hidden sm:inline">Calendar View</span>
-                <span class="sm:hidden">Calendar</span>
+               class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                <svg class="w-4 h-4 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <span class="hidden sm:inline">Calendar</span>
             </a>
             <a href="{% url 'appointments:appointment_create' %}" 
-               class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+               class="inline-flex items-center justify-center px-4 py-2.5 border border-transparent rounded-lg text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-sm transition-colors">
+                <svg class="w-4 h-4 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
                 <span class="hidden sm:inline">New Appointment</span>
                 <span class="sm:hidden">New</span>
             </a>
         </div>
     </div>
 
-    <!-- Filters -->
-    <div class="bg-white shadow rounded-lg">
-        <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+    <!-- Filters Card -->
+    <div class="bg-white shadow-sm rounded-lg border border-gray-200">
+        <div class="px-4 sm:px-6 py-4">
             <form method="get" id="filter-form" class="space-y-4">
-                <!-- Search and Primary Filters -->
-                <div class="flex flex-col sm:flex-row gap-3">
-                    <div class="flex-1 min-w-0">
-                        <input type="text" name="search" value="{{ filters.search }}" 
+                <!-- Search Bar -->
+                <div class="flex gap-2">
+                    <div class="relative flex-1">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                        </div>
+                        <input type="text" 
+                               name="search" 
+                               value="{{ filters.search }}" 
                                placeholder="Search by patient name, email, or phone..." 
-                               class="block w-full px-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
+                               class="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors"
+                               aria-label="Search appointments">
                     </div>
-                    <button type="submit" class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 sm:w-auto">
-                        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    <button type="submit" 
+                            class="inline-flex items-center px-4 py-2.5 border border-transparent rounded-lg text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-sm transition-colors">
+                        <span class="hidden sm:inline">Search</span>
+                        <svg class="w-5 h-5 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                         </svg>
-                        Search
                     </button>
                 </div>
 
-                <!-- Additional Filters -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <!-- Filter Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
-                        <label for="patient_type" class="block text-xs font-medium text-gray-700 mb-1">Patient Type</label>
-                        <select name="patient_type" id="patient_type" class="block w-full px-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
+                        <label for="patient_type" class="block text-sm font-medium text-gray-700 mb-1.5">
+                            Patient Type
+                        </label>
+                        <select name="patient_type" 
+                                id="patient_type" 
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors"
+                                aria-label="Filter by patient type">
                             <option value="">All Types</option>
                             {% for value, label in patient_types %}
                                 <option value="{{ value }}" {% if filters.patient_type == value %}selected{% endif %}>{{ label }}</option>
@@ -60,8 +128,13 @@
                         </select>
                     </div>
                     <div>
-                        <label for="assigned_dentist" class="block text-xs font-medium text-gray-700 mb-1">Requested Dentist</label>
-                        <select name="assigned_dentist" id="assigned_dentist" class="block w-full px-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
+                        <label for="assigned_dentist" class="block text-sm font-medium text-gray-700 mb-1.5">
+                            Requested Dentist
+                        </label>
+                        <select name="assigned_dentist" 
+                                id="assigned_dentist" 
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors"
+                                aria-label="Filter by dentist">
                             <option value="">All Dentists</option>
                             {% for dentist in dentists %}
                                 <option value="{{ dentist.id }}" {% if filters.assigned_dentist == dentist.id|stringformat:"s" %}selected{% endif %}>
@@ -71,90 +144,160 @@
                         </select>
                     </div>
                     <div>
-                        <label for="date_from" class="block text-xs font-medium text-gray-700 mb-1">From Date</label>
-                        <input type="date" name="date_from" id="date_from" value="{{ filters.date_from }}" 
-                               class="block w-full px-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
+                        <label for="date_from" class="block text-sm font-medium text-gray-700 mb-1.5">
+                            From Date
+                        </label>
+                        <input type="date" 
+                               name="date_from" 
+                               id="date_from" 
+                               value="{{ filters.date_from }}" 
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors"
+                               aria-label="Filter from date">
                     </div>
                     <div>
-                        <label for="date_to" class="block text-xs font-medium text-gray-700 mb-1">To Date</label>
-                        <input type="date" name="date_to" id="date_to" value="{{ filters.date_to }}" 
-                               class="block w-full px-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
+                        <label for="date_to" class="block text-sm font-medium text-gray-700 mb-1.5">
+                            To Date
+                        </label>
+                        <input type="date" 
+                               name="date_to" 
+                               id="date_to" 
+                               value="{{ filters.date_to }}" 
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors"
+                               aria-label="Filter to date">
                     </div>
                 </div>
+
+                <!-- Active Filters Display -->
+                {% if filters.search or filters.patient_type or filters.assigned_dentist or filters.date_from or filters.date_to %}
+                <div class="flex items-center gap-2 pt-2 border-t border-gray-200">
+                    <span class="text-sm font-medium text-gray-700">Active filters:</span>
+                    <div class="flex flex-wrap gap-2">
+                        {% if filters.search %}
+                        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-primary-50 text-primary-700">
+                            Search: {{ filters.search }}
+                            <button type="button" onclick="document.querySelector('input[name=search]').value=''; document.getElementById('filter-form').submit();" class="hover:text-primary-900">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                                </svg>
+                            </button>
+                        </span>
+                        {% endif %}
+                        <a href="{% url 'appointments:appointment_requests' %}" class="text-xs text-primary-600 hover:text-primary-700 font-medium underline">
+                            Clear all filters
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
             </form>
         </div>
 
-        <!-- HTMX-Enhanced Request List Container -->
+        <!-- Request List Container -->
         <div id="request-list-container"
              hx-get="{% url 'appointments:appointment_requests_partial' %}?{{ request.GET.urlencode }}"
              hx-trigger="every 45s, appointmentApproved from:body, appointmentRejected from:body"
              hx-swap="innerHTML"
              hx-indicator="#loading-indicator">
             
-            <!-- Initial content (will be replaced by HTMX) -->
             {% include 'appointments/partials/_request_list.html' %}
         </div>
 
         <!-- Loading Indicator -->
-        <div id="loading-indicator" class="htmx-indicator px-6 py-2 bg-blue-50 border-t border-blue-200">
-            <div class="flex items-center text-sm text-blue-700">
-                <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Checking for new requests...
+        <div id="loading-indicator" class="htmx-indicator">
+            <div class="px-6 py-3 bg-blue-50 border-t border-blue-100">
+                <div class="flex items-center text-sm text-blue-700">
+                    <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Checking for new requests...
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <style>
-    /* Hide loading indicator by default */
     .htmx-indicator {
         display: none;
     }
-    /* Show when HTMX is loading */
     .htmx-request .htmx-indicator {
         display: block;
+    }
+    
+    /* Fade in animation for messages */
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-out;
+    }
+    
+    /* Auto-dismiss messages after 5 seconds */
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-out, fadeOut 0.3s ease-out 4.7s forwards;
+    }
+    
+    @keyframes fadeOut {
+        from {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        to {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
     }
 </style>
 
 <script>
-    // Auto-submit form when filters change
     document.addEventListener('DOMContentLoaded', function() {
         const form = document.getElementById('filter-form');
         const selects = form.querySelectorAll('select');
         const dateInputs = form.querySelectorAll('input[type="date"]');
         
-        // Auto-submit on select change
-        selects.forEach(select => {
-            select.addEventListener('change', () => form.submit());
-        });
-        
-        // Auto-submit on date change
-        dateInputs.forEach(input => {
-            input.addEventListener('change', () => form.submit());
+        // Auto-submit on select/date change
+        [...selects, ...dateInputs].forEach(element => {
+            element.addEventListener('change', () => form.submit());
         });
         
         // Update HTMX URL when filters change
-        const updateHtmxUrl = () => {
+        form.addEventListener('change', () => {
             const container = document.getElementById('request-list-container');
             const params = new URLSearchParams(new FormData(form)).toString();
-            container.setAttribute('hx-get', 
-                '{% url "appointments:appointment_requests_partial" %}?' + params
-            );
-        };
+            container.setAttribute('hx-get', '{% url "appointments:appointment_requests_partial" %}?' + params);
+        });
         
-        form.addEventListener('change', updateHtmxUrl);
+        // Auto-dismiss messages after 5 seconds
+        setTimeout(() => {
+            const messages = document.querySelectorAll('.animate-fade-in');
+            messages.forEach(msg => msg.remove());
+        }, 5000);
     });
     
-    // Update badge count on HTMX events
+    // Update badge count after HTMX swap
     document.body.addEventListener('htmx:afterSwap', function(event) {
         if (event.detail.target.id === 'request-list-container') {
             const countElement = event.detail.target.querySelector('[data-pending-count]');
             if (countElement) {
-                const count = countElement.dataset.pendingCount;
-                document.getElementById('pending-badge').textContent = count + ' pending';
+                const count = parseInt(countElement.dataset.pendingCount);
+                const badge = document.getElementById('pending-badge');
+                if (badge) {
+                    const badgeParent = badge.parentElement;
+                    if (count > 0) {
+                        badge.innerHTML = `<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg> ${count} pending request${count !== 1 ? 's' : ''}`;
+                        badgeParent.style.display = 'block';
+                    } else {
+                        badgeParent.style.display = 'none';
+                    }
+                }
             }
         }
     });

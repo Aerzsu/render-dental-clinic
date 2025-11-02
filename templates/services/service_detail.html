@@ -3,134 +3,201 @@
 {% block title %}{{ service.name }} - Services{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-6">
-    <!-- Back Navigation -->
-    <div class="mb-4">
-        <a href="{% url 'services:service_list' %}" 
-           class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors">
-            <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-            </svg>
-            Back to Services
-        </a>
-    </div>
+<div class="min-h-screen bg-gray-50 py-6">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Back Navigation -->
+        <nav class="mb-6" aria-label="Breadcrumb">
+            <a href="{% url 'services:service_list' %}" 
+               class="inline-flex items-center text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 rounded-md px-2 py-1 -ml-2">
+                <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                <span>Back to Services</span>
+            </a>
+        </nav>
 
-    <!-- Header Card -->
-    <div class="bg-white shadow rounded-lg">
-        <div class="px-6 py-5 border-b border-gray-200">
-            <div class="flex justify-between items-start">
-                <div class="flex-1">
-                    <div class="flex items-center space-x-3">
-                        <h1 class="text-2xl font-bold text-gray-900">{{ service.name }}</h1>
-                        {% if service.is_archived %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                Archived
-                            </span>
-                        {% else %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                Active
-                            </span>
+        <!-- Main Content Card -->
+        <article class="bg-white shadow-sm rounded-xl overflow-hidden">
+            <!-- Header Section -->
+            <header class="px-6 py-6 sm:px-8 border-b border-gray-100">
+                <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                    <!-- Title and Status -->
+                    <div class="flex-1 min-w-0">
+                        <div class="flex flex-wrap items-center gap-3 mb-3">
+                            <h1 class="text-3xl font-bold text-gray-900 tracking-tight">{{ service.name }}</h1>
+                            {% if service.is_archived %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200" role="status" aria-label="Service status: Archived">
+                                    <svg class="w-3 h-3 mr-1.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM18 10a8 8 0 11-16 0 8 8 0 0116 0z" clip-rule="evenodd"/>
+                                    </svg>
+                                    Archived
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200" role="status" aria-label="Service status: Active">
+                                    <svg class="w-3 h-3 mr-1.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                    </svg>
+                                    Active
+                                </span>
+                            {% endif %}
+                        </div>
+                        {% if service.description %}
+                            <p class="text-base text-gray-600 leading-relaxed max-w-3xl">{{ service.description }}</p>
                         {% endif %}
                     </div>
-                    {% if service.description %}
-                        <p class="mt-2 text-sm text-gray-600">{{ service.description }}</p>
-                    {% endif %}
-                </div>
-                
-                <!-- Actions -->
-                <div class="flex items-center space-x-2 ml-4">
-                    <a href="{% url 'services:service_update' service.pk %}" 
-                       class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                        <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                        </svg>
-                        Edit
-                    </a>
-                    <a href="{% url 'services:service_toggle_archive' service.pk %}" 
-                       class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-                       onclick="return confirm('Are you sure you want to {% if service.is_archived %}unarchive{% else %}archive{% endif %} this service?')">
-                        {% if service.is_archived %}
-                            <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex flex-wrap items-center gap-2 lg:ml-6">
+                        <a href="{% url 'services:service_update' service.pk %}" 
+                           class="inline-flex items-center justify-center px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-150 shadow-sm"
+                           aria-label="Edit service details">
+                            <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                             </svg>
-                            Unarchive
-                        {% else %}
-                            <svg class="mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
-                            </svg>
-                            Archive
-                        {% endif %}
-                    </a>
+                            <span>Edit Service</span>
+                        </a>
+                        <a href="{% url 'services:service_toggle_archive' service.pk %}" 
+                           class="inline-flex items-center justify-center px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-150 shadow-sm"
+                           onclick="return confirm('Are you sure you want to {% if service.is_archived %}unarchive{% else %}archive{% endif %} this service? {% if not service.is_archived %}This will make it unavailable for new appointments.{% endif %}')"
+                           aria-label="{% if service.is_archived %}Unarchive{% else %}Archive{% endif %} this service">
+                            {% if service.is_archived %}
+                                <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"></path>
+                                </svg>
+                                <span>Unarchive</span>
+                            {% else %}
+                                <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                                </svg>
+                                <span>Archive</span>
+                            {% endif %}
+                        </a>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </header>
 
-        <!-- Pricing Section -->
-        <div class="px-6 py-5 bg-gray-50">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                        Price Range
-                    </label>
-                    <p class="text-3xl font-bold text-gray-900">{{ service.price_range_display }}</p>
-                    {% if service.min_price != service.max_price %}
-                        <div class="mt-3 space-y-1 text-sm text-gray-600">
-                            <div class="flex justify-between">
-                                <span>Minimum:</span>
-                                <span class="font-medium">₱{{ service.min_price|floatformat:2 }}</span>
+            <!-- Pricing and Duration Section -->
+            <section class="px-6 py-8 sm:px-8 bg-gradient-to-br from-gray-50 to-white border-b border-gray-100">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Price Card -->
+                    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <div class="flex items-center justify-center h-12 w-12 rounded-lg bg-primary-100 text-primary-600">
+                                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
                             </div>
-                            <div class="flex justify-between">
-                                <span>Maximum:</span>
-                                <span class="font-medium">₱{{ service.max_price|floatformat:2 }}</span>
+                            <div class="ml-5 w-0 flex-1">
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                                    Price Range
+                                </label>
+                                <p class="text-3xl font-bold text-gray-900 mb-1">{{ service.price_range_display }}</p>
+                                {% if service.min_price != service.max_price %}
+                                    <div class="mt-4 space-y-2.5">
+                                        <div class="flex items-center justify-between text-sm">
+                                            <span class="text-gray-600">Minimum price:</span>
+                                            <span class="font-semibold text-gray-900">₱{{ service.min_price|floatformat:2 }}</span>
+                                        </div>
+                                        <div class="flex items-center justify-between text-sm">
+                                            <span class="text-gray-600">Maximum price:</span>
+                                            <span class="font-semibold text-gray-900">₱{{ service.max_price|floatformat:2 }}</span>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <p class="text-sm text-gray-600 mt-3">Fixed price for this service</p>
+                                {% endif %}
                             </div>
                         </div>
-                    {% endif %}
+                    </div>
+                    
+                    <!-- Duration Card -->
+                    <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow duration-200">
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <div class="flex items-center justify-center h-12 w-12 rounded-lg bg-blue-100 text-blue-600">
+                                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="ml-5 w-0 flex-1">
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+                                    Service Duration
+                                </label>
+                                <p class="text-3xl font-bold text-gray-900 mb-1">{{ service.duration_display }}</p>
+                                <p class="text-sm text-gray-600 mt-3">
+                                    Estimated time needed to complete this service
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                
-                <div>
-                    <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                        Estimated Duration
-                    </label>
-                    <p class="text-3xl font-bold text-gray-900">{{ service.duration_display }}</p>
-                    <p class="mt-3 text-sm text-gray-600">
-                        Typical time required for this service
-                    </p>
-                </div>
-            </div>
-        </div>
+            </section>
 
-        <!-- Service Details -->
-        <div class="px-6 py-5 border-t border-gray-200">
-            <h3 class="text-sm font-medium text-gray-500 uppercase tracking-wide mb-4">Service Details</h3>
-            <dl class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                <div>
-                    <dt class="text-sm font-medium text-gray-500">Status</dt>
-                    <dd class="mt-1 text-sm text-gray-900">
-                        {% if service.is_archived %}
-                            <span class="text-red-600">Archived - Not available for booking</span>
-                        {% else %}
-                            <span class="text-green-600">Active - Available for booking</span>
-                        {% endif %}
-                    </dd>
-                </div>
-                
-                <div>
-                    <dt class="text-sm font-medium text-gray-500">Duration</dt>
-                    <dd class="mt-1 text-sm text-gray-900">{{ service.duration_display }}</dd>
-                </div>
-                
-                <div>
-                    <dt class="text-sm font-medium text-gray-500">Created</dt>
-                    <dd class="mt-1 text-sm text-gray-900">{{ service.created_at|date:"M d, Y" }}</dd>
-                </div>
-                
-                <div>
-                    <dt class="text-sm font-medium text-gray-500">Last Updated</dt>
-                    <dd class="mt-1 text-sm text-gray-900">{{ service.updated_at|date:"M d, Y" }}</dd>
-                </div>
-            </dl>
-        </div>
+            <!-- Service Details Section -->
+            <section class="px-6 py-8 sm:px-8">
+                <h2 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+                    <svg class="h-5 w-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Service Information
+                </h2>
+                <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
+                    <!-- Availability Status -->
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Availability Status</dt>
+                        <dd class="flex items-center text-sm font-medium">
+                            {% if service.is_archived %}
+                                <svg class="h-5 w-5 mr-2 text-red-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                </svg>
+                                <span class="text-red-700">Archived - Not available for new appointments</span>
+                            {% else %}
+                                <svg class="h-5 w-5 mr-2 text-green-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                </svg>
+                                <span class="text-green-700">Active - Available for booking</span>
+                            {% endif %}
+                        </dd>
+                    </div>
+                    
+                    <!-- Duration -->
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Typical Duration</dt>
+                        <dd class="flex items-center text-sm font-medium text-gray-900">
+                            <svg class="h-5 w-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            {{ service.duration_display }}
+                        </dd>
+                    </div>
+                    
+                    <!-- Created Date -->
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Date Created</dt>
+                        <dd class="flex items-center text-sm font-medium text-gray-900">
+                            <svg class="h-5 w-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            <time datetime="{{ service.created_at|date:'Y-m-d' }}">{{ service.created_at|date:"F d, Y" }}</time>
+                        </dd>
+                    </div>
+                    
+                    <!-- Last Updated -->
+                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                        <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Last Updated</dt>
+                        <dd class="flex items-center text-sm font-medium text-gray-900">
+                            <svg class="h-5 w-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                            <time datetime="{{ service.updated_at|date:'Y-m-d' }}">{{ service.updated_at|date:"F d, Y" }}</time>
+                        </dd>
+                    </div>
+                </dl>
+            </section>
+        </article>
     </div>
-
 </div>
 {% endblock %}

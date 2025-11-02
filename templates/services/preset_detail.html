@@ -4,165 +4,295 @@
 {% block title %}{{ preset.name }} - KingJoy Appointment System{% endblock %}
 
 {% block content %}
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="sm:flex sm:items-center sm:justify-between">
-        <div>
-            <nav class="flex mb-2" aria-label="Breadcrumb">
-                <ol role="list" class="flex items-center space-x-4">
-                    <li>
-                        <a href="{% url 'services:preset_list' %}" class="text-sm font-medium text-gray-500 hover:text-gray-700">
-                            My Presets
-                        </a>
-                    </li>
-                    <li>
-                        <div class="flex items-center">
-                            <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                            </svg>
-                            <span class="ml-4 text-sm font-medium text-gray-500">{{ preset.name }}</span>
-                        </div>
-                    </li>
-                </ol>
-            </nav>
-            <div class="flex items-center gap-3">
-                <h1 class="text-2xl font-bold text-gray-900">{{ preset.name }}</h1>
-                {% if preset.is_default %}
-                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                        ★ Default Preset
-                    </span>
-                {% endif %}
-            </div>
-            <p class="mt-1 text-sm text-gray-600">{{ preset.service.name }}</p>
-        </div>
-        <div class="mt-4 flex space-x-3 sm:mt-0">
-            <a href="{% url 'services:preset_update' preset.pk %}" 
-               class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                </svg>
-                Edit
-            </a>
-            <form method="post" action="{% url 'services:preset_delete' preset.pk %}" 
-                  onsubmit="return confirm('Are you sure you want to delete this preset?')" 
-                  class="inline">
-                {% csrf_token %}
-                <button type="submit" 
-                        class="inline-flex items-center px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50">
-                    <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+<div class="min-h-screen bg-gray-50 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Breadcrumb Navigation -->
+        <nav class="mb-6" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-2 text-sm">
+                <li>
+                    <a href="{% url 'services:preset_list' %}" 
+                       class="font-medium text-gray-600 hover:text-gray-900 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 rounded-md px-2 py-1">
+                        My Presets
+                    </a>
+                </li>
+                <li class="flex items-center">
+                    <svg class="h-4 w-4 text-gray-400 mx-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
                     </svg>
-                    Delete
-                </button>
-            </form>
-        </div>
-    </div>
+                    <span class="font-medium text-gray-500">{{ preset.name }}</span>
+                </li>
+            </ol>
+        </nav>
 
-    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <!-- Main Content -->
-        <div class="lg:col-span-2">
-            <!-- Preset Information -->
-            <div class="bg-white shadow rounded-lg">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-lg font-medium text-gray-900">Preset Information</h3>
-                </div>
-                <div class="px-6 py-4">
-                    <dl class="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
-                        <div>
-                            <dt class="text-sm font-medium text-gray-500">Service</dt>
-                            <dd class="mt-1 text-sm text-gray-900">{{ preset.service.name }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-sm font-medium text-gray-500">Preset Name</dt>
-                            <dd class="mt-1 text-sm text-gray-900">{{ preset.name }}</dd>
-                        </div>
-                        {% if preset.description %}
-                        <div class="sm:col-span-2">
-                            <dt class="text-sm font-medium text-gray-500">Description</dt>
-                            <dd class="mt-1 text-sm text-gray-900">{{ preset.description }}</dd>
-                        </div>
+        <!-- Page Header -->
+        <header class="mb-6">
+            <div class="sm:flex sm:items-start sm:justify-between">
+                <div class="flex-1 min-w-0">
+                    <div class="flex flex-wrap items-center gap-3 mb-2">
+                        <h1 class="text-3xl font-bold text-gray-900 tracking-tight">{{ preset.name }}</h1>
+                        {% if preset.is_default %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200" role="status" aria-label="Default preset">
+                                <svg class="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                </svg>
+                                Default Preset
+                            </span>
                         {% endif %}
-                        <div>
-                            <dt class="text-sm font-medium text-gray-500">Status</dt>
-                            <dd class="mt-1">
+                    </div>
+                    <div class="flex items-center text-sm text-gray-600">
+                        <svg class="h-4 w-4 mr-1.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                        </svg>
+                        <span class="font-medium">{{ preset.service.name }}</span>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="mt-4 flex flex-wrap gap-2 sm:mt-0 sm:ml-6">
+                    <a href="{% url 'services:preset_update' preset.pk %}" 
+                       class="inline-flex items-center justify-center px-4 py-2.5 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-150 shadow-sm"
+                       aria-label="Edit preset">
+                        <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                        <span>Edit Preset</span>
+                    </a>
+                    <form method="post" action="{% url 'services:preset_delete' preset.pk %}" 
+                          onsubmit="return confirm('Are you sure you want to delete this preset? This action cannot be undone.')" 
+                          class="inline">
+                        {% csrf_token %}
+                        <button type="submit" 
+                                class="inline-flex items-center justify-center px-4 py-2.5 border border-red-300 text-sm font-medium rounded-lg text-red-700 bg-white hover:bg-red-50 hover:border-red-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-150 shadow-sm"
+                                aria-label="Delete preset">
+                            <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                            <span>Delete</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <!-- Main Content Area -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Preset Information Card -->
+                <article class="bg-white shadow-sm rounded-xl overflow-hidden">
+                    <header class="px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                        <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <svg class="h-5 w-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Preset Information
+                        </h2>
+                    </header>
+                    <div class="px-6 py-6">
+                        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
+                            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Service Type</dt>
+                                <dd class="flex items-center text-sm font-medium text-gray-900">
+                                    <svg class="h-5 w-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                    </svg>
+                                    {{ preset.service.name }}
+                                </dd>
+                            </div>
+                            
+                            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Preset Name</dt>
+                                <dd class="flex items-center text-sm font-medium text-gray-900">
+                                    <svg class="h-5 w-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                                    </svg>
+                                    {{ preset.name }}
+                                </dd>
+                            </div>
+                            
+                            {% if preset.description %}
+                            <div class="sm:col-span-2 bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Description</dt>
+                                <dd class="text-sm text-gray-900 leading-relaxed">{{ preset.description }}</dd>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Preset Status</dt>
+                                <dd class="flex items-start">
+                                    {% if preset.is_default %}
+                                        <svg class="h-5 w-5 mr-2 text-green-500 mt-0.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                                        </svg>
+                                        <div>
+                                            <span class="text-sm font-semibold text-green-700">Default Preset</span>
+                                            <p class="text-xs text-gray-600 mt-0.5">Automatically selected for this service</p>
+                                        </div>
+                                    {% else %}
+                                        <svg class="h-5 w-5 mr-2 text-gray-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                        </svg>
+                                        <div>
+                                            <span class="text-sm font-medium text-gray-900">Regular Preset</span>
+                                            <p class="text-xs text-gray-600 mt-0.5">Available for selection</p>
+                                        </div>
+                                    {% endif %}
+                                </dd>
+                            </div>
+                        </dl>
+                    </div>
+                </article>
+
+                <!-- Products List Card -->
+                <article class="bg-white shadow-sm rounded-xl overflow-hidden">
+                    <header class="px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                                    <svg class="h-5 w-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                    </svg>
+                                    Products & Supplies
+                                </h2>
+                                <p class="mt-1 text-sm text-gray-500">
+                                    <span class="font-semibold text-gray-700">{{ products|length }}</span> product{{ products|length|pluralize }} included in this preset
+                                </p>
+                            </div>
+                        </div>
+                    </header>
+                    <div class="overflow-hidden">
+                        {% if products %}
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                Product Name
+                                            </th>
+                                            <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                Category
+                                            </th>
+                                            <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                                Quantity
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        {% for product in products %}
+                                        <tr class="hover:bg-gray-50 transition-colors duration-150">
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="flex items-center">
+                                                    <div class="flex-shrink-0 h-8 w-8 flex items-center justify-center rounded-lg bg-primary-100 text-primary-600">
+                                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                                        </svg>
+                                                    </div>
+                                                    <span class="ml-3 text-sm font-medium text-gray-900">{{ product.product.name }}</span>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                                                    {{ product.product.category.name }}
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <span class="text-sm font-semibold text-gray-900">{{ product.quantity }}</span>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="px-6 py-12 text-center">
+                                <svg class="mx-auto h-12 w-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                </svg>
+                                <p class="mt-4 text-sm font-medium text-gray-900">No products yet</p>
+                                <p class="mt-1 text-sm text-gray-500">Get started by adding products to this preset.</p>
+                                <div class="mt-6">
+                                    <a href="{% url 'services:preset_update' preset.pk %}" 
+                                       class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-150">
+                                        Add Products
+                                    </a>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </article>
+            </div>
+
+            <!-- Sidebar -->
+            <aside class="space-y-6">
+                <!-- Metadata Card -->
+                <div class="bg-white shadow-sm rounded-xl overflow-hidden">
+                    <header class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
+                        <h3 class="text-sm font-semibold text-gray-900 flex items-center">
+                            <svg class="h-4 w-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
+                            Metadata
+                        </h3>
+                    </header>
+                    <div class="px-6 py-5">
+                        <dl class="space-y-4">
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Date Created</dt>
+                                <dd class="flex items-center text-sm text-gray-900">
+                                    <svg class="h-4 w-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                    </svg>
+                                    <time datetime="{{ preset.created_at|date:'Y-m-d' }}">{{ preset.created_at|date:"M d, Y" }}</time>
+                                </dd>
+                                <dd class="text-xs text-gray-500 ml-6 mt-0.5">{{ preset.created_at|date:"g:i A" }}</dd>
+                            </div>
+                            
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Last Updated</dt>
+                                <dd class="flex items-center text-sm text-gray-900">
+                                    <svg class="h-4 w-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                                    </svg>
+                                    <time datetime="{{ preset.updated_at|date:'Y-m-d' }}">{{ preset.updated_at|date:"M d, Y" }}</time>
+                                </dd>
+                                <dd class="text-xs text-gray-500 ml-6 mt-0.5">{{ preset.updated_at|date:"g:i A" }}</dd>
+                            </div>
+                            
+                            <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                <dt class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Total Products</dt>
+                                <dd class="flex items-center text-sm text-gray-900">
+                                    <svg class="h-4 w-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                                    </svg>
+                                    <span class="font-semibold">{{ products|length }}</span>
+                                    <span class="ml-1 text-gray-500">product{{ products|length|pluralize }}</span>
+                                </dd>
+                            </div>
+                        </dl>
+                    </div>
+                </div>
+
+                <!-- Quick Info Banner -->
+                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-100">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <svg class="h-6 w-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                        </div>
+                        <div class="ml-3 flex-1">
+                            <h4 class="text-sm font-semibold text-blue-900 mb-1">About Presets</h4>
+                            <p class="text-sm text-blue-800 leading-relaxed">
+                                Presets help you quickly add commonly used products to appointments. 
                                 {% if preset.is_default %}
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                        Default Preset
-                                    </span>
+                                    This is your default preset and will be automatically selected when creating appointments for this service.
                                 {% else %}
-                                    <span class="text-sm text-gray-900">Regular Preset</span>
+                                    You can set this as your default preset when editing.
                                 {% endif %}
-                            </dd>
+                            </p>
                         </div>
-                    </dl>
+                    </div>
                 </div>
-            </div>
-
-            <!-- Products List -->
-            <div class="mt-6 bg-white shadow rounded-lg">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-lg font-medium text-gray-900">Products & Supplies</h3>
-                    <p class="mt-1 text-sm text-gray-500">{{ products|length }} product{{ products|length|pluralize }} in this preset</p>
-                </div>
-                <div class="overflow-hidden">
-                    {% if products %}
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                {% for product in products %}
-                                <tr>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                        {{ product.product.name }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                        {{ product.product.category.name }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                        {{ product.quantity }}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    {% else %}
-                        <div class="px-6 py-8 text-center text-gray-500">
-                            No products in this preset
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Sidebar -->
-        <div class="space-y-6">
-            <!-- Metadata -->
-            <div class="bg-white shadow rounded-lg">
-                <div class="px-6 py-4 border-b border-gray-200">
-                    <h3 class="text-sm font-medium text-gray-900">Metadata</h3>
-                </div>
-                <div class="px-6 py-4">
-                    <dl class="space-y-3 text-sm">
-                        <div>
-                            <dt class="text-gray-500">Created</dt>
-                            <dd class="mt-1 text-gray-900">{{ preset.created_at|date:"M d, Y g:i A" }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-gray-500">Last Updated</dt>
-                            <dd class="mt-1 text-gray-900">{{ preset.updated_at|date:"M d, Y g:i A" }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-gray-500">Total Products</dt>
-                            <dd class="mt-1 text-gray-900">{{ products|length }}</dd>
-                        </div>
-                    </dl>
-                </div>
-            </div>
+            </aside>
         </div>
     </div>
 </div>

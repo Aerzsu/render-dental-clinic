@@ -5,44 +5,24 @@
 {% block title %}Payment Management - Dental Clinic{% endblock %}
 
 {% block content %}
-<style> 
-    input,
-    select,
-    textarea {
-    padding: 0.5rem 0.75rem;
-}
-</style>
 <div class="space-y-6">
-    <!-- Header -->
+    <!-- Header Section -->
     <div class="sm:flex sm:items-center sm:justify-between">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Payment Management</h1>
-            <p class="mt-2 text-sm text-gray-700">Track and manage patient payments</p>
+            <p class="mt-1 text-sm text-gray-600">Track and manage patient billing records</p>
         </div>
     </div>
 
     <!-- Patients Without Payment Records -->
     {% include 'payment/partials/_patients_without_payments.html' %}
 
-    <!-- Search and Filters -->
-    <div class="bg-white shadow rounded-lg">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <div class="flex items-center justify-between">
-                <h3 class="text-lg font-medium text-gray-900">Search & Filter Payments</h3>
-                <button type="button" id="toggleFilters" 
-                        class="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                    <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                    </svg>
-                    Filters
-                </button>
-            </div>
-        </div>
-        
-        <div class="px-6 py-4">
+    <!-- Search and Filters Card -->
+    <div class="bg-white shadow-sm rounded-lg border border-gray-200">
+        <div class="px-4 sm:px-6 py-4">
             <form method="get" class="space-y-4" id="searchForm">
-                <!-- Quick Search -->
-                <div class="flex space-x-4">
+                <!-- Main Search Bar -->
+                <div class="flex flex-col sm:flex-row gap-3">
                     <div class="flex-1">
                         <label for="search" class="sr-only">Search payments</label>
                         <div class="relative">
@@ -53,31 +33,42 @@
                             </div>
                             <input type="text" 
                                    name="search" 
+                                   id="search"
                                    value="{{ filters.search }}"
                                    placeholder="Search by patient name..." 
-                                   class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-primary-500 focus:border-primary-500">
+                                   class="block w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
+                            {% if filters.search %}
+                            <button type="button" 
+                                    onclick="document.getElementById('search').value=''; document.getElementById('searchForm').submit();"
+                                    class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                <svg class="h-5 w-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                            {% endif %}
                         </div>
                     </div>
-                    <div class="flex space-x-2">
-                        <button type="submit" 
-                                class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                            Search
+                    <div class="flex gap-2">
+                        <button type="button" 
+                                id="toggleFilters"
+                                class="inline-flex items-center px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                            <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                            </svg>
+                            <span>Filters</span>
                         </button>
-                        <a href="{% url 'appointments:payment_list' %}" 
-                           class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                            Clear
-                        </a>
                     </div>
                 </div>
 
-                <!-- Advanced Filters -->
-                <div id="advancedFilters" class="hidden border-t border-gray-200 pt-4 mt-4">
+                <!-- Advanced Filters (Collapsible) -->
+                <div id="advancedFilters" class="hidden border-t border-gray-200 pt-4 space-y-4">
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <!-- Status Filter -->
                         <div>
-                            <label for="status" class="block text-sm font-medium text-gray-700">Status</label>
+                            <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
                             <select name="status" 
-                                    class="mt-1 block w-full px-3 py-2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                    id="status"
+                                    class="block w-full rounded-lg px-3 py-2.5 border border-gray-300 shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
                                 <option value="">All Statuses</option>
                                 <option value="pending" {% if filters.status == 'pending' %}selected{% endif %}>Pending</option>
                                 <option value="partially_paid" {% if filters.status == 'partially_paid' %}selected{% endif %}>Partially Paid</option>
@@ -87,122 +78,193 @@
 
                         <!-- Amount Range -->
                         <div>
-                            <label for="amount_min" class="block text-sm font-medium text-gray-700">Amount Range</label>
-                            <div class="flex space-x-2">
-                                <input type="number" name="amount_min" value="{{ filters.amount_min }}" 
-                                       placeholder="Min" step="1"
-                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                                <input type="number" name="amount_max" value="{{ filters.amount_max }}" 
-                                       placeholder="Max" step="1"
-                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Amount Range</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="number" 
+                                       name="amount_min" 
+                                       id="amount_min"
+                                       value="{{ filters.amount_min }}" 
+                                       placeholder="Min" 
+                                       step="1"
+                                       class="block w-full rounded-lg px-3 py-2.5 border border-gray-300 shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
+                                <input type="number" 
+                                       name="amount_max" 
+                                       id="amount_max"
+                                       value="{{ filters.amount_max }}" 
+                                       placeholder="Max" 
+                                       step="1"
+                                       class="block w-full rounded-lg px-3 py-2.5 border border-gray-300 shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
                             </div>
                         </div>
 
                         <!-- Date Range -->
                         <div>
-                            <label for="date_from" class="block text-sm font-medium text-gray-700">Date Range</label>
-                            <div class="flex space-x-2">
-                                <input type="date" name="date_from" value="{{ filters.date_from }}"
-                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                                <input type="date" name="date_to" value="{{ filters.date_to }}"
-                                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="date" 
+                                       name="date_from" 
+                                       id="date_from"
+                                       value="{{ filters.date_from }}"
+                                       class="block w-full rounded-lg px-3 py-2.5 border border-gray-300 shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
+                                <input type="date" 
+                                       name="date_to" 
+                                       id="date_to"
+                                       value="{{ filters.date_to }}"
+                                       class="block w-full rounded-lg px-3 py-2.5 border border-gray-300 shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
                             </div>
                         </div>
                     </div>
                     
-                    <div class="flex justify-between items-center mt-4">
-                        <div class="flex space-x-2">
-                            <button type="submit" 
-                                    class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                                Apply Filters
+                    <!-- Active Filters Display -->
+                    {% if filters.status or filters.amount_min or filters.amount_max or filters.date_from or filters.date_to %}
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <span class="text-xs font-medium text-gray-500">Active filters:</span>
+                        {% if filters.status %}
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-primary-50 text-primary-700">
+                            Status: {{ filters.status|title }}
+                            <button type="button" onclick="document.getElementById('status').value=''; document.getElementById('searchForm').submit();" class="ml-1.5">
+                                <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                </svg>
                             </button>
-                            <button type="button" id="clearFilters"
-                                    class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                                Clear Filters
-                            </button>
-                        </div>
+                        </span>
+                        {% endif %}
+                        {% if filters.amount_min or filters.amount_max %}
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-primary-50 text-primary-700">
+                            Amount: {% if filters.amount_min %}₱{{ filters.amount_min }}{% else %}Any{% endif %} - {% if filters.amount_max %}₱{{ filters.amount_max }}{% else %}Any{% endif %}
+                        </span>
+                        {% endif %}
+                        {% if filters.date_from or filters.date_to %}
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-primary-50 text-primary-700">
+                            Date Range
+                        </span>
+                        {% endif %}
+                        <a href="{% url 'appointments:payment_list' %}" class="text-xs font-medium text-primary-600 hover:text-primary-700">
+                            Clear all
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    <!-- Filter Actions -->
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" 
+                                id="clearFilters"
+                                class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                            Reset
+                        </button>
+                        <button type="submit" 
+                                class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                            Apply Filters
+                        </button>
                     </div>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Payments Table -->
-    <div class="bg-white shadow rounded-lg overflow-hidden">
+    <!-- Results Summary -->
+    {% if payments %}
+    <div class="flex items-center justify-between px-1">
+        <p class="text-sm text-gray-600">
+            <span class="font-medium text-gray-900">{{ payments|length }}</span> 
+            payment{{ payments|length|pluralize }} found
+            {% if filters.search %}
+            <span class="text-gray-500">matching "{{ filters.search }}"</span>
+            {% endif %}
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- Payments Table/Cards -->
+    <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
         {% if payments %}
-            <div class="overflow-x-auto">
+            <!-- Desktop Table View -->
+            <div class="hidden lg:block overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                 Bill ID
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                 Patient
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Service Type
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                Service
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Amount / Paid
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                Amount
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Outstanding Balance
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                Balance
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Next Due Date
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                Due Date
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                 Status
                             </th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                 Actions
                             </th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
+                    <tbody class="bg-white divide-y divide-gray-100">
                         {% for payment in payments %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                #{{ payment.id|stringformat:"06d" }}
-                            </td>
+                        <tr class="hover:bg-gray-50 transition-colors">
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center">
-                                    <div class="flex-shrink-0 h-8 w-8">
-                                        <div class="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center">
-                                            <span class="text-xs font-medium text-white">
-                                                {{ payment.patient.first_name|first }}{{ payment.patient.last_name|first }}
-                                            </span>
+                                    <div class="flex-shrink-0">
+                                        <div class="h-8 w-8 rounded bg-gray-100 flex items-center justify-center">
+                                            <svg class="h-4 w-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                            </svg>
                                         </div>
                                     </div>
                                     <div class="ml-3">
                                         <div class="text-sm font-medium text-gray-900">
-                                            <a href="{% url 'patients:patient_detail' payment.patient.pk %}" 
-                                               class="hover:text-primary-600">
-                                                {{ payment.patient.full_name }}
-                                            </a>
+                                            #{{ payment.id|stringformat:"06d" }}
                                         </div>
-                                        <div class="text-sm text-gray-500">
+                                        <div class="text-xs text-gray-500">
                                             {{ payment.created_at|date:"M d, Y" }}
                                         </div>
                                     </div>
                                 </div>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
+                                        <span class="text-primary-700 font-semibold text-sm">
+                                            {{ payment.patient.first_name|first }}{{ payment.patient.last_name|first }}
+                                        </span>
+                                    </div>
+                                    <div class="ml-3">
+                                        <div class="text-sm font-medium text-gray-900">
+                                            <a href="{% url 'patients:patient_detail' payment.patient.pk %}" 
+                                               class="hover:text-primary-600 transition-colors">
+                                                {{ payment.patient.full_name }}
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
                                 <div class="text-sm text-gray-900">
                                     {{ payment.appointment.service.name|truncatechars:30 }}
                                 </div>
                                 {% if payment.items.count > 1 %}
-                                    <div class="text-xs text-gray-500">
-                                        +{{ payment.items.count|add:"-1" }} more service{{ payment.items.count|add:"-1"|pluralize }}
+                                    <div class="text-xs text-gray-500 mt-0.5">
+                                        +{{ payment.items.count|add:"-1" }} more item{{ payment.items.count|add:"-1"|pluralize }}
                                     </div>
                                 {% endif %}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900">{{ payment.total_amount|format_currency }}</div>
-                                <div class="text-sm text-green-600">{{ payment.amount_paid|format_currency }} paid</div>
+                                <div class="text-sm font-medium text-gray-900">{{ payment.total_amount|format_currency }}</div>
+                                <div class="text-xs text-green-600 mt-0.5">{{ payment.amount_paid|format_currency }} paid</div>
                                 {% if payment.payment_type == 'installment' %}
-                                    <div class="text-xs text-blue-600">{{ payment.installment_months }} months</div>
+                                    <div class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 mt-1">
+                                        {{ payment.installment_months }} months
+                                    </div>
                                 {% endif %}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
@@ -213,40 +275,72 @@
                                     {{ payment.outstanding_balance|display_balance }}
                                 </div>
                                 {% if payment.outstanding_balance > 0 %}
-                                    <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                                        <div class="bg-primary-600 h-1.5 rounded-full" 
+                                    <div class="w-full bg-gray-200 rounded-full h-1.5 mt-2">
+                                        <div class="bg-primary-600 h-1.5 rounded-full transition-all" 
                                              style="width: {{ payment.payment_progress_percentage }}%"></div>
+                                    </div>
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        {{ payment.payment_progress_percentage }}% paid
                                     </div>
                                 {% endif %}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td class="px-6 py-4 whitespace-nowrap">
                                 {% if payment.next_due_date and payment.outstanding_balance > 0 %}
-                                    <span class="{% if payment.is_overdue %}text-red-600 font-medium{% endif %}">
+                                    <div class="text-sm {% if payment.is_overdue %}text-red-600 font-medium{% else %}text-gray-900{% endif %}">
                                         {{ payment.next_due_date|date:"M d, Y" }}
-                                    </span>
+                                    </div>
                                     {% if payment.is_overdue %}
-                                        <div class="text-xs text-red-500">Overdue</div>
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200 mt-1">
+                                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293z" clip-rule="evenodd"></path>
+                                            </svg>
+                                            Overdue
+                                        </span>
                                     {% endif %}
                                 {% else %}
-                                    <span class="text-gray-400">—</span>
+                                    <span class="text-sm text-gray-400">—</span>
                                 {% endif %}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                                    {% if payment.status == 'pending' %}bg-yellow-100 text-yellow-800
-                                    {% elif payment.status == 'partially_paid' %}bg-blue-100 text-blue-800
-                                    {% elif payment.status == 'completed' %}bg-green-100 text-green-800
-                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
-                                    {{ payment.status|payment_status_display }}
-                                </span>
+                                {% if payment.status == 'pending' %}
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Pending
+                                    </span>
+                                {% elif payment.status == 'partially_paid' %}
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path>
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Partial
+                                    </span>
+                                {% elif payment.status == 'completed' %}
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                                        <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Paid
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-200">
+                                        {{ payment.status|payment_status_display }}
+                                    </span>
+                                {% endif %}
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <div class="flex space-x-2">
+                            <td class="px-6 py-4 whitespace-nowrap text-right">
+                                <div class="flex items-center justify-end space-x-3">
                                     <a href="{% url 'appointments:payment_detail' payment.pk %}" 
-                                       class="text-primary-600 hover:text-primary-900">View</a>
+                                       class="text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
+                                        View
+                                    </a>
                                     {% if payment.outstanding_balance > 0 %}
                                         <a href="{% url 'appointments:payment_detail' payment.pk %}#add-payment" 
-                                           class="text-green-600 hover:text-green-900">Pay</a>
+                                           class="text-green-600 hover:text-green-700 text-sm font-medium transition-colors">
+                                            Pay
+                                        </a>
                                     {% endif %}
                                 </div>
                             </td>
@@ -256,153 +350,317 @@
                 </table>
             </div>
 
+            <!-- Mobile/Tablet Card View -->
+            <div class="lg:hidden divide-y divide-gray-100">
+                {% for payment in payments %}
+                    <div class="p-4 hover:bg-gray-50 transition-colors">
+                        <!-- Header -->
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="flex items-center flex-1 min-w-0">
+                                <div class="flex-shrink-0 h-12 w-12 rounded-full bg-primary-100 flex items-center justify-center">
+                                    <span class="text-primary-700 font-semibold">
+                                        {{ payment.patient.first_name|first }}{{ payment.patient.last_name|first }}
+                                    </span>
+                                </div>
+                                <div class="ml-3 min-w-0">
+                                    <h3 class="text-base font-semibold text-gray-900 truncate">
+                                        {{ payment.patient.full_name }}
+                                    </h3>
+                                    <p class="text-xs text-gray-500 mt-0.5">
+                                        Bill #{{ payment.id|stringformat:"06d" }} • {{ payment.created_at|date:"M d, Y" }}
+                                    </p>
+                                </div>
+                            </div>
+                            {% if payment.status == 'pending' %}
+                                <span class="flex-shrink-0 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">
+                                    Pending
+                                </span>
+                            {% elif payment.status == 'partially_paid' %}
+                                <span class="flex-shrink-0 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                    Partial
+                                </span>
+                            {% elif payment.status == 'completed' %}
+                                <span class="flex-shrink-0 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                                    Paid
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Payment Details -->
+                        <div class="space-y-2 mb-3 text-sm">
+                            <!-- Service -->
+                            <div class="flex items-start">
+                                <svg class="w-4 h-4 mr-2 text-gray-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                </svg>
+                                <div class="flex-1">
+                                    <span class="text-gray-900">{{ payment.appointment.service.name }}</span>
+                                    {% if payment.items.count > 1 %}
+                                        <div class="text-xs text-gray-500 mt-0.5">
+                                            +{{ payment.items.count|add:"-1" }} more item{{ payment.items.count|add:"-1"|pluralize }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Amount -->
+                            <div class="flex items-start">
+                                <svg class="w-4 h-4 mr-2 text-gray-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-gray-900 font-medium">{{ payment.total_amount|format_currency }}</span>
+                                        {% if payment.payment_type == 'installment' %}
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                                {{ payment.installment_months }} months
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-xs text-green-600 mt-0.5">{{ payment.amount_paid|format_currency }} paid</div>
+                                    {% if payment.outstanding_balance > 0 %}
+                                        <div class="w-full bg-gray-200 rounded-full h-1.5 mt-1.5">
+                                            <div class="bg-primary-600 h-1.5 rounded-full transition-all" 
+                                                 style="width: {{ payment.payment_progress_percentage }}%"></div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Balance -->
+                            {% if payment.outstanding_balance > 0 %}
+                            <div class="flex items-start">
+                                <svg class="w-4 h-4 mr-2 {% if payment.is_overdue %}text-red-500{% else %}text-gray-400{% endif %} flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <div class="flex-1">
+                                    <div class="{% if payment.is_overdue %}text-red-600{% else %}text-yellow-600{% endif %} font-medium">
+                                        {{ payment.outstanding_balance|display_balance }} balance
+                                    </div>
+                                    {% if payment.next_due_date %}
+                                        <div class="text-xs {% if payment.is_overdue %}text-red-600{% else %}text-gray-500{% endif %} mt-0.5">
+                                            Due: {{ payment.next_due_date|date:"M d, Y" }}
+                                            {% if payment.is_overdue %}(Overdue){% endif %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex gap-2">
+                            <a href="{% url 'appointments:payment_detail' payment.pk %}" 
+                               class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                                View Details
+                            </a>
+                            {% if payment.outstanding_balance > 0 %}
+                                <a href="{% url 'appointments:payment_detail' payment.pk %}#add-payment" 
+                                   class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-green-300 rounded-lg text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
+                                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    Pay Now
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
             <!-- Pagination -->
             {% if is_paginated %}
-            <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
-                <div class="flex items-center justify-between">
-                    <div class="flex-1 flex justify-between sm:hidden">
-                        {% if page_obj.has_previous %}
-                            <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" 
-                               class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                                Previous
-                            </a>
-                        {% endif %}
-                        {% if page_obj.has_next %}
-                            <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" 
-                               class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                                Next
-                            </a>
-                        {% endif %}
+            <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                <!-- Mobile Pagination -->
+                <div class="flex-1 flex justify-between sm:hidden">
+                    {% if page_obj.has_previous %}
+                        <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" 
+                           class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                            Previous
+                        </a>
+                    {% else %}
+                        <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-400 bg-gray-50 cursor-not-allowed">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                            Previous
+                        </span>
+                    {% endif %}
+                    {% if page_obj.has_next %}
+                        <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" 
+                           class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                            Next
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </a>
+                    {% else %}
+                        <span class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-400 bg-gray-50 cursor-not-allowed">
+                            Next
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </span>
+                    {% endif %}
+                </div>
+
+                <!-- Desktop Pagination -->
+                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-sm text-gray-700">
+                            Showing
+                            <span class="font-medium">{{ page_obj.start_index }}</span>
+                            to
+                            <span class="font-medium">{{ page_obj.end_index }}</span>
+                            of
+                            <span class="font-medium">{{ paginator.count }}</span>
+                            results
+                        </p>
                     </div>
-                    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                        <div>
-                            <p class="text-sm text-gray-700">
-                                Showing
-                                <span class="font-medium">{{ page_obj.start_index }}</span>
-                                to
-                                <span class="font-medium">{{ page_obj.end_index }}</span>
-                                of
-                                <span class="font-medium">{{ paginator.count }}</span>
-                                results
-                            </p>
-                        </div>
-                        <div>
-                            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                                {% if page_obj.has_previous %}
-                                    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" 
-                                       class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                                        <span class="sr-only">Previous</span>
-                                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                        </svg>
-                                    </a>
-                                {% endif %}
+                    <div>
+                        <nav class="relative z-0 inline-flex rounded-lg shadow-sm -space-x-px" aria-label="Pagination">
+                            <!-- Previous Button -->
+                            {% if page_obj.has_previous %}
+                                <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" 
+                                   class="relative inline-flex items-center px-2 py-2 rounded-l-lg border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors">
+                                    <span class="sr-only">Previous</span>
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                    </svg>
+                                </a>
+                            {% else %}
+                                <span class="relative inline-flex items-center px-2 py-2 rounded-l-lg border border-gray-300 bg-gray-50 text-sm font-medium text-gray-300 cursor-not-allowed">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                    </svg>
+                                </span>
+                            {% endif %}
 
-                                {% for num in page_obj.paginator.page_range %}
-                                    {% if page_obj.number == num %}
-                                        <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-primary-50 text-sm font-medium text-primary-600">
-                                            {{ num }}
-                                        </span>
-                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                                        <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}" 
-                                           class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                                            {{ num }}
-                                        </a>
-                                    {% endif %}
-                                {% endfor %}
-
-                                {% if page_obj.has_next %}
-                                    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" 
-                                       class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                                        <span class="sr-only">Next</span>
-                                        <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-                                        </svg>
+                            <!-- Page Numbers -->
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                    <span class="relative inline-flex items-center px-4 py-2 border border-primary-500 bg-primary-50 text-sm font-medium text-primary-600 z-10">
+                                        {{ num }}
+                                    </span>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}" 
+                                       class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                                        {{ num }}
                                     </a>
+                                {% elif num == 1 or num == page_obj.paginator.num_pages %}
+                                    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}" 
+                                       class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                                        {{ num }}
+                                    </a>
+                                {% elif num == page_obj.number|add:'-3' or num == page_obj.number|add:'3' %}
+                                    <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                                        ...
+                                    </span>
                                 {% endif %}
-                            </nav>
-                        </div>
+                            {% endfor %}
+
+                            <!-- Next Button -->
+                            {% if page_obj.has_next %}
+                                <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" 
+                                   class="relative inline-flex items-center px-2 py-2 rounded-r-lg border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors">
+                                    <span class="sr-only">Next</span>
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                </a>
+                            {% else %}
+                                <span class="relative inline-flex items-center px-2 py-2 rounded-r-lg border border-gray-300 bg-gray-50 text-sm font-medium text-gray-300 cursor-not-allowed">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                </span>
+                            {% endif %}
+                        </nav>
                     </div>
                 </div>
             </div>
             {% endif %}
         {% else %}
-            <div class="text-center py-12">
-                <div class="text-6xl mb-4">💳</div>
-                <h3 class="mt-2 text-sm font-medium text-gray-900">No invoices found</h3>
-                <p class="mt-1 text-sm text-gray-500">
-                    {% if filters.search or filters.status %}
-                        No invoices match your search criteria.
+            <!-- Empty State -->
+            <div class="text-center py-12 px-4">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-base font-semibold text-gray-900 mb-1">No payment records found</h3>
+                <p class="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
+                    {% if filters.search or filters.status or filters.amount_min or filters.amount_max or filters.date_from or filters.date_to %}
+                        No payments match your search criteria or filters. Try adjusting your search.
                     {% else %}
-                        No invoices exist yet.
+                        No payment records exist yet. Payments will appear here after appointments are completed.
                     {% endif %}
                 </p>
-                <div class="mt-6">
-                    {% if filters.search or filters.status %}
-                        <a href="{% url 'appointments:payment_list' %}" 
-                           class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                            Clear Search & Filters
-                        </a>
-                    {% endif %}
-                </div>
+                {% if filters.search or filters.status or filters.amount_min or filters.amount_max or filters.date_from or filters.date_to %}
+                    <a href="{% url 'appointments:payment_list' %}" 
+                       class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        Clear Filters
+                    </a>
+                {% endif %}
             </div>
         {% endif %}
     </div>
 </div>
 
-<!-- JavaScript for Filter Toggle -->
+<!-- Minimal JavaScript -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const toggleFilters = document.getElementById('toggleFilters');
-    const advancedFilters = document.getElementById('advancedFilters');
-    const clearFilters = document.getElementById('clearFilters');
+(function() {
+    'use strict';
+    
+    const toggleBtn = document.getElementById('toggleFilters');
+    const filtersDiv = document.getElementById('advancedFilters');
+    const clearBtn = document.getElementById('clearFilters');
     const searchForm = document.getElementById('searchForm');
     
-    // Toggle advanced filters
-    toggleFilters.addEventListener('click', function() {
-        if (advancedFilters.classList.contains('hidden')) {
-            advancedFilters.classList.remove('hidden');
-            toggleFilters.innerHTML = `
-                <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-                </svg>
-                Hide Filters
-            `;
-        } else {
-            advancedFilters.classList.add('hidden');
-            toggleFilters.innerHTML = `
-                <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                </svg>
-                Filters
-            `;
-        }
+    if (!toggleBtn || !filtersDiv) return;
+    
+    // Check if filters are active on page load
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasActiveFilters = ['status', 'amount_min', 'amount_max', 'date_from', 'date_to'].some(p => urlParams.has(p));
+    
+    if (hasActiveFilters) {
+        filtersDiv.classList.remove('hidden');
+        updateToggleButton(true);
+    }
+    
+    // Toggle filters
+    toggleBtn.addEventListener('click', function() {
+        const isHidden = filtersDiv.classList.contains('hidden');
+        filtersDiv.classList.toggle('hidden');
+        updateToggleButton(!isHidden);
     });
+    
+    function updateToggleButton(isOpen) {
+        toggleBtn.innerHTML = isOpen 
+            ? '<svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg><span>Hide Filters</span>'
+            : '<svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg><span>Filters</span>';
+    }
     
     // Clear filters
-    clearFilters.addEventListener('click', function() {
-        const formInputs = searchForm.querySelectorAll('input, select');
-        formInputs.forEach(input => {
-            if (input.type === 'text' || input.type === 'number' || input.type === 'date') {
-                input.value = '';
-            } else if (input.type === 'select-one') {
-                input.selectedIndex = 0;
-            }
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            const inputs = searchForm.querySelectorAll('input[type="text"], input[type="number"], input[type="date"]');
+            const selects = searchForm.querySelectorAll('select');
+            
+            inputs.forEach(input => input.value = '');
+            selects.forEach(select => select.selectedIndex = 0);
         });
-    });
-    
-    // Show advanced filters if any filters are active
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasFilters = ['status', 'amount_min', 'amount_max', 'date_from', 'date_to'].some(param => urlParams.has(param));
-    if (hasFilters) {
-        advancedFilters.classList.remove('hidden');
-        toggleFilters.innerHTML = `
-            <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-            </svg>
-            Hide Filters
-        `;
     }
-});
+})();
 </script>
 {% endblock %}

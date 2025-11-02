@@ -5,126 +5,220 @@
 {% endblock %}
 
 {% block content %}
-<style> 
-    input,
-    select,
-    textarea {
-        padding: 0.5rem 0.75rem;
-    }
-</style>
-
-<div class="container mx-auto px-4 py-6">
-    <!-- Header -->
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- Header Section -->
     <div class="mb-6">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900">
-                    {% if object %}
-                        Edit Time Slots for {{ object.date|date:"F d, Y" }}
-                    {% else %}
-                        Create Time Slots
-                    {% endif %}
-                </h1>
-                <p class="text-gray-600 mt-1">
-                    {% if object %}
-                        Update operating hours and timeslot configuration for this date
-                    {% else %}
-                        Set operating hours to enable appointment bookings for a specific date
-                    {% endif %}
-                </p>
+        <div class="flex items-center justify-between">
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">
+                            {% if object %}
+                                Edit Time Slots
+                            {% else %}
+                                Create Time Slots
+                            {% endif %}
+                        </h1>
+                        <p class="text-sm text-gray-600 mt-1">
+                            {% if object %}
+                                {{ object.date|date:"l, F d, Y" }}
+                            {% else %}
+                                Configure operating hours for appointment bookings
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
             </div>
-            <div>
+            <div class="flex-shrink-0 ml-4">
                 <a href="{% url 'appointments:daily_slots_list' %}" 
-                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                    ← Back to List
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                    <span class="hidden sm:inline">Back to List</span>
+                    <span class="sm:hidden">Back</span>
                 </a>
             </div>
         </div>
     </div>
 
-    <!-- Form -->
-    <div class="bg-white shadow rounded-lg">
+    <!-- Form Card -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
         <form method="post" class="divide-y divide-gray-200">
             {% csrf_token %}
             
-            <!-- Section Header -->
-            <div class="px-6 py-4">
-                <h3 class="text-lg font-medium text-gray-900">Time Slot Configuration</h3>
-                <p class="mt-1 text-sm text-gray-500">Configure the clinic's operating hours. Appointments will be scheduled in 30-minute increments.</p>
+            <!-- Form Header -->
+            <div class="px-6 py-5">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                    </div>
+                    <div class="ml-3 flex-1">
+                        <h3 class="text-lg font-semibold text-gray-900">Time Slot Configuration</h3>
+                        <p class="mt-1 text-sm text-gray-600">Set up clinic operating hours. Appointments are scheduled in 30-minute increments.</p>
+                    </div>
+                </div>
             </div>
 
             <!-- Form Fields -->
             <div class="px-6 py-6 space-y-6">
+                <!-- General Form Errors -->
+                {% if form.non_field_errors %}
+                <div class="rounded-lg bg-red-50 border border-red-200 p-4">
+                    <div class="flex">
+                        <svg class="h-5 w-5 text-red-400 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                        </svg>
+                        <div class="ml-3 flex-1">
+                            <h4 class="text-sm font-medium text-red-800">Please fix the following errors:</h4>
+                            <ul class="mt-2 text-sm text-red-700 space-y-1">
+                                {% for error in form.non_field_errors %}
+                                    <li class="flex items-start">
+                                        <span class="mr-2">•</span>
+                                        <span>{{ error }}</span>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
                 <!-- Date Field -->
                 <div>
                     <label for="{{ form.date.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                        Date <span class="text-red-600">*</span>
+                        Date <span class="text-red-500">*</span>
                     </label>
-                    {{ form.date }}
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
+                        </div>
+                        {{ form.date }}
+                    </div>
                     {% if form.date.errors %}
                         <div class="mt-2 text-sm text-red-600">
                             {% for error in form.date.errors %}
-                                <p>{{ error }}</p>
+                                <p class="flex items-start">
+                                    <svg class="w-4 h-4 mr-1 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                    </svg>
+                                    <span>{{ error }}</span>
+                                </p>
                             {% endfor %}
                         </div>
                     {% else %}
-                        <p class="mt-2 text-sm text-gray-500">Select the date for timeslot configuration. Sundays are not allowed.</p>
+                        <p class="mt-2 text-xs text-gray-500">Select a future date. Sundays are not allowed (clinic closed).</p>
                     {% endif %}
                 </div>
 
-                <!-- Time Configuration -->
-                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
-                    <h4 class="text-base font-semibold text-gray-900 mb-4 flex items-center">
-                        <span class="text-xl mr-2"></span>
-                        Operating Hours
-                    </h4>
+                <!-- Operating Hours Section -->
+                <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
+                    <div class="flex items-center mb-5">
+                        <div class="flex-shrink-0 w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h4 class="text-base font-semibold text-gray-900">Operating Hours</h4>
+                            <p class="text-sm text-gray-600">Define when the clinic is open for appointments</p>
+                        </div>
+                    </div>
                     
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <!-- Start Time -->
                         <div>
                             <label for="{{ form.start_time.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                                Opening Time <span class="text-red-600">*</span>
+                                Opening Time <span class="text-red-500">*</span>
                             </label>
-                            {{ form.start_time }}
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </div>
+                                {{ form.start_time }}
+                            </div>
                             {% if form.start_time.errors %}
                                 <div class="mt-2 text-sm text-red-600">
                                     {% for error in form.start_time.errors %}
-                                        <p>{{ error }}</p>
+                                        <p class="flex items-start">
+                                            <svg class="w-4 h-4 mr-1 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                            </svg>
+                                            <span>{{ error }}</span>
+                                        </p>
                                     {% endfor %}
                                 </div>
                             {% else %}
-                                <p class="mt-2 text-sm text-gray-600">First appointment timeslot starts at this time</p>
+                                <p class="mt-2 text-xs text-gray-600">First timeslot begins at this time</p>
                             {% endif %}
                         </div>
 
                         <!-- End Time -->
                         <div>
                             <label for="{{ form.end_time.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                                Closing Time <span class="text-red-600">*</span>
+                                Closing Time <span class="text-red-500">*</span>
                             </label>
-                            {{ form.end_time }}
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                </div>
+                                {{ form.end_time }}
+                            </div>
                             {% if form.end_time.errors %}
                                 <div class="mt-2 text-sm text-red-600">
                                     {% for error in form.end_time.errors %}
-                                        <p>{{ error }}</p>
+                                        <p class="flex items-start">
+                                            <svg class="w-4 h-4 mr-1 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                                            </svg>
+                                            <span>{{ error }}</span>
+                                        </p>
                                     {% endfor %}
                                 </div>
                             {% else %}
-                                <p class="mt-2 text-sm text-gray-600">Last appointment must start before this time</p>
+                                <p class="mt-2 text-xs text-gray-600">Last appointment must start before this time</p>
                             {% endif %}
                         </div>
                     </div>
 
                     <!-- Time Slots Preview -->
-                    <div id="slotsPreview" class="mt-6 p-4 bg-white rounded-lg border border-blue-200">
+                    <div id="slotsPreview" class="mt-6 bg-white rounded-xl border-2 border-blue-300 p-5 shadow-sm">
                         <div class="flex items-center justify-between">
-                            <div>
-                                <h5 class="text-sm font-medium text-gray-900">Total 30-Minute Slots</h5>
-                                <p class="text-xs text-gray-500 mt-1">Available appointment timeslots per day</p>
+                            <div class="flex items-start gap-3">
+                                <div class="flex-shrink-0 w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h5 class="text-sm font-semibold text-gray-900">Total Available Slots</h5>
+                                    <p class="text-xs text-gray-600 mt-1">30-minute appointment timeslots for this day</p>
+                                </div>
                             </div>
                             <div class="text-right">
-                                <div id="totalSlots" class="text-3xl font-bold text-primary-600">--</div>
-                                <div class="text-xs text-gray-500">slots</div>
+                                <div id="totalSlots" class="text-4xl font-bold text-primary-600">--</div>
+                                <div class="text-xs text-gray-600 font-medium mt-1">slots</div>
+                            </div>
+                        </div>
+                        <div id="timeRangeDisplay" class="hidden mt-4 pt-4 border-t border-gray-200">
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="text-gray-600">Time Range:</span>
+                                <span class="font-semibold text-gray-900" id="displayedRange">--</span>
                             </div>
                         </div>
                     </div>
@@ -133,9 +227,16 @@
                 <!-- Notes Field -->
                 <div>
                     <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                        Notes (Optional)
+                        Notes <span class="text-gray-500 text-xs font-normal">(Optional)</span>
                     </label>
-                    {{ form.notes }}
+                    <div class="relative">
+                        <div class="absolute top-3 left-3 pointer-events-none">
+                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
+                            </svg>
+                        </div>
+                        {{ form.notes }}
+                    </div>
                     {% if form.notes.errors %}
                         <div class="mt-2 text-sm text-red-600">
                             {% for error in form.notes.errors %}
@@ -143,77 +244,107 @@
                             {% endfor %}
                         </div>
                     {% else %}
-                        <p class="mt-2 text-sm text-gray-500">Add notes for special circumstances (e.g., "Holiday hours", "Reduced capacity")</p>
+                        <p class="mt-2 text-xs text-gray-500">Add special notes (e.g., "Holiday hours", "Reduced capacity", "Emergency coverage only")</p>
                     {% endif %}
                 </div>
 
                 {% if object %}
                 <!-- Current Usage Warning -->
-                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                <div class="bg-yellow-50 border border-yellow-300 rounded-lg p-4">
                     <div class="flex items-start">
                         <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            <svg class="h-6 w-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
                             </svg>
                         </div>
                         <div class="ml-3 flex-1">
-                            <h4 class="text-sm font-medium text-yellow-800">Existing Appointments</h4>
-                            <div class="mt-2 text-sm text-yellow-700" id="currentUsage">
-                                <p>Loading current appointment data...</p>
+                            <h4 class="text-sm font-semibold text-yellow-900 mb-2">Existing Appointments Alert</h4>
+                            <div class="text-sm text-yellow-800" id="currentUsage">
+                                <div class="flex items-center gap-2">
+                                    <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span>Loading appointment data...</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 {% endif %}
-
-                <!-- General Form Errors -->
-                {% if form.non_field_errors %}
-                    <div class="bg-red-50 border-l-4 border-red-400 p-4">
-                        <div class="flex items-start">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L10 10.586l1.707-1.707a1 1 0 011.414 1.414L11.414 12l1.707 1.707a1 1 0 01-1.414 1.414L10 11.414l-1.707 1.707a1 1 0 01-1.414-1.414L8.586 10 6.879 8.293a1 1 0 011.414-1.414L10 8.586z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                            <div class="ml-3">
-                                <h4 class="text-sm font-medium text-red-800">Please fix the following errors:</h4>
-                                <ul class="mt-2 text-sm text-red-700 list-disc list-inside space-y-1">
-                                    {% for error in form.non_field_errors %}
-                                        <li>{{ error }}</li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                {% endif %}
             </div>
 
             <!-- Form Actions -->
-            <div class="px-6 py-4 bg-gray-50 flex flex-col sm:flex-row sm:justify-between gap-3">
-                <a href="{% url 'appointments:daily_slots_list' %}" 
-                   class="inline-flex justify-center items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-                    Cancel
-                </a>
-                <div class="flex flex-col sm:flex-row gap-3">
-                    {% if object %}
+            <div class="px-6 py-4 bg-gray-50 rounded-b-lg">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <a href="{% url 'appointments:daily_slots_list' %}" 
+                       class="inline-flex items-center justify-center px-5 py-2.5 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                        Cancel
+                    </a>
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        {% if object %}
                         <a href="{% url 'appointments:appointment_calendar' %}?month={{ object.date.month }}&year={{ object.date.year }}" 
-                           class="inline-flex justify-center items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                           class="inline-flex items-center justify-center px-5 py-2.5 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
                             View in Calendar
                         </a>
-                    {% endif %}
-                    <button type="submit" 
-                            class="inline-flex justify-center items-center px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 transition-colors">
-                        {% if object %}
-                            Update Configuration
-                        {% else %}
-                            Create Configuration
                         {% endif %}
-                    </button>
+                        <button type="submit" 
+                                class="inline-flex items-center justify-center px-6 py-2.5 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            {% if object %}
+                                Update Configuration
+                            {% else %}
+                                Create Configuration
+                            {% endif %}
+                        </button>
+                    </div>
                 </div>
             </div>
         </form>
     </div>
 </div>
+
+<style>
+    /* Input styling */
+    input[type="date"],
+    input[type="time"],
+    textarea {
+        width: 100%;
+        border-radius: 0.5rem;
+        border-color: rgb(209 213 219);
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        padding: 0.625rem 0.75rem;
+    }
+    
+    input[type="date"]:focus,
+    input[type="time"]:focus,
+    textarea:focus {
+        outline: none;
+        border-color: var(--color-primary-500, rgb(59 130 246));
+        ring: 2px;
+        ring-color: var(--color-primary-500, rgb(59 130 246));
+    }
+    
+    input[type="date"],
+    input[type="time"] {
+        padding-left: 2.5rem;
+    }
+    
+    textarea {
+        padding-left: 2.5rem;
+        padding-top: 0.75rem;
+        min-height: 100px;
+        resize: vertical;
+    }
+</style>
 
 <script>
     // Calculate and display total slots
@@ -221,12 +352,17 @@
         const startTimeInput = document.getElementById('{{ form.start_time.id_for_label }}');
         const endTimeInput = document.getElementById('{{ form.end_time.id_for_label }}');
         const totalSlotsDisplay = document.getElementById('totalSlots');
+        const timeRangeDisplay = document.getElementById('timeRangeDisplay');
+        const displayedRange = document.getElementById('displayedRange');
         
         const startTime = startTimeInput.value;
         const endTime = endTimeInput.value;
         
         if (!startTime || !endTime) {
             totalSlotsDisplay.textContent = '--';
+            totalSlotsDisplay.classList.remove('text-red-600', 'text-primary-600');
+            totalSlotsDisplay.classList.add('text-gray-400');
+            timeRangeDisplay.classList.add('hidden');
             return;
         }
         
@@ -242,15 +378,28 @@
         if (durationMinutes <= 0) {
             totalSlotsDisplay.textContent = '0';
             totalSlotsDisplay.classList.add('text-red-600');
-            totalSlotsDisplay.classList.remove('text-primary-600');
+            totalSlotsDisplay.classList.remove('text-primary-600', 'text-gray-400');
+            timeRangeDisplay.classList.add('hidden');
             return;
         }
         
         // Calculate 30-minute slots
         const slots = Math.floor(durationMinutes / 30);
         totalSlotsDisplay.textContent = slots;
-        totalSlotsDisplay.classList.remove('text-red-600');
+        totalSlotsDisplay.classList.remove('text-red-600', 'text-gray-400');
         totalSlotsDisplay.classList.add('text-primary-600');
+        
+        // Format and display time range
+        const formatTime = (time) => {
+            const [h, m] = time.split(':');
+            const hour = parseInt(h);
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            const displayHour = hour % 12 || 12;
+            return `${displayHour}:${m} ${ampm}`;
+        };
+        
+        displayedRange.textContent = `${formatTime(startTime)} - ${formatTime(endTime)}`;
+        timeRangeDisplay.classList.remove('hidden');
     }
     
     // Add event listeners
@@ -262,14 +411,23 @@
     
     // Set minimum date to today
     const today = new Date().toISOString().split('T')[0];
-    document.getElementById('{{ form.date.id_for_label }}').setAttribute('min', today);
+    const dateInput = document.getElementById('{{ form.date.id_for_label }}');
+    dateInput.setAttribute('min', today);
+    
+    // Disable Sundays in date picker
+    dateInput.addEventListener('input', function() {
+        const selectedDate = new Date(this.value + 'T00:00:00');
+        if (selectedDate.getDay() === 0) {
+            alert('Sundays are not allowed. The clinic is closed on Sundays.');
+            this.value = '';
+        }
+    });
     
     {% if object %}
     // Load current usage data
     const date = '{{ object.date|date:"Y-m-d" }}';
     const currentUsageDiv = document.getElementById('currentUsage');
     
-    // Simple display of existing appointments count
     fetch(`/appointments/api/timeslot-availability/?start_date=${date}&end_date=${date}`)
         .then(response => response.json())
         .then(data => {
@@ -280,17 +438,49 @@
                 const bookedCount = totalSlots - availableCount;
                 
                 currentUsageDiv.innerHTML = `
-                    <p class="mb-2"><strong>${bookedCount}</strong> appointment(s) currently scheduled for this date.</p>
-                    <p class="mb-1">Available slots: <strong>${availableCount}</strong> of <strong>${totalSlots}</strong></p>
-                    ${bookedCount > 0 ? '<p class="text-xs mt-2">⚠️ Modifying hours may affect existing appointments. Please ensure the new time range accommodates all scheduled appointments.</p>' : ''}
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between p-3 bg-white rounded-lg border border-yellow-200">
+                            <span class="text-sm font-medium text-gray-700">Scheduled Appointments:</span>
+                            <span class="text-lg font-bold ${bookedCount > 0 ? 'text-yellow-900' : 'text-green-600'}">${bookedCount}</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-white rounded-lg border border-yellow-200">
+                            <span class="text-sm font-medium text-gray-700">Available Slots:</span>
+                            <span class="text-lg font-bold text-gray-900">${availableCount} of ${totalSlots}</span>
+                        </div>
+                        ${bookedCount > 0 ? `
+                        <div class="flex items-start gap-2 mt-3 p-3 bg-yellow-100 rounded-lg">
+                            <svg class="w-5 h-5 text-yellow-700 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                            <p class="text-xs text-yellow-800">
+                                <strong>Important:</strong> Modifying operating hours may affect existing appointments. 
+                                Ensure the new time range accommodates all ${bookedCount} scheduled appointment${bookedCount > 1 ? 's' : ''}.
+                            </p>
+                        </div>
+                        ` : ''}
+                    </div>
                 `;
             } else {
-                currentUsageDiv.innerHTML = '<p>No appointments scheduled yet.</p>';
+                currentUsageDiv.innerHTML = `
+                    <div class="flex items-center gap-2 p-3 bg-white rounded-lg border border-green-200">
+                        <svg class="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="text-sm text-green-800 font-medium">No appointments scheduled yet. Safe to modify hours.</span>
+                    </div>
+                `;
             }
         })
         .catch(error => {
             console.error('Error loading usage data:', error);
-            currentUsageDiv.innerHTML = '<p class="text-gray-500">Unable to load appointment data.</p>';
+            currentUsageDiv.innerHTML = `
+                <div class="flex items-center gap-2 p-3 bg-white rounded-lg border border-gray-200">
+                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-sm text-gray-600">Unable to load appointment data at this time.</span>
+                </div>
+            `;
         });
     {% endif %}
 </script>

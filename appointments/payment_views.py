@@ -4,6 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib import messages
+from django.contrib.auth.hashers import check_password
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView
 from django.db.models import Q, Sum, Case, When, DecimalField, F
@@ -334,13 +335,22 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
         
         try:
             treatment_record = self.appointment.treatment_record
+            print(f"=== TREATMENT RECORD FOUND ===")
+            print(f"Treatment Record ID: {treatment_record.pk}")
+            print(f"Created at: {treatment_record.created_at}")
+            
             # Get services from treatment record
-            treatment_services_qs = treatment_record.services.all().select_related('service')
+            treatment_services_qs = treatment_record.service_records.all().select_related('service')
+            print(f"Number of service records: {treatment_services_qs.count()}")
             
             for tr_service in treatment_services_qs:
+                print(f"  - Service: {tr_service.service.name}")
+                print(f"    Products count: {tr_service.products.count()}")
+                
                 service_products = []
                 # Get products for this service from treatment record
                 for product_link in tr_service.products.all().select_related('product__category'):
+                    print(f"      * Product: {product_link.product.name}, Qty: {product_link.quantity}")
                     service_products.append({
                         'id': product_link.product.id,
                         'name': product_link.product.name,
@@ -360,15 +370,21 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
                 })
                 
         except TreatmentRecord.DoesNotExist:
+            print("=== NO TREATMENT RECORD FOUND ===")
             pass
+        
+        print(f"=== TREATMENT SERVICES ARRAY LENGTH: {len(treatment_services)} ===")
+        print(f"Treatment services data: {treatment_services}")
         
         # NEW: Smart pre-fill logic
         if treatment_services:
+            print("=== USING TREATMENT RECORD DATA ===")
             # Use treatment record data (what was actually performed)
             initial_items = treatment_services
             context['data_source'] = 'treatment_record'
             context['data_source_message'] = 'Services and products pre-filled from treatment record (what was actually performed)'
         else:
+            print("=== USING APPOINTMENT BOOKING DATA (FALLBACK) ===")
             # Fallback to booked service
             initial_items = [{
                 'service_id': self.appointment.service.id,
@@ -380,6 +396,8 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
             }]
             context['data_source'] = 'appointment'
             context['data_source_message'] = 'Service pre-filled from appointment booking (update if actual service differed)'
+        
+        print(f"=== INITIAL ITEMS TO BE SENT TO TEMPLATE: {initial_items} ===")
         
         # Add services data
         services_data = []
@@ -557,11 +575,25 @@ def verify_admin_password(request):
 @login_required
 @require_POST
 def add_payment_item(request, payment_pk):
-    """Add service item to payment with duplicate detection"""
+    """Add service item to payment with duplicate detection AND LOCK CHECK"""
     if not request.user.has_permission('billing'):
         return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
     
     payment = get_object_or_404(Payment, pk=payment_pk)
+    
+    # 🔒 CHECK IF LOCKED
+    if payment.is_locked:
+        return JsonResponse({
+            'success': False,
+            'error': 'locked',
+            'message': (
+                f'This invoice was locked on {payment.locked_at.strftime("%b %d, %Y at %I:%M %p")} '
+                f'after the first payment was received.\n\n'
+                f'To add additional services:\n'
+                f'• Create a supplementary invoice instead\n'
+                f'• Or contact an administrator to unlock this invoice'
+            )
+        }, status=403)
     
     try:
         data = json.loads(request.body)
@@ -576,10 +608,9 @@ def add_payment_item(request, payment_pk):
         except Service.DoesNotExist:
             return JsonResponse({'success': False, 'error': 'Invalid service selected'})
         
-        # ✅ NEW: Check for duplicate service
+        # Check for duplicate service
         existing_items = payment.items.filter(service=service, price__gte=0)
         if existing_items.exists():
-            # Return special response indicating duplicate
             return JsonResponse({
                 'success': False,
                 'error': 'duplicate',
@@ -631,14 +662,23 @@ def add_payment_item(request, payment_pk):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
+
 @login_required
 @require_POST
 def force_add_payment_item(request, payment_pk):
-    """Force add service item even if duplicate (after user confirmation)"""
+    """Force add service item even if duplicate (after user confirmation) WITH LOCK CHECK"""
     if not request.user.has_permission('billing'):
         return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
     
     payment = get_object_or_404(Payment, pk=payment_pk)
+    
+    # 🔒 CHECK IF LOCKED
+    if payment.is_locked:
+        return JsonResponse({
+            'success': False,
+            'error': 'locked',
+            'message': 'Invoice is locked. Cannot add items after payment has been received.'
+        }, status=403)
     
     try:
         data = json.loads(request.body)
@@ -697,15 +737,29 @@ def force_add_payment_item(request, payment_pk):
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
+
 @login_required
 def delete_payment_item(request, pk):
-    """Delete payment item"""
+    """Delete payment item WITH LOCK CHECK"""
     if not hasattr(request.user, 'has_permission') or not request.user.has_permission('billing'):
         return JsonResponse({'error': 'Permission denied'}, status=403)
     
     if request.method == 'POST':
         item = get_object_or_404(PaymentItem, pk=pk)
         payment = item.payment
+        
+        # 🔒 CHECK IF LOCKED
+        if payment.is_locked:
+            return JsonResponse({
+                'error': 'locked',
+                'message': (
+                    f'This invoice was locked on {payment.locked_at.strftime("%b %d, %Y at %I:%M %p")} '
+                    f'after the first payment was received.\n\n'
+                    f'Services cannot be removed from paid invoices. '
+                    f'Contact an administrator if you need to make adjustments.'
+                )
+            }, status=403)
+        
         service_name = item.service.name
         
         with transaction.atomic():
@@ -715,17 +769,15 @@ def delete_payment_item(request, pk):
             payment.save()
             payment.update_status()
         
-        # Add success message
         messages.success(request, f'Service item "{service_name}" removed successfully.')
         
         return JsonResponse({'success': True})
     
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-
 @login_required
 def add_payment_transaction(request, payment_pk):
-    """Add cash payment transaction with date validation"""
+    """Add cash payment transaction with date validation and AUTO-LOCK on first payment"""
     if not hasattr(request.user, 'has_permission') or not request.user.has_permission('billing'):
         return JsonResponse({'error': 'Permission denied'}, status=403)
     
@@ -753,32 +805,35 @@ def add_payment_transaction(request, payment_pk):
                     'error': f'Payment amount cannot exceed the outstanding balance of ₱{payment.outstanding_balance:,.2f}.'
                 }, status=400)
             
-            # NEW: Validate payment date is not before appointment date
+            # Validate payment date is not before appointment date
             if payment_date < appointment_date:
                 formatted_appointment_date = appointment_date.strftime('%B %d, %Y')
                 return JsonResponse({
                     'error': f'Payment date cannot be before the appointment date ({formatted_appointment_date}).'
                 }, status=400)
             
-            # NEW: Validate payment date is not in the future
+            # Validate payment date is not in the future
             if payment_date > today:
                 return JsonResponse({
                     'error': 'Payment date cannot be in the future. Please select today or an earlier date.'
                 }, status=400)
             
             with transaction.atomic():
+                # Check if this is the first payment
+                is_first_payment = payment.transactions.count() == 0
+                
                 # Handle installment setup
                 if payment_type == 'installment' and payment.payment_type != 'installment':
                     installment_months = int(data.get('installment_months', 1))
                     payment.setup_installment(installment_months)
                 
-                # Create payment transaction with created_by field
+                # Create payment transaction
                 transaction_record = PaymentTransaction.objects.create(
                     payment=payment,
                     amount=amount,
                     payment_date=payment_date,
                     notes=data.get('notes', f'Cash payment - ₱{amount}'),
-                    created_by=request.user  # Track who processed this payment
+                    created_by=request.user
                 )
                 
                 # Update payment amounts
@@ -791,15 +846,41 @@ def add_payment_transaction(request, payment_pk):
                 
                 payment.save()
                 payment.update_status()
+                
+                # 🔒 AUTO-LOCK on first payment
+                if is_first_payment and not payment.is_locked:
+                    payment.lock_invoice(
+                        user=request.user,
+                        reason='first_payment_received',
+                        request=request
+                    )
+                    
+                    # Auto-send invoice email on first payment
+                    try:
+                        from core.email_service import EmailService
+                        email_service = EmailService()
+                        email_service.send_invoice_email(payment, transaction_record)
+                    except Exception as email_error:
+                        # Don't fail the payment if email fails
+                        print(f"Failed to send invoice email: {email_error}")
             
-            # Add success message
-            messages.success(
-                request, 
-                f'Payment of ₱{amount:,.2f} recorded successfully. Receipt: {transaction_record.receipt_number}'
-            )
+            # Success message
+            if is_first_payment:
+                messages.success(
+                    request,
+                    f'Payment of ₱{amount:,.2f} recorded successfully. '
+                    f'Receipt: {transaction_record.receipt_number}. '
+                    f'🔒 Invoice is now locked to prevent accidental changes.'
+                )
+            else:
+                messages.success(
+                    request, 
+                    f'Payment of ₱{amount:,.2f} recorded successfully. Receipt: {transaction_record.receipt_number}'
+                )
             
             return JsonResponse({
                 'success': True,
+                'is_locked': payment.is_locked,
                 'payment_status': payment.status,
                 'amount_paid': float(payment.amount_paid),
                 'outstanding_balance': float(payment.outstanding_balance),
@@ -817,6 +898,142 @@ def add_payment_transaction(request, payment_pk):
             }, status=400)
     
     return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+@login_required
+@require_POST
+def unlock_payment(request, payment_pk):
+    """Admin unlock invoice with password verification and audit logging"""
+    # Check if user is admin
+    if not (request.user.is_superuser or (hasattr(request.user, 'role') and request.user.role.name == 'Administrator')):
+        return JsonResponse({'error': 'Only administrators can unlock invoices'}, status=403)
+    
+    payment = get_object_or_404(Payment, pk=payment_pk)
+    
+    try:
+        data = json.loads(request.body)
+        reason = data.get('reason', '').strip()
+        admin_password = data.get('admin_password', '')
+        
+        # Validate reason
+        if not reason:
+            return JsonResponse({'error': 'Please provide a reason for unlocking'}, status=400)
+        
+        if len(reason) < 10:
+            return JsonResponse({'error': 'Reason must be at least 10 characters'}, status=400)
+        
+        # Verify admin password
+        if not check_password(admin_password, request.user.password):
+            return JsonResponse({'error': 'Incorrect password'}, status=401)
+        
+        # Check if already unlocked
+        if not payment.is_locked:
+            return JsonResponse({'error': 'Invoice is already unlocked'}, status=400)
+        
+        # Unlock the invoice
+        with transaction.atomic():
+            payment.unlock_invoice(
+                user=request.user,
+                reason=reason,
+                request=request
+            )
+        
+        messages.warning(
+            request,
+            f'⚠️ Invoice unlocked by {request.user.get_full_name()}. '
+            f'Reason: {reason}. Please finalize changes promptly.'
+        )
+        
+        return JsonResponse({'success': True})
+        
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid data format'}, status=400)
+    except Exception as e:
+        return JsonResponse({'error': f'An error occurred: {str(e)}'}, status=500)
+
+
+@login_required
+@require_POST
+def track_invoice_download(request, payment_pk):
+    """Track invoice PDF downloads"""
+    if not hasattr(request.user, 'has_permission') or not request.user.has_permission('billing'):
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+    
+    payment = get_object_or_404(Payment, pk=payment_pk)
+    payment.increment_download_count()
+    
+    return JsonResponse({'success': True, 'download_count': payment.invoice_download_count})
+
+
+from django.http import HttpResponse
+from django.template.loader import render_to_string
+import tempfile
+
+@login_required
+def invoice_pdf(request, payment_pk):
+    """Generate and download invoice PDF"""
+    if not hasattr(request.user, 'has_permission') or not request.user.has_permission('billing'):
+        messages.error(request, 'You do not have permission to access this page.')
+        return redirect('core:dashboard')
+    
+    payment = get_object_or_404(Payment, pk=payment_pk)
+    
+    # Increment download counter
+    payment.invoice_download_count += 1
+    payment.save(update_fields=['invoice_download_count'])
+    
+    # Get all payment items with their products
+    payment_items = payment.items.all().select_related('service', 'discount').prefetch_related(
+        'products__product__category'
+    )
+    
+    # Calculate detailed breakdown
+    services_subtotal = Decimal('0')
+    products_subtotal = Decimal('0')
+    total_discount = Decimal('0')
+    
+    for item in payment_items:
+        if item.price < 0:
+            continue
+        services_subtotal += item.price
+        products_subtotal += item.products_total
+        total_discount += item.discount_amount
+    
+    payment_summary = {
+        'services_subtotal': services_subtotal,
+        'products_subtotal': products_subtotal,
+        'subtotal': services_subtotal + products_subtotal,
+        'total_discount': total_discount,
+        'total_amount': payment.total_amount,
+        'amount_paid': payment.amount_paid,
+        'outstanding_balance': payment.outstanding_balance,
+        'payment_progress': payment.payment_progress_percentage,
+    }
+    
+    context = {
+        'payment': payment,
+        'payment_items': payment_items,
+        'payment_summary': payment_summary,
+        'transactions': payment.transactions.all().select_related('created_by').order_by('-payment_datetime'),
+        'clinic_name': 'KingJoy Dental Clinic',
+        'clinic_address': 'Your Clinic Address Here',
+        'clinic_contact': 'Your Contact Info Here',
+    }
+    
+    # Render HTML template
+    html_string = render_to_string('payment/invoice_pdf.html', context)
+    
+    # Create PDF
+    result = BytesIO()
+    pdf = pisa.pisaDocument(BytesIO(html_string.encode("UTF-8")), result)
+    
+    if pdf.err:
+        return HttpResponse('Error generating PDF', status=500)
+    
+    # Create HTTP response
+    response = HttpResponse(result.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'inline; filename="Invoice_{payment.id:06d}_{payment.patient.last_name}.pdf"'
+    
+    return response
 
 
 @login_required

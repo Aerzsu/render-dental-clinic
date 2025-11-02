@@ -8,63 +8,126 @@
     input,
     select,
     textarea {
-        padding: 0.5rem 0.75rem;
+        padding: 0.625rem 0.875rem;
+        font-size: 0.9375rem;
     }
     
     .service-item-card {
-        transition: all 0.2s ease;
+        transition: box-shadow 0.2s ease, border-color 0.2s ease;
     }
     
     .service-item-card:hover {
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+        border-color: rgba(59, 130, 246, 0.3);
     }
     
     .product-item {
-        background: #f9fafb;
+        background: linear-gradient(to right, #f9fafb, #ffffff);
         border-left: 3px solid #e5e7eb;
+        transition: border-color 0.2s ease;
+    }
+    
+    .product-item:hover {
+        border-left-color: #9ca3af;
+    }
+    
+    .btn-primary {
+        transition: all 0.15s ease;
+    }
+    
+    .btn-primary:active {
+        transform: scale(0.98);
+    }
+    
+    .preset-option {
+        transition: all 0.2s ease;
+    }
+    
+    .preset-option:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .fade-in {
+        animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .success-toast {
+        animation: slideInRight 0.3s ease;
+    }
+    
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(100%);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    
+    @media (max-width: 640px) {
+        input, select, textarea {
+            font-size: 1rem;
+        }
     }
 </style>
 
-<div class="space-y-6">
+<div class="space-y-6 pb-8">
     <!-- Header -->
-    <div class="sm:flex sm:items-center sm:justify-between">
-        <div>
-            <nav class="flex mb-2" aria-label="Breadcrumb">
-                <ol role="list" class="flex items-center space-x-4">
+    <div class="sm:flex sm:items-start sm:justify-between">
+        <div class="flex-1">
+            <nav class="flex mb-3" aria-label="Breadcrumb">
+                <ol role="list" class="flex items-center space-x-3">
                     <li>
-                        <a href="{% url 'appointments:appointment_detail' appointment.pk %}" class="text-sm font-medium text-gray-500 hover:text-gray-700">
+                        <a href="{% url 'appointments:appointment_detail' appointment.pk %}" 
+                           class="inline-flex items-center text-sm font-medium text-gray-600 hover:text-primary-600 transition-colors">
+                            <svg class="flex-shrink-0 h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                            </svg>
                             Appointment Detail
                         </a>
                     </li>
                     <li>
                         <div class="flex items-center">
-                            <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <svg class="flex-shrink-0 h-5 w-5 text-gray-300" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
                             </svg>
-                            <span class="ml-4 text-sm font-medium text-gray-500">Treatment Notes</span>
+                            <span class="ml-3 text-sm font-medium text-gray-900">Treatment Notes</span>
                         </div>
                     </li>
                 </ol>
             </nav>
-            <h1 class="text-2xl font-bold text-gray-900">Document Treatment</h1>
-            <p class="mt-1 text-sm text-gray-600">
-                Record services performed and supplies used for {{ appointment.patient_name }}
+            <h1 class="text-2xl font-bold text-gray-900 sm:text-3xl">Document Treatment</h1>
+            <p class="mt-2 text-base text-gray-600 max-w-3xl">
+                Record all services performed and supplies used during this appointment. This helps ensure accurate billing and comprehensive patient records.
             </p>
         </div>
     </div>
 
     <!-- Info Alert -->
-    <div class="bg-blue-50 border-l-4 border-blue-400 p-4">
+    <div class="bg-blue-50 border-l-4 border-blue-400 rounded-r-lg p-4 shadow-sm">
         <div class="flex">
             <div class="flex-shrink-0">
                 <svg class="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
             </div>
-            <div class="ml-3">
-                <p class="text-sm text-blue-700">
-                    <strong>Why document treatment now?</strong> Recording services and supplies immediately helps reduce billing errors later. 
-                    This information will auto-populate when creating the payment record.
+            <div class="ml-3 flex-1">
+                <p class="text-sm text-blue-800">
+                    <strong class="font-semibold">Document treatment now to save time later.</strong> Recording services and supplies immediately helps reduce billing errors and auto-populates payment records.
                 </p>
             </div>
         </div>
@@ -72,29 +135,36 @@
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <!-- Main Form -->
-        <div class="lg:col-span-2">
-            <form method="post" id="treatmentForm" class="space-y-6">
+        <div class="lg:col-span-2 space-y-6">
+            <form method="post" id="treatmentForm">
                 {% csrf_token %}
                 
                 <!-- Hidden field for services data -->
                 {{ form.services_data }}
                 
                 <!-- Services Performed Section -->
-                <div class="bg-white shadow rounded-lg">
-                    <div class="px-6 py-4 border-b border-gray-200">
-                        <h3 class="text-lg font-medium text-gray-900">Services Performed</h3>
-                        <p class="mt-1 text-sm text-gray-500">Document what was actually done during this appointment</p>
+                <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-white">
+                        <div class="flex items-center">
+                            <svg class="h-6 w-6 text-primary-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                            </svg>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">Services Performed</h3>
+                                <p class="mt-1 text-sm text-gray-600">Document all procedures completed during this appointment</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="px-6 py-4">
+                    <div class="px-6 py-6">
                         <!-- Services Container -->
-                        <div id="servicesContainer" class="space-y-6">
+                        <div id="servicesContainer" class="space-y-5">
                             <!-- Services will be dynamically added here -->
                         </div>
 
                         <!-- Add Service Button -->
-                        <div class="mt-6 pt-4 border-t border-gray-200 flex items-center justify-between">
+                        <div class="mt-6 pt-5 border-t border-gray-200 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                             <button type="button" id="addServiceBtn" 
-                                    class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                                    class="inline-flex items-center justify-center px-5 py-2.5 border-2 border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
                                 <svg class="-ml-0.5 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                 </svg>
@@ -103,7 +173,7 @@
                             
                             <!-- Manage Presets Button -->
                             <a href="{% url 'services:preset_list' %}?return_to={{ request.path }}" 
-                            class="inline-flex items-center px-4 py-2 border border-primary-600 shadow-sm text-sm font-medium rounded-md text-primary-700 bg-white hover:bg-primary-50">
+                               class="inline-flex items-center justify-center px-5 py-2.5 border-2 border-primary-200 shadow-sm text-sm font-medium rounded-lg text-primary-700 bg-primary-50 hover:bg-primary-100 hover:border-primary-300 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
                                 <svg class="-ml-0.5 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
@@ -115,64 +185,88 @@
                 </div>
 
                 <!-- Clinical Notes Section -->
-                <div class="bg-white shadow rounded-lg">
-                    <div class="px-6 py-4 border-b border-gray-200">
-                        <h3 class="text-lg font-medium text-gray-900">Clinical Notes</h3>
-                        <p class="mt-1 text-sm text-gray-500">Document symptoms, diagnosis, and observations</p>
+                <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-green-50 to-white">
+                        <div class="flex items-center">
+                            <svg class="h-6 w-6 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">Clinical Notes</h3>
+                                <p class="mt-1 text-sm text-gray-600">Document symptoms, diagnosis, observations, and treatment details</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="px-6 py-4">
+                    <div class="px-6 py-6">
+                        <label for="id_clinical_notes" class="sr-only">Clinical Notes</label>
                         {{ form.clinical_notes }}
                         {% if form.clinical_notes.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ form.clinical_notes.errors.0 }}</p>
+                            <p class="mt-2 text-sm text-red-600 flex items-center">
+                                <svg class="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                </svg>
+                                {{ form.clinical_notes.errors.0 }}
+                            </p>
                         {% endif %}
-                        <p class="mt-2 text-sm text-gray-500">
-                            This information will be saved with the appointment record
+                        <p class="mt-3 text-sm text-gray-500 flex items-start">
+                            <svg class="h-4 w-4 mr-1.5 mt-0.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <span>These notes will be permanently saved with the appointment record and visible in patient history.</span>
                         </p>
                     </div>
                 </div>
 
                 <!-- Form Actions (Mobile) -->
-                <div class="flex flex-col sm:flex-row sm:justify-end space-y-3 sm:space-y-0 sm:space-x-3 lg:hidden">
-                    <a href="{% url 'appointments:appointment_detail' appointment.pk %}" 
-                       class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 text-center">
-                        Cancel
-                    </a>
+                <div class="flex flex-col space-y-3 lg:hidden">
                     {% if can_edit %}
                     <button type="submit" id="submitBtnMobile"
-                            class="inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                            class="btn-primary w-full inline-flex justify-center items-center px-6 py-3 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all">
+                        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
                         <span>Save Treatment Notes</span>
                     </button>
                     {% endif %}
+                    <a href="{% url 'appointments:appointment_detail' appointment.pk %}" 
+                       class="w-full px-6 py-3 border-2 border-gray-300 rounded-lg shadow-sm text-base font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all text-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+                        {% if can_edit %}Cancel{% else %}Back to Appointment{% endif %}
+                    </a>
                 </div>
             </form>
         </div>
 
         <!-- Sidebar -->
         <div class="lg:col-span-1">
-            <div class="sticky top-4 space-y-6">
+            <div class="sticky top-4 space-y-5">
                 <!-- Appointment Info -->
-                <div class="bg-white shadow rounded-lg">
-                    <div class="px-6 py-4 border-b border-gray-200 bg-primary-50">
-                        <h3 class="text-sm font-medium text-gray-900">Appointment Details</h3>
+                <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
+                    <div class="px-5 py-4 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-white">
+                        <h3 class="text-base font-semibold text-gray-900 flex items-center">
+                            <svg class="h-5 w-5 text-primary-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                            </svg>
+                            Appointment Details
+                        </h3>
                     </div>
-                    <div class="px-6 py-4">
-                        <dl class="space-y-3 text-sm">
-                            <div>
-                                <dt class="text-gray-500">Patient</dt>
-                                <dd class="mt-1 font-medium text-gray-900">{{ appointment.patient_name }}</dd>
+                    <div class="px-5 py-5">
+                        <dl class="space-y-4 text-sm">
+                            <div class="flex items-start">
+                                <dt class="text-gray-500 min-w-[100px]">Patient</dt>
+                                <dd class="font-semibold text-gray-900 flex-1">{{ appointment.patient_name }}</dd>
                             </div>
-                            <div>
-                                <dt class="text-gray-500">Date</dt>
-                                <dd class="mt-1 text-gray-900">{{ appointment.appointment_date|date:"M d, Y" }}</dd>
+                            <div class="flex items-start">
+                                <dt class="text-gray-500 min-w-[100px]">Date</dt>
+                                <dd class="text-gray-900 flex-1">{{ appointment.appointment_date|date:"F d, Y" }}</dd>
                             </div>
-                            <div>
-                                <dt class="text-gray-500">Booked Service</dt>
-                                <dd class="mt-1 text-gray-900">{{ appointment.service.name }}</dd>
+                            <div class="flex items-start">
+                                <dt class="text-gray-500 min-w-[100px]">Booked Service</dt>
+                                <dd class="text-gray-900 flex-1">{{ appointment.service.name }}</dd>
                             </div>
                             {% if appointment.assigned_dentist %}
-                            <div>
-                                <dt class="text-gray-500">Dentist</dt>
-                                <dd class="mt-1 text-gray-900">{{ appointment.assigned_dentist.full_name }}</dd>
+                            <div class="flex items-start">
+                                <dt class="text-gray-500 min-w-[100px]">Dentist</dt>
+                                <dd class="text-gray-900 flex-1">{{ appointment.assigned_dentist.full_name }}</dd>
                             </div>
                             {% endif %}
                         </dl>
@@ -180,32 +274,67 @@
                 </div>
 
                 <!-- Tips Card -->
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <h4 class="text-sm font-medium text-green-900 mb-2">💡 Quick Tips</h4>
-                    <ul class="text-xs text-green-800 space-y-1">
-                        <li>• Record all services performed, even if different from booked</li>
-                        <li>• Document all products/supplies used with quantities</li>
-                        <li>• Add notes if extra products were needed and why</li>
-                        <li>• Clinical notes will appear in appointment record</li>
-                        <li>• You can edit these notes anytime before billing</li>
+                <div class="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-5 shadow-sm">
+                    <h4 class="text-sm font-semibold text-green-900 mb-3 flex items-center">
+                        <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                        </svg>
+                        Quick Tips
+                    </h4>
+                    <ul class="text-xs text-green-800 space-y-2">
+                        <li class="flex items-start">
+                            <svg class="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            Record all services performed, even if different from booked
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            Document all products and supplies used with accurate quantities
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            Use presets to save time on commonly used product combinations
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            Clinical notes will appear in the patient's appointment history
+                        </li>
+                        <li class="flex items-start">
+                            <svg class="h-4 w-4 mr-2 mt-0.5 flex-shrink-0 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            You can edit these notes anytime before billing is finalized
+                        </li>
                     </ul>
                 </div>
 
                 <!-- Audit Log (if editing) -->
                 {% if audit_logs %}
-                <div class="bg-white shadow rounded-lg">
-                    <div class="px-6 py-4 border-b border-gray-200">
-                        <h3 class="text-sm font-medium text-gray-900">Change History</h3>
+                <div class="bg-white shadow-sm rounded-xl border border-gray-200 overflow-hidden">
+                    <div class="px-5 py-4 border-b border-gray-200 bg-gray-50">
+                        <h3 class="text-base font-semibold text-gray-900 flex items-center">
+                            <svg class="h-5 w-5 text-gray-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            Change History
+                        </h3>
                     </div>
-                    <div class="px-6 py-4">
-                        <div class="space-y-3">
+                    <div class="px-5 py-5">
+                        <div class="space-y-4">
                             {% for log in audit_logs %}
-                            <div class="text-xs">
-                                <div class="font-medium text-gray-900">{{ log.get_action_display }}</div>
-                                <div class="text-gray-500">
+                            <div class="text-xs pb-4 border-b border-gray-100 last:border-0 last:pb-0">
+                                <div class="font-semibold text-gray-900 mb-1">{{ log.get_action_display }}</div>
+                                <div class="text-gray-600 mb-1">
                                     by {{ log.modified_by.full_name|default:log.modified_by.username }}
                                 </div>
-                                <div class="text-gray-400">{{ log.modified_at|date:"M d, Y g:i A" }}</div>
+                                <div class="text-gray-500">{{ log.modified_at|date:"M d, Y g:i A" }}</div>
                             </div>
                             {% endfor %}
                         </div>
@@ -217,17 +346,23 @@
                 <div class="hidden lg:flex flex-col space-y-3">
                     {% if can_edit %}
                     <button type="submit" form="treatmentForm" id="submitBtn"
-                            class="w-full inline-flex justify-center items-center px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                            class="btn-primary w-full inline-flex justify-center items-center px-6 py-3 border border-transparent rounded-lg shadow-sm text-base font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all">
+                        <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
                         <span>Save Treatment Notes</span>
                     </button>
                     {% endif %}
                     <a href="{% url 'appointments:appointment_detail' appointment.pk %}" 
-                       class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 text-center">
+                       class="w-full px-6 py-3 border-2 border-gray-300 rounded-lg shadow-sm text-base font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all text-center focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
                         {% if can_edit %}Cancel{% else %}Back to Appointment{% endif %}
                     </a>
                     {% if treatment_record and can_edit %}
                     <button type="button" onclick="confirmDelete()" 
-                            class="w-full px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50">
+                            class="w-full px-6 py-3 border-2 border-red-300 rounded-lg shadow-sm text-base font-medium text-red-700 bg-white hover:bg-red-50 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                        <svg class="inline-block -ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
                         Delete Treatment Notes
                     </button>
                     {% endif %}
@@ -274,12 +409,22 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function setupEventListeners() {
-    document.getElementById('addServiceBtn').addEventListener('click', addService);
-    document.getElementById('treatmentForm').addEventListener('submit', handleSubmit);
+    const addServiceBtn = document.getElementById('addServiceBtn');
+    const treatmentForm = document.getElementById('treatmentForm');
+    
+    if (addServiceBtn) {
+        addServiceBtn.addEventListener('click', addService);
+    }
+    
+    if (treatmentForm) {
+        treatmentForm.addEventListener('submit', handleSubmit);
+    }
 }
 
 function renderServices() {
     const container = document.getElementById('servicesContainer');
+    if (!container) return;
+    
     container.innerHTML = '';
     
     servicesData.forEach((service, index) => {
@@ -298,50 +443,72 @@ function createServiceHtml(service, index) {
     ).join('');
     
     return `
-        <div class="service-item-card border-2 border-gray-200 rounded-lg p-5" data-service-index="${index}">
-            <div class="flex items-center justify-between mb-4">
-                <h4 class="text-md font-semibold text-gray-900">Service #${index + 1}</h4>
+        <div class="service-item-card border-2 border-gray-200 rounded-xl p-6 fade-in" data-service-index="${index}">
+            <div class="flex items-center justify-between mb-5">
+                <h4 class="text-base font-semibold text-gray-900 flex items-center">
+                    <span class="inline-flex items-center justify-center h-7 w-7 rounded-full bg-primary-100 text-primary-700 text-sm font-bold mr-2.5">
+                        ${index + 1}
+                    </span>
+                    Service #${index + 1}
+                </h4>
                 ${servicesData.length > 1 ? `
-                    <button type="button" class="remove-service text-red-600 hover:text-red-800 text-sm font-medium" data-index="${index}">
+                    <button type="button" class="remove-service inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500" data-index="${index}" aria-label="Remove service ${index + 1}">
+                        <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
                         Remove
                     </button>
                 ` : ''}
             </div>
             
-            <div class="space-y-4">
+            <div class="space-y-5">
                 <!-- Service Selection -->
                 <div>
-                    <div class="flex items-center justify-between mb-1">
-                        <label class="block text-sm font-medium text-gray-700">Service Performed <span class="text-red-500">*</span></label>
-                        <button type="button" class="load-preset-btn text-xs text-primary-600 hover:text-primary-800 font-medium" data-index="${index}">
-                            Load Preset ↓
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-sm font-semibold text-gray-700">
+                            Service Performed 
+                            <span class="text-red-500 ml-1" aria-label="Required">*</span>
+                        </label>
+                        <button type="button" class="load-preset-btn inline-flex items-center text-xs font-semibold text-primary-600 hover:text-primary-800 transition-colors focus:outline-none" data-index="${index}" aria-label="Load preset for this service">
+                            <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                            </svg>
+                            Load Preset
                         </button>
                     </div>
-                    <select class="service-select block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" data-index="${index}">
-                        <option value="">Select service...</option>
+                    <select class="service-select block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 transition-all" data-index="${index}" aria-label="Select service performed">
+                        <option value="">Select a service...</option>
                         ${serviceOptions}
                     </select>
                 </div>
                 
                 <!-- Service Notes -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Service Notes</label>
-                    <textarea class="service-notes block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
-                              rows="2" data-index="${index}" placeholder="Any specific notes about this service...">${service.notes || ''}</textarea>
+                    <label for="service-notes-${index}" class="block text-sm font-semibold text-gray-700 mb-2">Service Notes</label>
+                    <textarea id="service-notes-${index}" class="service-notes block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 transition-all" 
+                              rows="3" data-index="${index}" placeholder="Add any specific notes about this service (complications, special observations, etc.)" aria-label="Service notes">${service.notes || ''}</textarea>
                 </div>
                 
                 <!-- Products Section -->
-                <div class="pt-3 border-t border-gray-200">
-                    <div class="flex items-center justify-between mb-2">
-                        <label class="block text-sm font-medium text-gray-700">Products/Supplies Used</label>
-                        <button type="button" class="add-product text-primary-600 hover:text-primary-800 text-sm font-medium" data-index="${index}">
-                            + Add Product
+                <div class="pt-5 border-t border-gray-200">
+                    <div class="flex items-center justify-between mb-3">
+                        <label class="block text-sm font-semibold text-gray-700 flex items-center">
+                            <svg class="h-5 w-5 text-gray-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                            </svg>
+                            Products & Supplies Used
+                        </label>
+                        <button type="button" class="add-product inline-flex items-center px-3 py-1.5 text-sm font-medium text-primary-700 bg-primary-50 rounded-lg hover:bg-primary-100 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500" data-index="${index}" aria-label="Add product">
+                            <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                            Add Product
                         </button>
                     </div>
-                    <div class="products-container space-y-2" data-service-index="${index}">
+                    <div class="products-container space-y-2.5" data-service-index="${index}">
                         ${service.products && service.products.length > 0 ? 
                             service.products.map((prod, prodIdx) => createProductHtml(index, prodIdx, prod)).join('') : 
-                            '<p class="text-sm text-gray-500 italic">No products added yet</p>'}
+                            '<p class="text-sm text-gray-500 italic py-3 px-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 text-center">No products added yet. Click "Add Product" to document supplies used.</p>'}
                     </div>
                 </div>
             </div>
@@ -359,20 +526,22 @@ function createProductHtml(serviceIndex, productIndex, product) {
     ).join('');
     
     return `
-        <div class="product-item flex items-start space-x-2 p-3 rounded" data-service-index="${serviceIndex}" data-product-index="${productIndex}">
-            <div class="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div class="product-item flex items-start space-x-2.5 p-4 rounded-lg" data-service-index="${serviceIndex}" data-product-index="${productIndex}">
+            <div class="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 <div class="sm:col-span-2">
-                    <select class="product-select block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                        <option value="">Select product...</option>
+                    <label for="product-select-${serviceIndex}-${productIndex}" class="sr-only">Select product</label>
+                    <select id="product-select-${serviceIndex}-${productIndex}" class="product-select block w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 transition-all" aria-label="Select product">
+                        <option value="">Select a product...</option>
                         ${categoriesHtml}
                     </select>
                 </div>
                 <div>
-                    <input type="number" class="product-quantity block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
-                           value="${product.quantity || 1}" min="1" placeholder="Qty">
+                    <label for="product-quantity-${serviceIndex}-${productIndex}" class="sr-only">Quantity</label>
+                    <input type="number" id="product-quantity-${serviceIndex}-${productIndex}" class="product-quantity block w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500 transition-all" 
+                           value="${product.quantity || 1}" min="1" placeholder="Quantity" aria-label="Product quantity">
                 </div>
             </div>
-            <button type="button" class="remove-product text-red-600 hover:text-red-800 mt-2">
+            <button type="button" class="remove-product flex-shrink-0 p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500" aria-label="Remove product">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                 </svg>
@@ -387,13 +556,15 @@ function attachServiceListeners(index) {
     
     // Service selection
     const serviceSelect = item.querySelector('.service-select');
-    serviceSelect.addEventListener('change', function() {
-        updateService(index, 'service_id', this.value);
-        const service = availableServices.find(s => s.id == this.value);
-        if (service) {
-            updateService(index, 'service_name', service.name);
-        }
-    });
+    if (serviceSelect) {
+        serviceSelect.addEventListener('change', function() {
+            updateService(index, 'service_id', this.value);
+            const service = availableServices.find(s => s.id == this.value);
+            if (service) {
+                updateService(index, 'service_name', service.name);
+            }
+        });
+    }
     
     // Load preset button
     const loadPresetBtn = item.querySelector('.load-preset-btn');
@@ -403,9 +574,11 @@ function attachServiceListeners(index) {
 
     // Service notes
     const notesTextarea = item.querySelector('.service-notes');
-    notesTextarea.addEventListener('input', function() {
-        updateService(index, 'notes', this.value);
-    });
+    if (notesTextarea) {
+        notesTextarea.addEventListener('input', function() {
+            updateService(index, 'notes', this.value);
+        });
+    }
     
     // Remove service
     const removeBtn = item.querySelector('.remove-service');
@@ -415,7 +588,9 @@ function attachServiceListeners(index) {
     
     // Add product
     const addProductBtn = item.querySelector('.add-product');
-    addProductBtn.addEventListener('click', () => addProduct(index));
+    if (addProductBtn) {
+        addProductBtn.addEventListener('click', () => addProduct(index));
+    }
     
     // Attach product listeners
     attachProductListeners(index);
@@ -425,16 +600,19 @@ async function loadPresetForService(serviceIndex) {
     const service = servicesData[serviceIndex];
     
     if (!service.service_id) {
-        alert('Please select a service first.');
+        showNotification('Please select a service first before loading a preset.', 'warning');
         return;
     }
     
     try {
         const response = await fetch(`/services/api/presets/service/${service.service_id}/`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         
         if (!data.success || !data.presets || data.presets.length === 0) {
-            alert(`No presets found for ${service.service_name}.\n\nCreate presets via "Manage My Presets" to save time on future treatments.`);
+            showNotification(`No presets found for ${service.service_name}. Create presets via "Manage My Presets" to save time on future treatments.`, 'info');
             return;
         }
         
@@ -443,48 +621,61 @@ async function loadPresetForService(serviceIndex) {
         
     } catch (error) {
         console.error('Error loading presets:', error);
-        alert('Error loading presets. Please try again.');
+        showNotification('Error loading presets. Please try again.', 'error');
     }
 }
 
 function showPresetSelectionModal(serviceIndex, presets, serviceName) {
     // Create modal HTML
     const presetsHtml = presets.map(preset => `
-        <div class="preset-option p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition-colors" 
+        <button type="button" class="preset-option w-full p-5 border-2 border-gray-200 rounded-xl text-left hover:border-primary-400 hover:bg-primary-50 transition-all focus:outline-none focus:ring-2 focus:ring-primary-500" 
              data-preset-id="${preset.id}"
              onclick="applyPreset(${serviceIndex}, ${JSON.stringify(preset).replace(/"/g, '&quot;')})">
-            <div class="flex items-center justify-between">
-                <div class="flex-1">
-                    <h4 class="font-semibold text-gray-900">${preset.name}</h4>
-                    ${preset.description ? `<p class="text-sm text-gray-600 mt-1">${preset.description}</p>` : ''}
-                    <p class="text-xs text-gray-500 mt-2">${preset.products.length} product(s)</p>
+            <div class="flex items-start justify-between">
+                <div class="flex-1 min-w-0">
+                    <h4 class="font-semibold text-gray-900 text-base mb-1">${preset.name}</h4>
+                    ${preset.description ? `<p class="text-sm text-gray-600 mt-1 mb-2">${preset.description}</p>` : ''}
+                    <div class="flex items-center text-xs text-gray-500 mt-2">
+                        <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+                        </svg>
+                        ${preset.products.length} product(s)
+                    </div>
                 </div>
-                ${preset.is_default ? '<span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">★ Default</span>' : ''}
+                ${preset.is_default ? '<span class="ml-3 flex-shrink-0 inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-green-100 text-green-800"><svg class="h-3.5 w-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>Default</span>' : ''}
             </div>
-        </div>
+        </button>
     `).join('');
     
     const modalHtml = `
-        <div id="presetModal" class="fixed inset-0 z-50 overflow-y-auto">
-            <div class="flex items-center justify-center min-h-screen px-4">
-                <div class="fixed inset-0 bg-black opacity-50" onclick="closePresetModal()"></div>
-                <div class="relative bg-white rounded-lg max-w-2xl w-full p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-medium text-gray-900">Load Preset for ${serviceName}</h3>
-                        <button onclick="closePresetModal()" class="text-gray-400 hover:text-gray-600">
+        <div id="presetModal" class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="preset-modal-title">
+            <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20">
+                <div class="fixed inset-0 bg-gray-900 bg-opacity-75 transition-opacity" onclick="closePresetModal()" aria-hidden="true"></div>
+                <div class="relative bg-white rounded-2xl max-w-2xl w-full p-8 shadow-2xl fade-in">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 id="preset-modal-title" class="text-xl font-bold text-gray-900 flex items-center">
+                            <svg class="h-6 w-6 text-primary-600 mr-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                            </svg>
+                            Load Preset for ${serviceName}
+                        </h3>
+                        <button onclick="closePresetModal()" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500" aria-label="Close modal">
                             <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
                         </button>
                     </div>
-                    <div class="space-y-3 max-h-96 overflow-y-auto">
+                    <div class="space-y-3 max-h-96 overflow-y-auto mb-6 pr-2">
                         ${presetsHtml}
                     </div>
-                    <div class="mt-6 flex justify-between items-center text-sm text-gray-600">
-                        <p>Click a preset to apply its products</p>
+                    <div class="flex justify-between items-center pt-6 border-t border-gray-200 text-sm">
+                        <p class="text-gray-600">Click a preset to apply its products to this service</p>
                         <a href="/services/presets/?service=${servicesData[serviceIndex].service_id}&return_to=${encodeURIComponent(window.location.pathname)}" 
-                           class="text-primary-600 hover:text-primary-800 font-medium">
-                            Manage Presets →
+                           class="inline-flex items-center font-semibold text-primary-600 hover:text-primary-800 transition-colors">
+                            Manage Presets
+                            <svg class="ml-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
                         </a>
                     </div>
                 </div>
@@ -493,6 +684,33 @@ function showPresetSelectionModal(serviceIndex, presets, serviceName) {
     `;
     
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Trap focus in modal
+    const modal = document.getElementById('presetModal');
+    const focusableElements = modal.querySelectorAll('button, [href]');
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+    
+    firstElement.focus();
+    
+    modal.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closePresetModal();
+        }
+        if (e.key === 'Tab') {
+            if (e.shiftKey) {
+                if (document.activeElement === firstElement) {
+                    e.preventDefault();
+                    lastElement.focus();
+                }
+            } else {
+                if (document.activeElement === lastElement) {
+                    e.preventDefault();
+                    firstElement.focus();
+                }
+            }
+        }
+    });
 }
 
 function closePresetModal() {
@@ -517,19 +735,8 @@ function applyPreset(serviceIndex, preset) {
     // Close modal
     closePresetModal();
     
-    // Show success message
-    const successMsg = document.createElement('div');
-    successMsg.className = 'fixed top-4 right-4 bg-green-50 border-l-4 border-green-400 p-4 rounded shadow-lg z-50';
-    successMsg.innerHTML = `
-        <div class="flex items-center">
-            <svg class="h-5 w-5 text-green-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-            </svg>
-            <p class="text-sm font-medium text-green-800">Preset "${preset.name}" applied! You can adjust quantities as needed.</p>
-        </div>
-    `;
-    document.body.appendChild(successMsg);
-    setTimeout(() => successMsg.remove(), 4000);
+    // Show success notification
+    showNotification(`Preset "${preset.name}" applied successfully! You can adjust quantities as needed.`, 'success');
 }
 
 function attachProductListeners(serviceIndex) {
@@ -542,23 +749,33 @@ function attachProductListeners(serviceIndex) {
         
         // Product selection
         const productSelect = productElement.querySelector('.product-select');
-        productSelect.addEventListener('change', function() {
-            updateProduct(serviceIndex, productIndex, 'product_id', this.value);
-            const prod = availableProducts.find(p => p.id == this.value);
-            if (prod) {
-                updateProduct(serviceIndex, productIndex, 'product_name', prod.name);
-            }
-        });
+        if (productSelect) {
+            productSelect.addEventListener('change', function() {
+                updateProduct(serviceIndex, productIndex, 'product_id', this.value);
+                const prod = availableProducts.find(p => p.id == this.value);
+                if (prod) {
+                    updateProduct(serviceIndex, productIndex, 'product_name', prod.name);
+                }
+            });
+        }
         
         // Quantity
         const quantityInput = productElement.querySelector('.product-quantity');
-        quantityInput.addEventListener('input', function() {
-            updateProduct(serviceIndex, productIndex, 'quantity', parseInt(this.value) || 1);
-        });
+        if (quantityInput) {
+            quantityInput.addEventListener('input', function() {
+                const value = parseInt(this.value) || 1;
+                if (value < 1) {
+                    this.value = 1;
+                }
+                updateProduct(serviceIndex, productIndex, 'quantity', value);
+            });
+        }
         
         // Remove product
         const removeBtn = productElement.querySelector('.remove-product');
-        removeBtn.addEventListener('click', () => removeProduct(serviceIndex, productIndex));
+        if (removeBtn) {
+            removeBtn.addEventListener('click', () => removeProduct(serviceIndex, productIndex));
+        }
     });
 }
 
@@ -575,46 +792,13 @@ function updateProduct(serviceIndex, productIndex, field, value) {
 }
 
 function updateHiddenField() {
-    document.getElementById('id_services_data').value = JSON.stringify(servicesData);
+    const hiddenField = document.getElementById('id_services_data');
+    if (hiddenField) {
+        hiddenField.value = JSON.stringify(servicesData);
+    }
 }
 
 function addService() {
-    // Check for duplicates before adding
-    const serviceSelect = document.createElement('select');
-    serviceSelect.className = 'service-select block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500';
-    
-    // Build options HTML
-    const serviceOptions = availableServices.map(s => 
-        `<option value="${s.id}">${s.name}</option>`
-    ).join('');
-    
-    serviceSelect.innerHTML = `<option value="">Select service...</option>${serviceOptions}`;
-    
-    // Add event listener to check for duplicates when service is selected
-    serviceSelect.addEventListener('change', function() {
-        const selectedServiceId = this.value;
-        const selectedService = availableServices.find(s => s.id == selectedServiceId);
-        
-        if (!selectedService) return;
-        
-        // Check if service already exists in current services
-        const existingService = servicesData.find(s => s.service_id == selectedServiceId);
-        
-        if (existingService) {
-            const confirmAdd = confirm(
-                `You already added "${selectedService.name}" to this treatment.\n\n` +
-                `Adding the same service twice is unusual. Continue anyway?`
-            );
-            
-            if (!confirmAdd) {
-                // Reset selection
-                this.value = '';
-                return;
-            }
-        }
-    });
-    
-    // Continue with normal flow
     servicesData.push({
         service_id: '',
         service_name: '',
@@ -622,15 +806,30 @@ function addService() {
         products: []
     });
     renderServices();
+    
+    // Scroll to new service
+    setTimeout(() => {
+        const newService = document.querySelector(`[data-service-index="${servicesData.length - 1}"]`);
+        if (newService) {
+            newService.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const select = newService.querySelector('.service-select');
+            if (select) select.focus();
+        }
+    }, 100);
 }
 
 function removeService(index) {
     if (servicesData.length === 1) {
-        alert('At least one service is required.');
+        showNotification('At least one service is required. You cannot remove the last service.', 'warning');
         return;
     }
-    servicesData.splice(index, 1);
-    renderServices();
+    
+    const serviceName = servicesData[index].service_name || 'this service';
+    if (confirm(`Are you sure you want to remove ${serviceName}?`)) {
+        servicesData.splice(index, 1);
+        renderServices();
+        showNotification('Service removed successfully.', 'success');
+    }
 }
 
 function addProduct(serviceIndex) {
@@ -646,6 +845,8 @@ function addProduct(serviceIndex) {
     });
     
     const container = document.querySelector(`[data-service-index="${serviceIndex}"].products-container`);
+    if (!container) return;
+    
     const noProductsMsg = container.querySelector('p.italic');
     if (noProductsMsg) {
         noProductsMsg.remove();
@@ -657,15 +858,22 @@ function addProduct(serviceIndex) {
     
     attachProductListeners(serviceIndex);
     updateHiddenField();
+    
+    // Focus on new product select
+    setTimeout(() => {
+        const newProduct = container.querySelector(`[data-product-index="${productIndex}"] .product-select`);
+        if (newProduct) newProduct.focus();
+    }, 100);
 }
 
 function removeProduct(serviceIndex, productIndex) {
     servicesData[serviceIndex].products.splice(productIndex, 1);
     
     const container = document.querySelector(`[data-service-index="${serviceIndex}"].products-container`);
+    if (!container) return;
     
     if (servicesData[serviceIndex].products.length === 0) {
-        container.innerHTML = '<p class="text-sm text-gray-500 italic">No products added yet</p>';
+        container.innerHTML = '<p class="text-sm text-gray-500 italic py-3 px-4 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 text-center">No products added yet. Click "Add Product" to document supplies used.</p>';
     } else {
         container.innerHTML = servicesData[serviceIndex].products.map((prod, idx) => 
             createProductHtml(serviceIndex, idx, prod)
@@ -676,15 +884,13 @@ function removeProduct(serviceIndex, productIndex) {
     updateHiddenField();
 }
 
-
-
 function handleSubmit(e) {
     updateHiddenField();
     
     // Validate at least one service
     if (servicesData.length === 0) {
         e.preventDefault();
-        alert('Please add at least one service.');
+        showNotification('Please add at least one service before saving.', 'error');
         return false;
     }
     
@@ -692,16 +898,40 @@ function handleSubmit(e) {
     for (let i = 0; i < servicesData.length; i++) {
         if (!servicesData[i].service_id) {
             e.preventDefault();
-            alert(`Please select a service for Service #${i + 1}.`);
+            showNotification(`Please select a service for Service #${i + 1}.`, 'error');
+            
+            // Scroll to and highlight the problematic service
+            const serviceCard = document.querySelector(`[data-service-index="${i}"]`);
+            if (serviceCard) {
+                serviceCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                serviceCard.classList.add('border-red-500');
+                setTimeout(() => serviceCard.classList.remove('border-red-500'), 3000);
+                
+                const select = serviceCard.querySelector('.service-select');
+                if (select) select.focus();
+            }
             return false;
         }
     }
+    
+    // Show loading state
+    const submitButtons = document.querySelectorAll('#submitBtn, #submitBtnMobile');
+    submitButtons.forEach(btn => {
+        btn.disabled = true;
+        btn.innerHTML = `
+            <svg class="animate-spin -ml-1 mr-2 h-5 w-5 text-white inline-block" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Saving...</span>
+        `;
+    });
     
     return true;
 }
 
 function confirmDelete() {
-    if (confirm('Are you sure you want to delete these treatment notes? This action cannot be undone.')) {
+    if (confirm('Are you sure you want to delete these treatment notes? This action cannot be undone and all documented services and products will be removed.')) {
         const form = document.createElement('form');
         form.method = 'POST';
         form.action = '{% url "appointments:treatment_record_delete" appointment.pk %}';
@@ -712,6 +942,57 @@ function confirmDelete() {
         document.body.appendChild(form);
         form.submit();
     }
+}
+
+function showNotification(message, type = 'info') {
+    const colors = {
+        success: { bg: 'bg-green-50', border: 'border-green-400', text: 'text-green-800', icon: 'text-green-400' },
+        error: { bg: 'bg-red-50', border: 'border-red-400', text: 'text-red-800', icon: 'text-red-400' },
+        warning: { bg: 'bg-yellow-50', border: 'border-yellow-400', text: 'text-yellow-800', icon: 'text-yellow-400' },
+        info: { bg: 'bg-blue-50', border: 'border-blue-400', text: 'text-blue-800', icon: 'text-blue-400' }
+    };
+    
+    const color = colors[type] || colors.info;
+    
+    const icons = {
+        success: '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>',
+        error: '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>',
+        warning: '<path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>',
+        info: '<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>'
+    };
+    
+    const toast = document.createElement('div');
+    toast.className = `success-toast fixed top-4 right-4 ${color.bg} border-l-4 ${color.border} p-4 rounded-lg shadow-lg z-50 max-w-md`;
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML = `
+        <div class="flex items-start">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 ${color.icon}" fill="currentColor" viewBox="0 0 20 20">
+                    ${icons[type] || icons.info}
+                </svg>
+            </div>
+            <div class="ml-3 flex-1">
+                <p class="text-sm font-medium ${color.text}">${message}</p>
+            </div>
+            <button type="button" class="ml-3 flex-shrink-0 inline-flex text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-${type === 'success' ? 'green' : type === 'error' ? 'red' : type === 'warning' ? 'yellow' : 'blue'}-500 rounded" onclick="this.parentElement.parentElement.remove()" aria-label="Dismiss notification">
+                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                </svg>
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Auto dismiss after 4 seconds
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(100%)';
+            toast.style.transition = 'all 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }
+    }, 4000);
 }
 </script>
 {% endblock %}

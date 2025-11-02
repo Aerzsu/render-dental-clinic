@@ -1,91 +1,256 @@
 {% extends 'base_public.html' %}
 
-{% block title %}Select Your Record{% endblock %}
+{% block title %}Select Your Record - Patient Portal - {{ block.super }}{% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-gray-50 py-12 px-4">
-    <div class="max-w-2xl mx-auto">
-        <div class="bg-white rounded-lg shadow-md p-8">
-            <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold text-gray-900">Select Your Record</h1>
-                <p class="text-gray-600 mt-2">Multiple patient records found for {{ email }}</p>
+<div class="min-h-screen bg-gradient-to-br from-blue-50 via-white to-primary-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-3xl mx-auto">
+        <!-- Logo/Brand Section -->
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl shadow-lg mb-4">
+                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
             </div>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Select Your Record</h1>
+            <p class="text-gray-600 mb-1">Multiple patient records found for</p>
+            <p class="text-primary-600 font-semibold text-lg">{{ email }}</p>
+        </div>
 
-            {% if messages %}
-            <div class="mb-6">
-                {% for message in messages %}
-                <div class="{% if message.tags == 'error' %}bg-red-50 border-l-4 border-red-500 text-red-700{% elif message.tags == 'success' %}bg-green-50 border-l-4 border-green-500 text-green-700{% else %}bg-blue-50 border-l-4 border-blue-500 text-blue-700{% endif %} p-4 rounded">
-                    {{ message }}
+        <!-- Main Card -->
+        <div class="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+            <!-- Progress Indicator -->
+            <div class="bg-gradient-to-r from-gray-50 to-blue-50 px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-center space-x-2">
+                    <div class="flex items-center">
+                        <div class="flex items-center justify-center w-8 h-8 bg-green-600 text-white rounded-full text-sm font-semibold">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                        <span class="ml-2 text-sm font-medium text-green-600">Enter Email</span>
+                    </div>
+                    <svg class="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                    <div class="flex items-center">
+                        <div class="flex items-center justify-center w-8 h-8 bg-green-600 text-white rounded-full text-sm font-semibold">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        </div>
+                        <span class="ml-2 text-sm font-medium text-green-600">Verify Code</span>
+                    </div>
+                    <svg class="w-5 h-5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                    <div class="flex items-center">
+                        <div class="flex items-center justify-center w-8 h-8 bg-primary-600 text-white rounded-full text-sm font-semibold">
+                            3
+                        </div>
+                        <span class="ml-2 text-sm font-medium text-primary-600">Select Record</span>
+                    </div>
                 </div>
-                {% endfor %}
             </div>
-            {% endif %}
 
-            <form method="post" class="space-y-4">
-                {% csrf_token %}
-                
-                <div class="space-y-3">
-                    {% for patient in patients %}
-                    <label class="block cursor-pointer">
-                        <div class="border-2 border-gray-200 rounded-lg p-4 hover:border-blue-500 hover:bg-blue-50 transition duration-200">
-                            <div class="flex items-center">
-                                <input 
-                                    type="radio" 
-                                    name="patient_id" 
-                                    value="{{ patient.id }}" 
-                                    required
-                                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                                >
-                                <div class="ml-4 flex-1">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-lg font-semibold text-gray-900">
-                                            {{ patient.full_name }}
-                                        </span>
-                                        {% if patient.date_of_birth %}
-                                        <span class="text-sm text-gray-500">
-                                            Born: {{ patient.date_of_birth|date:"M d, Y" }}
-                                        </span>
-                                        {% endif %}
+            <!-- Form Content -->
+            <div class="p-8">
+                {% if messages %}
+                <div class="mb-6 space-y-2">
+                    {% for message in messages %}
+                    <div class="flex items-start p-4 rounded-lg border-l-4 {% if message.tags == 'error' %}bg-red-50 border-red-500{% elif message.tags == 'success' %}bg-green-50 border-green-500{% else %}bg-blue-50 border-blue-500{% endif %} animate-slide-in">
+                        <svg class="w-5 h-5 mt-0.5 mr-3 flex-shrink-0 {% if message.tags == 'error' %}text-red-600{% elif message.tags == 'success' %}text-green-600{% else %}text-blue-600{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            {% if message.tags == 'error' %}
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            {% elif message.tags == 'success' %}
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            {% else %}
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            {% endif %}
+                        </svg>
+                        <p class="text-sm font-medium {% if message.tags == 'error' %}text-red-800{% elif message.tags == 'success' %}text-green-800{% else %}text-blue-800{% endif %}">
+                            {{ message }}
+                        </p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <form method="post" class="space-y-4">
+                    {% csrf_token %}
+                    
+                    <div class="space-y-3">
+                        {% for patient in patients %}
+                        <label class="block cursor-pointer group">
+                            <input 
+                                type="radio" 
+                                name="patient_id" 
+                                value="{{ patient.id }}" 
+                                required
+                                class="peer sr-only"
+                            >
+                            <div class="border-2 border-gray-200 rounded-xl p-5 peer-checked:border-primary-500 peer-checked:bg-primary-50 hover:border-gray-300 hover:shadow-md transition-all duration-200">
+                                <div class="flex items-start">
+                                    <!-- Radio Indicator -->
+                                    <div class="flex-shrink-0 mt-1 mr-4">
+                                        <div class="w-5 h-5 border-2 border-gray-300 rounded-full peer-checked:border-primary-600 peer-checked:bg-primary-600 flex items-center justify-center transition-all">
+                                            <svg class="w-3 h-3 text-white opacity-0 peer-checked:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                        </div>
                                     </div>
                                     
-                                    <div class="mt-2 space-y-1 text-sm text-gray-600">
-                                        {% if patient.contact_number %}
-                                        <div>📞 {{ patient.contact_number }}</div>
-                                        {% endif %}
+                                    <!-- Patient Info -->
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-start justify-between gap-4 mb-3">
+                                            <div class="flex items-center gap-3">
+                                                <!-- Avatar -->
+                                                <div class="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full flex items-center justify-center shadow-sm">
+                                                    <span class="text-lg font-bold text-white">
+                                                        {{ patient.first_name|first }}{{ patient.last_name|first }}
+                                                    </span>
+                                                </div>
+                                                <!-- Name -->
+                                                <div>
+                                                    <h3 class="text-lg font-bold text-gray-900 peer-checked:text-primary-900">
+                                                        {{ patient.full_name }}
+                                                    </h3>
+                                                    {% if patient.date_of_birth %}
+                                                    <p class="text-sm text-gray-500 flex items-center mt-0.5">
+                                                        <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                                        </svg>
+                                                        Born {{ patient.date_of_birth|date:"M d, Y" }}
+                                                    </p>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
                                         
-                                        {% if patient.last_appointment_date %}
-                                        <div>📅 Last appointment: {{ patient.last_appointment_date|date:"M d, Y" }}</div>
-                                        {% else %}
-                                        <div class="text-gray-400">No appointments yet</div>
-                                        {% endif %}
+                                        <!-- Contact Info -->
+                                        <div class="space-y-2 text-sm text-gray-600 bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                            {% if patient.contact_number %}
+                                            <div class="flex items-center">
+                                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/>
+                                                </svg>
+                                                {{ patient.contact_number }}
+                                            </div>
+                                            {% endif %}
+                                            
+                                            {% if patient.last_appointment_date %}
+                                            <div class="flex items-center">
+                                                <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                                </svg>
+                                                Last appointment: {{ patient.last_appointment_date|date:"M d, Y" }}
+                                            </div>
+                                            {% else %}
+                                            <div class="flex items-center text-gray-400 italic">
+                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                </svg>
+                                                No appointments yet
+                                            </div>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </label>
-                    {% endfor %}
+                        </label>
+                        {% endfor %}
+                    </div>
+
+                    <button 
+                        type="submit"
+                        class="w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-4 px-6 rounded-xl hover:from-primary-700 hover:to-primary-800 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 flex items-center justify-center mt-6"
+                    >
+                        <span>Continue to Portal</span>
+                        <svg class="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                        </svg>
+                    </button>
+                </form>
+
+                <div class="mt-6 text-center pt-6 border-t border-gray-200">
+                    <p class="text-sm text-gray-600">
+                        Not you? 
+                        <a href="{% url 'patient_portal:logout' %}" class="text-primary-600 hover:text-primary-700 font-medium transition-colors inline-flex items-center">
+                            Log out
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                            </svg>
+                        </a>
+                    </p>
                 </div>
+            </div>
+        </div>
 
-                <button 
-                    type="submit"
-                    class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-200 font-medium mt-6"
-                >
-                    Continue to Portal
-                </button>
-            </form>
-
-            <div class="mt-6 text-center">
-                <p class="text-sm text-gray-600">Not you? 
-                    <a href="{% url 'patient_portal:logout' %}" class="text-blue-600 hover:underline">Log out</a>
+        <!-- Info Card -->
+        <div class="mt-8 bg-white border-2 border-blue-200 rounded-xl overflow-hidden shadow-sm">
+            <div class="bg-gradient-to-r from-blue-50 to-blue-100 px-5 py-3 border-b border-blue-200">
+                <h3 class="font-semibold text-blue-900 flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                    Multiple Records Found
+                </h3>
+            </div>
+            <div class="p-5">
+                <p class="text-sm text-blue-800 mb-3">
+                    We found multiple patient records associated with your email address. This might happen if:
+                </p>
+                <ul class="text-sm text-blue-700 space-y-1.5 list-disc list-inside">
+                    <li>You've visited the clinic multiple times with different information</li>
+                    <li>Family members share the same email address</li>
+                    <li>Records were created at different times</li>
+                </ul>
+                <p class="text-sm text-blue-800 mt-3 font-medium">
+                    Please select the correct record based on your name and last appointment date. If you're unsure, contact the clinic for assistance.
                 </p>
             </div>
         </div>
 
-        <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p class="text-sm text-blue-800">
-                <strong>ℹ️ Multiple Records Found:</strong> Please select the patient record you want to access. If you're unsure, check the last appointment date or contact the clinic for assistance.
+        <!-- Security Notice -->
+        <div class="mt-6 text-center">
+            <p class="text-xs text-gray-500 flex items-center justify-center">
+                <svg class="w-4 h-4 mr-1 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                </svg>
+                Your information is protected with secure encryption
             </p>
         </div>
     </div>
 </div>
+
+<style>
+@keyframes slide-in {
+    from {
+        transform: translateX(-10px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+.animate-slide-in {
+    animation: slide-in 0.3s ease-out;
+}
+
+/* Custom radio styling */
+input[type="radio"]:checked + div {
+    border-color: rgb(37 99 235);
+    background-color: rgb(239 246 255);
+}
+
+input[type="radio"]:checked + div .w-5.h-5 {
+    border-color: rgb(37 99 235);
+    background-color: rgb(37 99 235);
+}
+
+input[type="radio"]:checked + div .w-5.h-5 svg {
+    opacity: 1;
+}
+</style>
 {% endblock %}

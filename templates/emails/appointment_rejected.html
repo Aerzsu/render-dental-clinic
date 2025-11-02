@@ -1,99 +1,314 @@
+<!-- APPOINTMENT REJECTED EMAIL TEMPLATE -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Appointment Update</title>
+    <title>Appointment Request Update</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.6;
-            color: #333;
+            color: #1f2937;
+            background-color: #f3f4f6;
+            padding: 20px;
+        }
+        .email-wrapper {
             max-width: 600px;
             margin: 0 auto;
-            padding: 20px;
-            background-color: #f4f4f4;
         }
         .container {
             background-color: #ffffff;
-            border-radius: 8px;
-            padding: 30px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         .header {
-            background-color: #dc2626;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
             color: white;
-            padding: 20px;
-            border-radius: 8px 8px 0 0;
-            margin: -30px -30px 30px -30px;
+            padding: 32px 24px;
             text-align: center;
+        }
+        .header-icon {
+            width: 64px;
+            height: 64px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+        }
+        .header-icon svg {
+            width: 36px;
+            height: 36px;
         }
         .header h1 {
+            font-size: 28px;
+            font-weight: 700;
             margin: 0;
-            font-size: 24px;
+            letter-spacing: -0.5px;
+        }
+        .header p {
+            margin: 8px 0 0;
+            font-size: 16px;
+            opacity: 0.95;
         }
         .content {
-            margin-bottom: 30px;
+            padding: 32px 24px;
         }
-        .appointment-details {
-            background-color: #fef2f2;
-            border-left: 4px solid #dc2626;
-            padding: 15px;
-            margin: 20px 0;
+        .greeting {
+            font-size: 16px;
+            color: #374151;
+            margin-bottom: 16px;
         }
-        .appointment-details p {
-            margin: 8px 0;
+        .message {
+            font-size: 15px;
+            color: #4b5563;
+            margin-bottom: 24px;
+            line-height: 1.7;
         }
-        .appointment-details strong {
-            color: #dc2626;
-            min-width: 120px;
-            display: inline-block;
+        .appointment-card {
+            background: linear-gradient(to right, #fef2f2, #fee2e2);
+            border-left: 4px solid #ef4444;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 24px 0;
+        }
+        .appointment-card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #b91c1c;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+        }
+        .detail-row {
+            display: flex;
+            align-items: flex-start;
+            padding: 10px 0;
+            border-bottom: 1px solid #fecaca;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        .detail-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            flex-shrink: 0;
+            color: #ef4444;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #991b1b;
+            min-width: 100px;
+            font-size: 14px;
+        }
+        .detail-value {
+            color: #b91c1c;
+            font-size: 14px;
+            flex: 1;
+        }
+        .info-box {
+            background-color: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 24px 0;
+        }
+        .info-box-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .info-box-icon {
+            width: 20px;
+            height: 20px;
+            color: #3b82f6;
+        }
+        .info-box-title {
+            font-weight: 600;
+            color: #1e40af;
+            font-size: 14px;
+        }
+        .info-box-text {
+            font-size: 14px;
+            color: #1e3a8a;
+            line-height: 1.6;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 24px 0 12px;
+        }
+        .reasons-list {
+            list-style: none;
+            padding: 0;
+            margin: 16px 0;
+        }
+        .reasons-list li {
+            padding: 10px 0 10px 32px;
+            position: relative;
+            font-size: 14px;
+            color: #4b5563;
+            line-height: 1.6;
+        }
+        .reasons-list li:before {
+            content: "•";
+            position: absolute;
+            left: 12px;
+            font-size: 20px;
+            color: #ef4444;
+            font-weight: bold;
         }
         .footer {
-            margin-top: 30px;
-            padding-top: 20px;
+            background-color: #f9fafb;
+            padding: 24px;
+            text-align: center;
             border-top: 1px solid #e5e7eb;
+        }
+        .footer-clinic {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 12px;
+        }
+        .footer-contact {
             font-size: 14px;
             color: #6b7280;
-            text-align: center;
+            margin: 8px 0;
+        }
+        .footer-disclaimer {
+            font-size: 13px;
+            color: #9ca3af;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e5e7eb;
+        }
+        .divider {
+            height: 1px;
+            background-color: #e5e7eb;
+            margin: 24px 0;
+        }
+        @media only screen and (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            .content {
+                padding: 24px 16px;
+            }
+            .header {
+                padding: 24px 16px;
+            }
+            .header h1 {
+                font-size: 24px;
+            }
+            .detail-row {
+                flex-direction: column;
+            }
+            .detail-label {
+                margin-bottom: 4px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Appointment Request Update</h1>
-        </div>
-        
-        <div class="content">
-            <p>Dear {{ patient_name }},</p>
-            
-            <p>We regret to inform you that we are unable to accommodate your appointment request for the following date and time:</p>
-            
-            <div class="appointment-details">
-                <p><strong>Date:</strong> {{ appointment_date }}</p>
-                <p><strong>Time:</strong> {{ period }}</p>
-                <p><strong>Service:</strong> {{ service }}</p>
+    <div class="email-wrapper">
+        <div class="container">
+            <!-- Header -->
+            <div class="header">
+                <div class="header-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <h1>Unable to Confirm</h1>
+                <p>Appointment request update</p>
             </div>
             
-            <p>This may be due to:</p>
-            <ul>
-                <li>No available slots for the requested date and time</li>
-                <li>Scheduling conflicts</li>
-                <li>Other operational reasons</li>
-            </ul>
+            <!-- Content -->
+            <div class="content">
+                <p class="greeting">Dear {{ patient_name }},</p>
+                
+                <p class="message">
+                    Thank you for your interest in booking an appointment with us. Unfortunately, we are unable to accommodate your appointment request for the following date and time:
+                </p>
+                
+                <!-- Appointment Details Card -->
+                <div class="appointment-card">
+                    <div class="appointment-card-title">Requested Appointment Details</div>
+                    
+                    <div class="detail-row">
+                        <svg class="detail-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <span class="detail-label">Date:</span>
+                        <span class="detail-value">{{ appointment_date }}</span>
+                    </div>
+                    
+                    <div class="detail-row">
+                        <svg class="detail-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="detail-label">Time:</span>
+                        <span class="detail-value">{{ period }}</span>
+                    </div>
+                    
+                    <div class="detail-row">
+                        <svg class="detail-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                        <span class="detail-label">Service:</span>
+                        <span class="detail-value">{{ service }}</span>
+                    </div>
+                </div>
+                
+                <h3 class="section-title">Possible Reasons</h3>
+                <ul class="reasons-list">
+                    <li>No available dentists for the requested date and time</li>
+                    <li>The time slot is no longer available</li>
+                    <li>Scheduling conflicts with existing appointments</li>
+                    <li>Clinic closure or special circumstances</li>
+                </ul>
+                
+                <div class="divider"></div>
+                
+                <!-- Next Steps Information -->
+                <div class="info-box">
+                    <div class="info-box-header">
+                        <svg class="info-box-icon" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="info-box-title">What to Do Next</span>
+                    </div>
+                    <p class="info-box-text">
+                        Please visit our website to view available time slots and book an appointment at a different date or time. We have many other options that may work better for your schedule. If you need assistance, feel free to contact us directly and we'll be happy to help you find a suitable appointment.
+                    </p>
+                </div>
+                
+                <p class="message">
+                    We sincerely apologize for any inconvenience this may have caused. We value your interest in our dental services and hope to serve you soon.
+                </p>
+            </div>
             
-            <p><strong>What to do next:</strong></p>
-            <p>Please visit our website to book another appointment at a different date or time. We have many other available slots that may work for your schedule.</p>
-            
-            <p>If you have any questions or need assistance with rebooking, please contact us directly.</p>
-            
-            <p>We apologize for any inconvenience and hope to serve you soon.</p>
-        </div>
-        
-        <div class="footer">
-            <p>{{ clinic_name }}</p>
-            <p>This is an automated message. Please do not reply to this email.</p>
+            <!-- Footer -->
+            <div class="footer">
+                <div class="footer-clinic">{{ clinic_name }}</div>
+                <p class="footer-contact">📞 +63 956 631 6581 | 📧 clinic@kingjoy.com</p>
+                <p class="footer-contact">📍 123 Dental Street, City, Philippines</p>
+                <p class="footer-disclaimer">
+                    This is an automated message. Please do not reply to this email.<br>
+                    For assistance, please contact us using the phone number or email above.
+                </p>
+            </div>
         </div>
     </div>
 </body>

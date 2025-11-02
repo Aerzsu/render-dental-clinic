@@ -245,3 +245,59 @@ class EmailService:
             logger.error("=" * 80)
             logger.exception("Full traceback:")
             return False
+        
+    def send_invoice_email(self, payment, transaction):
+        """
+        Send invoice and receipt email to patient after first payment
+        
+        Args:
+            payment: Payment instance
+            transaction: PaymentTransaction instance (the payment just received)
+        """
+        if not payment.patient.email:
+            print(f"Cannot send invoice - patient {payment.patient.full_name} has no email")
+            return False
+        
+        try:
+            subject = f"Invoice & Receipt - {payment.appointment.service.name}"
+            
+            # Email context
+            context = {
+                'patient_name': payment.patient.first_name,
+                'invoice_number': f"{payment.id:06d}",
+                'appointment_date': payment.appointment.appointment_date.strftime('%B %d, %Y'),
+                'service_name': payment.appointment.service.name,
+                'total_amount': f"₱{payment.total_amount:,.2f}",
+                'amount_paid': f"₱{transaction.amount:,.2f}",
+                'outstanding_balance': f"₱{payment.outstanding_balance:,.2f}",
+                'receipt_number': transaction.receipt_number,
+                'payment_date': transaction.payment_date.strftime('%B %d, %Y'),
+                'is_fully_paid': payment.is_fully_paid,
+                'next_due_date': payment.next_due_date.strftime('%B %d, %Y') if payment.next_due_date else None,
+                'clinic_name': 'KingJoy Dental Clinic',
+                'portal_url': 'https://yoursite.com/patient-portal/',  # Update with actual URL
+            }
+            
+            # Render email template
+            html_content = render_to_string('emails/invoice_receipt.html', context)
+            
+            # Send email
+            success = send_email_via_api(
+                to_email=payment.patient.email,
+                to_name=payment.patient.full_name,
+                subject=subject,
+                html_content=html_content
+            )
+            
+            if success:
+                # Mark invoice as sent
+                payment.mark_invoice_sent()
+                print(f"Invoice email sent to {payment.patient.email}")
+                return True
+            else:
+                print(f"Failed to send invoice email to {payment.patient.email}")
+                return False
+                
+        except Exception as e:
+            print(f"Error sending invoice email: {str(e)}")
+            return False

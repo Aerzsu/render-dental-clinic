@@ -280,19 +280,23 @@ class AppointmentRequestsView(LoginRequiredMixin, ListView):
         })
         return context
 
-
-class CheckInView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+class CheckInView(LoginRequiredMixin, TemplateView):
     """
     Staff check-in page - shows today's appointments for quick patient arrival tracking
     """
     template_name = 'appointments/check_in.html'
-    permission_required = 'appointments'
-    
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.has_permission('appointments'):
+            messages.error(request, 'You do not have permission to access this page.')
+            return redirect('core:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
         # Get today's date
-        today = timezone.now().date()
+        today = timezone.now().date().isoformat()
         
         # Get all appointments for today (confirmed, pending)
         appointments = Appointment.objects.filter(

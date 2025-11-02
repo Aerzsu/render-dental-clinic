@@ -5,146 +5,406 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Appointment Confirmed</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             line-height: 1.6;
-            color: #333;
+            color: #1f2937;
+            background-color: #f3f4f6;
+            padding: 20px;
+        }
+        .email-wrapper {
             max-width: 600px;
             margin: 0 auto;
-            padding: 20px;
-            background-color: #f4f4f4;
         }
         .container {
             background-color: #ffffff;
-            border-radius: 8px;
-            padding: 30px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         .header {
-            background-color: #10b981;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
             color: white;
-            padding: 20px;
-            border-radius: 8px 8px 0 0;
-            margin: -30px -30px 30px -30px;
+            padding: 32px 24px;
             text-align: center;
+        }
+        .header-icon {
+            width: 64px;
+            height: 64px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+        }
+        .header-icon svg {
+            width: 36px;
+            height: 36px;
         }
         .header h1 {
+            font-size: 28px;
+            font-weight: 700;
             margin: 0;
-            font-size: 24px;
+            letter-spacing: -0.5px;
+        }
+        .header p {
+            margin: 8px 0 0;
+            font-size: 16px;
+            opacity: 0.95;
         }
         .content {
-            margin-bottom: 30px;
+            padding: 32px 24px;
         }
-        .appointment-details {
-            background-color: #f0fdf4;
+        .greeting {
+            font-size: 16px;
+            color: #374151;
+            margin-bottom: 16px;
+        }
+        .message {
+            font-size: 15px;
+            color: #4b5563;
+            margin-bottom: 24px;
+            line-height: 1.7;
+        }
+        .appointment-card {
+            background: linear-gradient(to right, #ecfdf5, #f0fdf4);
             border-left: 4px solid #10b981;
-            padding: 15px;
-            margin: 20px 0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 24px 0;
         }
-        .appointment-details p {
-            margin: 8px 0;
+        .appointment-card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #059669;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
         }
-        .appointment-details strong {
+        .detail-row {
+            display: flex;
+            align-items: flex-start;
+            padding: 10px 0;
+            border-bottom: 1px solid #d1fae5;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        .detail-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            flex-shrink: 0;
             color: #10b981;
-            min-width: 120px;
-            display: inline-block;
+        }
+        .detail-label {
+            font-weight: 600;
+            color: #065f46;
+            min-width: 100px;
+            font-size: 14px;
+        }
+        .detail-value {
+            color: #047857;
+            font-size: 14px;
+            flex: 1;
         }
         .info-box {
-            background-color: #dbeafe;
+            background-color: #eff6ff;
             border-left: 4px solid #3b82f6;
-            padding: 12px;
-            margin: 20px 0;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 24px 0;
+        }
+        .info-box-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .info-box-icon {
+            width: 20px;
+            height: 20px;
+            color: #3b82f6;
+        }
+        .info-box-title {
+            font-weight: 600;
+            color: #1e40af;
             font-size: 14px;
         }
-        .button {
-            display: inline-block;
-            padding: 12px 24px;
-            text-decoration: none;
-            border-radius: 6px;
-            margin: 10px 5px;
-            font-weight: 500;
-            text-align: center;
-        }
-        .button-primary {
-            background-color: #10b981;
-            color: white;
-        }
-        .button-secondary {
-            background-color: #ef4444;
-            color: white;
-        }
-        .button-container {
-            text-align: center;
-            margin: 25px 0;
-        }
-        .footer {
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #e5e7eb;
+        .info-box-text {
             font-size: 14px;
-            color: #6b7280;
-            text-align: center;
+            color: #1e3a8a;
+            line-height: 1.6;
         }
         .warning-box {
             background-color: #fef3c7;
             border-left: 4px solid #f59e0b;
-            padding: 12px;
-            margin: 20px 0;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 24px 0;
+        }
+        .warning-box-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .warning-box-icon {
+            width: 20px;
+            height: 20px;
+            color: #f59e0b;
+        }
+        .warning-box-title {
+            font-weight: 600;
+            color: #92400e;
             font-size: 14px;
+        }
+        .warning-box-text {
+            font-size: 14px;
+            color: #78350f;
+            line-height: 1.6;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 24px 0 12px;
+        }
+        .checklist {
+            list-style: none;
+            padding: 0;
+            margin: 16px 0;
+        }
+        .checklist li {
+            padding: 10px 0 10px 32px;
+            position: relative;
+            font-size: 14px;
+            color: #4b5563;
+            line-height: 1.6;
+        }
+        .checklist li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            width: 24px;
+            height: 24px;
+            background-color: #10b981;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .button-container {
+            text-align: center;
+            margin: 32px 0;
+        }
+        .button {
+            display: inline-block;
+            padding: 14px 32px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+        .button-cancel {
+            background-color: #ef4444;
+            color: white;
+        }
+        .button-cancel:hover {
+            background-color: #dc2626;
+        }
+        .footer {
+            background-color: #f9fafb;
+            padding: 24px;
+            text-align: center;
+            border-top: 1px solid #e5e7eb;
+        }
+        .footer-clinic {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 12px;
+        }
+        .footer-contact {
+            font-size: 14px;
+            color: #6b7280;
+            margin: 8px 0;
+        }
+        .footer-disclaimer {
+            font-size: 13px;
+            color: #9ca3af;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e5e7eb;
+        }
+        .divider {
+            height: 1px;
+            background-color: #e5e7eb;
+            margin: 24px 0;
+        }
+        @media only screen and (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            .content {
+                padding: 24px 16px;
+            }
+            .header {
+                padding: 24px 16px;
+            }
+            .header h1 {
+                font-size: 24px;
+            }
+            .detail-row {
+                flex-direction: column;
+            }
+            .detail-label {
+                margin-bottom: 4px;
+            }
+            .button {
+                display: block;
+                width: 100%;
+                padding: 16px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>✓ Appointment Confirmed</h1>
-        </div>
-        
-        <div class="content">
-            <p>Dear {{ patient_name }},</p>
+    <div class="email-wrapper">
+        <div class="container">
+            <!-- Header -->
+            <div class="header">
+                <div class="header-icon">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <h1>Appointment Confirmed!</h1>
+                <p>We look forward to seeing you</p>
+            </div>
             
-            <p>Great news! Your appointment has been confirmed. We look forward to seeing you!</p>
-            
-            <div class="appointment-details">
-                <p><strong>Date:</strong> {{ appointment_date }}</p>
-                <p><strong>Time:</strong> {{ period }}</p>
-                <p><strong>Service:</strong> {{ service }}</p>
-                {% if dentist %}
-                <p><strong>Dentist:</strong> Dr. {{ dentist }}</p>
+            <!-- Content -->
+            <div class="content">
+                <p class="greeting">Dear {{ patient_name }},</p>
+                
+                <p class="message">
+                    Great news! Your appointment has been successfully confirmed. Our dentist is ready to provide you with excellent dental care.
+                </p>
+                
+                <!-- Appointment Details Card -->
+                <div class="appointment-card">
+                    <div class="appointment-card-title">Your Appointment Details</div>
+                    
+                    <div class="detail-row">
+                        <svg class="detail-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <span class="detail-label">Date:</span>
+                        <span class="detail-value">{{ appointment_date }}</span>
+                    </div>
+                    
+                    <div class="detail-row">
+                        <svg class="detail-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="detail-label">Time:</span>
+                        <span class="detail-value">{{ period }}</span>
+                    </div>
+                    
+                    <div class="detail-row">
+                        <svg class="detail-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                        <span class="detail-label">Service:</span>
+                        <span class="detail-value">{{ service }}</span>
+                    </div>
+                    
+                    {% if dentist %}
+                    <div class="detail-row">
+                        <svg class="detail-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                        <span class="detail-label">Dentist:</span>
+                        <span class="detail-value">Dr. {{ dentist }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                {% if not dentist %}
+                <!-- Info Box for Unassigned Dentist -->
+                <div class="info-box">
+                    <div class="info-box-header">
+                        <svg class="info-box-icon" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="info-box-title">Dentist Assignment</span>
+                    </div>
+                    <p class="info-box-text">
+                        Your dentist will be assigned when you arrive at the clinic. Our available dentists will ensure you receive excellent care.
+                    </p>
+                </div>
                 {% endif %}
-            </div>
+                
+                <div class="divider"></div>
+                
+                <!-- Important Reminders -->
+                <h3 class="section-title">Important Reminders</h3>
+                <ul class="checklist">
+                    <li>Please arrive 10 minutes early for registration and check-in</li>
+                    <li>Bring a valid ID and your previous dental records (if available)</li>
+                    <li>Inform us of any medications or allergies during check-in</li>
+                    <li>If you need to cancel, please do so at least 24 hours in advance</li>
+                </ul>
 
-            {% if not dentist %}
-            <div class="info-box">
-                ℹ️ <strong>Note:</strong> Your dentist will be assigned when you arrive at the clinic. Our available dentists will ensure you receive excellent care.
-            </div>
-            {% endif %}
-            
-            <p><strong>Important reminders:</strong></p>
-            <ul>
-                <li>Please arrive 10 minutes early for registration</li>
-                <li>Bring a valid ID and your previous dental records (if any)</li>
-                <li>If you need to cancel, please do so at least 24 hours in advance</li>
-            </ul>
+                <!-- Cancellation Warning -->
+                <div class="warning-box">
+                    <div class="warning-box-header">
+                        <svg class="warning-box-icon" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        <span class="warning-box-title">Cancellation Policy</span>
+                    </div>
+                    <p class="warning-box-text">
+                        Appointments can only be cancelled at least 24 hours before the scheduled time. For last-minute changes or emergencies, please contact us directly.
+                    </p>
+                </div>
 
-            <!-- Action Buttons -->
-            <div class="button-container">
-                <a href="{{ cancel_url }}" class="button button-secondary">Cancel Appointment</a>
-            </div>
-
-            <div class="warning-box">
-                ⚠️ <strong>Cancellation Policy:</strong> Appointments can only be cancelled at least 24 hours before the scheduled time. For last-minute changes, please contact us directly.
+                <!-- Cancel Button -->
+                <div class="button-container">
+                    <a href="{{ cancel_url }}" class="button button-cancel">Cancel Appointment</a>
+                </div>
+                
+                <div class="divider"></div>
+                
+                <p class="message">
+                    If you have any questions or concerns, please don't hesitate to contact us. We're here to help!
+                </p>
+                
+                <p class="message">
+                    We look forward to providing you with excellent dental care!
+                </p>
             </div>
             
-            <p>If you have any questions, please don't hesitate to contact us.</p>
-            
-            <p>We look forward to providing you with excellent dental care!</p>
-        </div>
-        
-        <div class="footer">
-            <p>{{ clinic_name }}</p>
-            <p>📞 +63 956 631 6581 | 📧 clinic@kingjoy.com</p>
-            <p style="margin-top: 10px;">This is an automated message. Please do not reply to this email.</p>
+            <!-- Footer -->
+            <div class="footer">
+                <div class="footer-clinic">{{ clinic_name }}</div>
+                <p class="footer-contact">📞 +63 956 631 6581 | 📧 clinic@kingjoy.com</p>
+                <p class="footer-contact">📍 123 Dental Street, City, Philippines</p>
+                <p class="footer-disclaimer">
+                    This is an automated message. Please do not reply to this email.<br>
+                    For assistance, please contact us using the phone number or email above.
+                </p>
+            </div>
         </div>
     </div>
 </body>

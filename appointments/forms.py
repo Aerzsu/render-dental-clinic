@@ -144,8 +144,7 @@ class AppointmentForm(forms.ModelForm):
         
         # Check if date is in the future
         if appointment_date < timezone.now().date():
-            raise ValidationError('Please select a future date for the appointment.')
-        
+            raise ValidationError('Appointment date cannot be in the past.')
         # Check if it's not a Sunday
         if appointment_date.weekday() == 6:
             raise ValidationError('Appointments cannot be scheduled on Sundays.')

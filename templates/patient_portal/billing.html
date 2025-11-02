@@ -1,149 +1,414 @@
 {% extends 'base_public.html' %}
 
-{% block title %}Billing Summary{% endblock %}
+{% block title %}Billing Summary - Patient Portal{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
     <!-- Header -->
-    <div class="bg-white border-b border-gray-200 mb-6">
-        <div class="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-            <div>
-                <h1 class="text-2xl font-bold text-gray-900">Patient Portal</h1>
-                <p class="text-gray-600">Welcome, {{ patient.full_name }}</p>
+    <header class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="min-w-0 flex-1">
+                    <h1 class="text-xl sm:text-2xl font-bold text-gray-900 truncate">Patient Portal</h1>
+                    <p class="text-sm text-gray-600 mt-0.5 truncate">Welcome back, {{ patient.full_name }}</p>
+                </div>
+                <a href="{% url 'patient_portal:logout' %}" 
+                   class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all ml-4 flex-shrink-0"
+                   aria-label="Logout from patient portal">
+                    <svg class="w-4 h-4 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                    <span class="hidden sm:inline">Logout</span>
+                </a>
             </div>
-            <a href="{% url 'patient_portal:logout' %}" class="text-red-600 hover:text-red-700 text-sm">
-                Logout
-            </a>
         </div>
-    </div>
+    </header>
 
-    <div class="max-w-7xl mx-auto px-4 py-6">
-        <!-- Navigation -->
-        <div class="mb-6 flex space-x-4 border-b border-gray-200">
-            <a href="{% url 'patient_portal:dashboard' %}" class="px-4 py-2 text-gray-600 hover:text-gray-900">
-                Dashboard
-            </a>
-            <a href="{% url 'patient_portal:appointments' %}" class="px-4 py-2 text-gray-600 hover:text-gray-900">
-                All Appointments
-            </a>
-            <a href="{% url 'patient_portal:billing' %}" class="px-4 py-2 border-b-2 border-blue-600 text-blue-600 font-medium">
-                Billing
-            </a>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-12">
+        <!-- Navigation Tabs -->
+        <nav class="mb-8" aria-label="Portal navigation">
+            <div class="flex space-x-1 bg-white rounded-lg shadow-sm p-1 border border-gray-200 overflow-x-auto">
+                <a href="{% url 'patient_portal:dashboard' %}" 
+                   class="flex-1 min-w-max inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 transition-all">
+                    <svg class="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
+                    </svg>
+                    <span>Dashboard</span>
+                </a>
+                <a href="{% url 'patient_portal:appointments' %}" 
+                   class="flex-1 min-w-max inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium rounded-md text-gray-700 hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 transition-all">
+                    <svg class="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    <span>Appointments</span>
+                </a>
+                <a href="{% url 'patient_portal:billing' %}" 
+                   class="flex-1 min-w-max inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium rounded-md bg-primary-50 text-primary-700 border border-primary-200 transition-all"
+                   aria-current="page">
+                    <svg class="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                    <span>Billing</span>
+                </a>
+            </div>
+        </nav>
+
+        <!-- Outstanding Balance Alert -->
+        {% if outstanding > 0 %}
+        <div class="mb-8 bg-yellow-50 border border-yellow-200 rounded-lg shadow-sm p-4" role="alert">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <svg class="h-6 w-6 text-yellow-400" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+                <div class="ml-3 flex-1">
+                    <h3 class="text-sm font-semibold text-yellow-800 mb-1">Payment Notice</h3>
+                    <p class="text-sm text-yellow-800">
+                        You have an outstanding balance of <span class="font-bold">₱{{ outstanding|floatformat:2 }}</span>. 
+                        Please contact the clinic to arrange payment.
+                    </p>
+                </div>
+            </div>
         </div>
+        {% endif %}
 
         <!-- Billing Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="text-gray-500 text-sm font-medium mb-2">Total Billed</h3>
-                <p class="text-3xl font-bold text-gray-900">₱{{ total_billed|floatformat:2 }}</p>
-            </div>
+        <section class="mb-8" aria-labelledby="summary-heading">
+            <h2 id="summary-heading" class="sr-only">Billing Summary</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+                <!-- Total Billed Card -->
+                <article class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-sm font-medium text-gray-600 mb-1">Total Billed</h3>
+                            <p class="text-3xl font-bold text-gray-900 mb-2">₱{{ total_billed|floatformat:2 }}</p>
+                            <p class="text-xs text-gray-600 font-medium">All time total</p>
+                        </div>
+                        <div class="flex-shrink-0 w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center" aria-hidden="true">
+                            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </article>
 
-            <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="text-gray-500 text-sm font-medium mb-2">Total Paid</h3>
-                <p class="text-3xl font-bold text-green-600">₱{{ total_paid|floatformat:2 }}</p>
-            </div>
+                <!-- Total Paid Card -->
+                <article class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-sm font-medium text-gray-600 mb-1">Total Paid</h3>
+                            <p class="text-3xl font-bold text-green-600 mb-2">₱{{ total_paid|floatformat:2 }}</p>
+                            <p class="text-xs text-green-600 font-medium">Successfully processed</p>
+                        </div>
+                        <div class="flex-shrink-0 w-12 h-12 rounded-full bg-green-100 flex items-center justify-center" aria-hidden="true">
+                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </article>
 
-            <div class="bg-white rounded-lg shadow p-6">
-                <h3 class="text-gray-500 text-sm font-medium mb-2">Outstanding Balance</h3>
-                <p class="text-3xl font-bold {% if outstanding > 0 %}text-red-600{% else %}text-green-600{% endif %}">
-                    ₱{{ outstanding|floatformat:2 }}
-                </p>
+                <!-- Outstanding Balance Card -->
+                <article class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow sm:col-span-2 lg:col-span-1">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-sm font-medium text-gray-600 mb-1">Outstanding Balance</h3>
+                            <p class="text-3xl font-bold {% if outstanding > 0 %}text-red-600{% else %}text-green-600{% endif %} mb-2">
+                                ₱{{ outstanding|floatformat:2 }}
+                            </p>
+                            <p class="text-xs {% if outstanding > 0 %}text-red-600{% else %}text-green-600{% endif %} font-medium">
+                                {% if outstanding > 0 %}Payment required{% else %}All paid up!{% endif %}
+                            </p>
+                        </div>
+                        <div class="flex-shrink-0 w-12 h-12 rounded-full {% if outstanding > 0 %}bg-red-100{% else %}bg-green-100{% endif %} flex items-center justify-center" aria-hidden="true">
+                            <svg class="w-6 h-6 {% if outstanding > 0 %}text-red-600{% else %}text-green-600{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                {% if outstanding > 0 %}
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                {% else %}
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                {% endif %}
+                            </svg>
+                        </div>
+                    </div>
+                </article>
             </div>
-        </div>
+        </section>
 
-        <!-- Payment History -->
-        <div class="bg-white rounded-lg shadow">
-            <div class="px-6 py-4 border-b border-gray-200">
-                <h2 class="text-xl font-bold text-gray-900">Payment History</h2>
+        <!-- Payment History Section -->
+        <section class="bg-white rounded-lg shadow-sm border border-gray-200" aria-labelledby="history-heading">
+            <div class="px-4 sm:px-6 py-5 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 id="history-heading" class="text-lg font-semibold text-gray-900">Payment History</h2>
+                        <p class="text-sm text-gray-500 mt-1">Your complete billing records</p>
+                    </div>
+                    {% if payments %}
+                    <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                        {{ payments|length }} record{{ payments|length|pluralize }}
+                    </span>
+                    {% endif %}
+                </div>
             </div>
-            <div class="p-6">
+            <div class="p-4 sm:p-6">
                 {% if payments %}
                 <div class="space-y-6">
                     {% for payment in payments %}
-                    <div class="border border-gray-200 rounded-lg p-4">
-                        <div class="flex justify-between items-start mb-3">
-                            <div>
-                                <p class="text-lg font-semibold text-gray-900">
-                                    {{ payment.appointment.appointment_date|date:"F d, Y" }} - {{ payment.appointment.service.name }}
-                                </p>
-                                <p class="text-sm text-gray-500">Payment ID: #{{ payment.id }}</p>
+                    <article class="border border-gray-200 rounded-lg p-5 hover:border-gray-300 hover:shadow-sm transition-all">
+                        <!-- Payment Header -->
+                        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-start gap-3 mb-3">
+                                    <div class="flex-shrink-0 w-11 h-11 rounded-lg bg-primary-100 flex items-center justify-center">
+                                        <svg class="w-6 h-6 text-primary-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                                        </svg>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="text-base font-semibold text-gray-900 mb-2">
+                                            {{ payment.appointment.service.name }}
+                                        </h3>
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <time datetime="{{ payment.appointment.appointment_date|date:'Y-m-d' }}" class="text-xs text-gray-500 inline-flex items-center">
+                                                <svg class="w-3.5 h-3.5 mr-1 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                                </svg>
+                                                {{ payment.appointment.appointment_date|date:"M d, Y" }}
+                                            </time>
+                                            <span class="text-xs text-gray-300" aria-hidden="true">•</span>
+                                            <span class="text-xs text-gray-500 font-mono">ID: #{{ payment.id|stringformat:"06d" }}</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <span class="px-3 py-1 text-sm rounded 
-                                {% if payment.status == 'completed' %}bg-green-100 text-green-800
-                                {% elif payment.status == 'partially_paid' %}bg-yellow-100 text-yellow-800
-                                {% elif payment.status == 'pending' %}bg-gray-100 text-gray-800
-                                {% else %}bg-red-100 text-red-800{% endif %}">
+                            <span class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium flex-shrink-0 
+                                {% if payment.status == 'completed' %}bg-green-50 text-green-700 border border-green-200
+                                {% elif payment.status == 'partially_paid' %}bg-yellow-50 text-yellow-700 border border-yellow-200
+                                {% elif payment.status == 'pending' %}bg-gray-50 text-gray-700 border border-gray-200
+                                {% else %}bg-red-50 text-red-700 border border-red-200{% endif %}">
+                                <svg class="w-3.5 h-3.5 mr-1.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                    {% if payment.status == 'completed' %}
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                    {% elif payment.status == 'partially_paid' %}
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                                    {% elif payment.status == 'pending' %}
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                                    {% else %}
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                    {% endif %}
+                                </svg>
                                 {{ payment.get_status_display }}
                             </span>
                         </div>
 
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
-                            <div>
-                                <p class="text-sm text-gray-500">Total Amount</p>
-                                <p class="text-lg font-semibold text-gray-900">₱{{ payment.total_amount|floatformat:2 }}</p>
+                        <!-- Payment Amounts -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+                            <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                                <p class="text-xs font-medium text-gray-600 mb-1.5">Total Amount</p>
+                                <p class="text-xl font-bold text-gray-900">₱{{ payment.total_amount|floatformat:2 }}</p>
                             </div>
-                            <div>
-                                <p class="text-sm text-gray-500">Amount Paid</p>
-                                <p class="text-lg font-semibold text-green-600">₱{{ payment.amount_paid|floatformat:2 }}</p>
+                            <div class="bg-green-50 rounded-lg p-4 border border-green-100">
+                                <p class="text-xs font-medium text-green-700 mb-1.5">Amount Paid</p>
+                                <p class="text-xl font-bold text-green-600">₱{{ payment.amount_paid|floatformat:2 }}</p>
                             </div>
-                            <div>
-                                <p class="text-sm text-gray-500">Balance</p>
-                                <p class="text-lg font-semibold {% if payment.outstanding_balance > 0 %}text-red-600{% else %}text-green-600{% endif %}">
+                            <div class="{% if payment.outstanding_balance > 0 %}bg-red-50 border-red-100{% else %}bg-green-50 border-green-100{% endif %} rounded-lg p-4 border">
+                                <p class="text-xs font-medium {% if payment.outstanding_balance > 0 %}text-red-700{% else %}text-green-700{% endif %} mb-1.5">Balance</p>
+                                <p class="text-xl font-bold {% if payment.outstanding_balance > 0 %}text-red-600{% else %}text-green-600{% endif %}">
                                     ₱{{ payment.outstanding_balance|floatformat:2 }}
                                 </p>
                             </div>
                         </div>
 
+                        <!-- Installment Plan Info -->
                         {% if payment.payment_type == 'installment' %}
-                        <div class="bg-blue-50 border border-blue-200 rounded p-3 mb-3">
-                            <p class="text-sm text-blue-800">
-                                <strong>Installment Plan:</strong> {{ payment.installment_months }} months 
-                                (₱{{ payment.monthly_amount|floatformat:2 }}/month)
-                            </p>
-                            {% if payment.next_due_date %}
-                            <p class="text-sm text-blue-800">
-                                <strong>Next Payment Due:</strong> {{ payment.next_due_date|date:"F d, Y" }}
-                            </p>
-                            {% endif %}
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-5">
+                            <div class="flex items-start gap-3">
+                                <div class="flex-shrink-0 w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-semibold text-blue-900 mb-1.5">Installment Plan</p>
+                                    <p class="text-sm text-blue-800 mb-2">
+                                        {{ payment.installment_months }} monthly payments of <span class="font-semibold">₱{{ payment.monthly_amount|floatformat:2 }}</span>
+                                    </p>
+                                    {% if payment.next_due_date %}
+                                    <p class="text-sm text-blue-800 inline-flex items-center">
+                                        <svg class="w-4 h-4 mr-1.5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        Next payment due: <span class="font-semibold ml-1">{{ payment.next_due_date|date:"M d, Y" }}</span>
+                                    </p>
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
                         {% endif %}
 
+                        <!-- Service Items -->
                         {% if payment.items.all %}
-                        <div class="border-t border-gray-200 pt-3">
-                            <p class="text-sm font-medium text-gray-700 mb-2">Services:</p>
-                            <div class="space-y-1">
+                        <div class="border-t border-gray-200 pt-5">
+                            <h4 class="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                                <svg class="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>
+                                </svg>
+                                Services Rendered
+                            </h4>
+                            <div class="space-y-2">
                                 {% for item in payment.items.all %}
-                                <div class="flex justify-between text-sm">
-                                    <span class="text-gray-600">{{ item.service.name }} x{{ item.quantity }}</span>
-                                    <span class="text-gray-900">₱{{ item.total|floatformat:2 }}</span>
+                                <div class="flex items-center justify-between text-sm bg-gray-50 rounded-lg p-3 border border-gray-100">
+                                    <span class="text-gray-700 font-medium">
+                                        {{ item.service.name }}
+                                        {% if item.quantity > 1 %}
+                                        <span class="text-gray-500 font-normal ml-1">× {{ item.quantity }}</span>
+                                        {% endif %}
+                                    </span>
+                                    <span class="font-semibold text-gray-900 ml-4">₱{{ item.total|floatformat:2 }}</span>
                                 </div>
                                 {% endfor %}
                             </div>
                         </div>
                         {% endif %}
 
+                        <!-- Notes -->
                         {% if payment.notes %}
-                        <div class="border-t border-gray-200 pt-3 mt-3">
-                            <p class="text-sm text-gray-600">{{ payment.notes }}</p>
+                        <div class="border-t border-gray-200 pt-5 mt-5">
+                            <h4 class="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                                <svg class="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path>
+                                </svg>
+                                Notes
+                            </h4>
+                            <div class="text-sm text-gray-700 bg-gray-50 rounded-lg p-4 border border-gray-100 leading-relaxed">
+                                {{ payment.notes }}
+                            </div>
                         </div>
                         {% endif %}
-                    </div>
+                    </article>
                     {% endfor %}
                 </div>
                 {% else %}
-                <p class="text-gray-500 text-center py-12">No billing records found</p>
+                <!-- Empty State -->
+                <div class="text-center py-16">
+                    <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 mb-5">
+                        <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-base font-semibold text-gray-900 mb-2">No billing records found</h3>
+                    <p class="text-sm text-gray-500 max-w-sm mx-auto mb-6">Your payment history will appear here once you have completed appointments with billing records.</p>
+                    <a href="{% url 'patient_portal:appointments' %}" 
+                       class="inline-flex items-center justify-center px-5 py-2.5 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <span>View Appointments</span>
+                    </a>
+                </div>
                 {% endif %}
             </div>
-        </div>
-
-        {% if outstanding > 0 %}
-        <div class="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p class="text-sm text-yellow-800">
-                <strong>Payment Notice:</strong> You have an outstanding balance of ₱{{ outstanding|floatformat:2 }}. 
-                Please contact the clinic to arrange payment.
-            </p>
-        </div>
-        {% endif %}
-    </div>
+        </section>
+    </main>
 </div>
+
+<script>
+(function() {
+    'use strict';
+    
+    // Smooth scroll for anchor links
+    function enableSmoothScroll() {
+        const links = document.querySelectorAll('a[href^="#"]');
+        links.forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    e.preventDefault();
+                    target.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'start' 
+                    });
+                }
+            });
+        });
+    }
+    
+    // Add expand/collapse functionality for long notes
+    function initializeExpandableNotes() {
+        const notes = document.querySelectorAll('.text-sm.text-gray-700.bg-gray-50');
+        
+        notes.forEach(function(note) {
+            if (note.scrollHeight > 120) {
+                note.classList.add('line-clamp-3', 'expandable-note');
+                
+                const expandBtn = document.createElement('button');
+                expandBtn.type = 'button';
+                expandBtn.className = 'text-sm font-medium text-primary-600 hover:text-primary-700 mt-2 focus:outline-none focus:underline transition-colors';
+                expandBtn.textContent = 'Read more';
+                expandBtn.setAttribute('aria-expanded', 'false');
+                
+                expandBtn.addEventListener('click', function() {
+                    const isExpanded = this.getAttribute('aria-expanded') === 'true';
+                    
+                    if (isExpanded) {
+                        note.classList.add('line-clamp-3');
+                        this.textContent = 'Read more';
+                        this.setAttribute('aria-expanded', 'false');
+                    } else {
+                        note.classList.remove('line-clamp-3');
+                        this.textContent = 'Read less';
+                        this.setAttribute('aria-expanded', 'true');
+                    }
+                });
+                
+                note.parentNode.appendChild(expandBtn);
+            }
+        });
+    }
+    
+    // Highlight outstanding balance items
+    function highlightOutstandingItems() {
+        const paymentCards = document.querySelectorAll('article');
+        
+        paymentCards.forEach(function(card) {
+            const balanceElement = card.querySelector('.text-red-600');
+            if (balanceElement && parseFloat(balanceElement.textContent.replace(/[₱,]/g, '')) > 0) {
+                card.classList.add('ring-1', 'ring-red-200');
+            }
+        });
+    }
+    
+    // Add keyboard navigation for better accessibility
+    function enhanceKeyboardNavigation() {
+        const focusableElements = document.querySelectorAll('a, button');
+        
+        focusableElements.forEach(function(element) {
+            element.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    if (this.tagName === 'BUTTON') {
+                        e.preventDefault();
+                        this.click();
+                    }
+                }
+            });
+        });
+    }
+    
+    // Initialize all features
+    function init() {
+        enableSmoothScroll();
+        initializeExpandableNotes();
+        highlightOutstandingItems();
+        enhanceKeyboardNavigation();
+    }
+    
+    // Run initialization
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
+</script>
+
 {% endblock %}

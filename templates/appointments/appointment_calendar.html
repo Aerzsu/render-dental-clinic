@@ -3,34 +3,26 @@
 {% block title %}Appointment Calendar - KingJoy Appointment System{% endblock %}
 
 {% block content %}
-<div class="space-y-4 sm:space-y-6">
-    <!-- Header -->
-    <div class="sm:flex sm:items-center sm:justify-between">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
+    <!-- Header Section -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Appointment Calendar</h1>
-            <p class="mt-1 sm:mt-2 text-xs sm:text-sm text-gray-700">View and manage appointments by calendar</p>
+            <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Appointment Calendar</h1>
+            <p class="mt-1 text-sm text-gray-600">View and manage appointments by calendar</p>
         </div>
-        <div class="mt-3 sm:mt-0 flex flex-col sm:flex-row gap-2">
-            <!-- Desktop-only Slot Management Button -->
+        <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <a href="{% url 'appointments:daily_slots_list' %}" 
-               class="hidden md:inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-150">
-                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+               class="inline-flex items-center justify-center px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
                 </svg>
-                Manage Timeslots
-            </a>
-            <!-- Mobile-only Slot Management Button -->
-            <a href="{% url 'appointments:daily_slots_list' %}" 
-               class="md:hidden inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-150">
-                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                Timeslots
+                <span class="hidden md:inline">Manage Timeslots</span>
+                <span class="md:hidden">Timeslots</span>
             </a>
             <a href="{% url 'appointments:appointment_create' %}" 
-               class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-150">
-                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+               class="inline-flex items-center justify-center px-4 py-2.5 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                 </svg>
                 <span class="hidden sm:inline">New Appointment</span>
                 <span class="sm:hidden">New</span>
@@ -38,47 +30,61 @@
         </div>
     </div>
 
-    <!-- Navigation and Filters -->
-    <div class="bg-white shadow rounded-lg">
-        <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
+    <!-- Navigation and View Controls -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <!-- Month Navigation -->
-                <div class="flex items-center justify-between sm:justify-start sm:space-x-4">
+                <div class="flex items-center justify-center sm:justify-start gap-3 sm:gap-4">
                     <a href="?month={{ prev_month }}&year={{ prev_year }}" 
-                       class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-150">
-                        <svg class="h-4 w-4 sm:mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                       class="inline-flex items-center justify-center p-2 rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+                       aria-label="Previous month">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                         </svg>
-                        <span class="hidden sm:inline">Previous</span>
                     </a>
-                    <h2 class="text-base sm:text-lg font-semibold text-gray-900">
-                        {{ current_month_name }} {{ current_year }}
-                    </h2>
+                    
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <h2 class="text-lg sm:text-xl font-semibold text-gray-900">
+                            {{ current_month_name }} {{ current_year }}
+                        </h2>
+                    </div>
+                    
                     <a href="?month={{ next_month }}&year={{ next_year }}" 
-                       class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-150">
-                        <span class="hidden sm:inline">Next</span>
-                        <svg class="h-4 w-4 sm:ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                       class="inline-flex items-center justify-center p-2 rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
+                       aria-label="Next month">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                         </svg>
                     </a>
                 </div>
 
-                <!-- Quick Links -->
-                <div class="flex items-center gap-2">
-                {% if can_accept_appointments %}
+                <!-- Quick Actions -->
+                <div class="flex items-center justify-center gap-2">
+                    {% if can_accept_appointments %}
                     <a href="{% url 'appointments:appointment_requests' %}" 
-                       class="relative inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-150">
-                        <span class="hidden sm:inline">Pending Requests</span>
-                        <span class="sm:hidden">Requests</span>
+                       class="relative inline-flex items-center px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="hidden sm:inline">Requests</span>
+                        <span class="sm:hidden">Pending</span>
                         {% if pending_count %}
-                        <span class="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-bold rounded-full bg-red-500 text-white">
+                        <span class="ml-2 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold rounded-full bg-red-500 text-white">
                             {{ pending_count }}
                         </span>
                         {% endif %}
                     </a>
-                {% endif %}
+                    {% endif %}
+                    
                     <a href="{% url 'appointments:appointment_list' %}" 
-                       class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-150">
+                       class="inline-flex items-center px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
                         <span class="hidden sm:inline">List View</span>
                         <span class="sm:hidden">List</span>
                     </a>
@@ -86,72 +92,97 @@
             </div>
         </div>
 
-        <!-- DESKTOP/TABLET: Calendar Grid (hidden on mobile) -->
-        <div class="hidden sm:block p-4 sm:p-6">
-            <div class="grid grid-cols-7 gap-px bg-gray-200 rounded-lg overflow-hidden">
+        <!-- DESKTOP/TABLET: Calendar Grid -->
+        <div class="hidden sm:block p-6">
+            <div class="grid grid-cols-7 gap-px bg-gray-200 rounded-lg overflow-hidden border border-gray-200">
                 <!-- Day Headers -->
-                <div class="bg-gray-50 py-2 px-2 sm:px-3 text-xs font-medium text-gray-500 text-center uppercase tracking-wide">Mon</div>
-                <div class="bg-gray-50 py-2 px-2 sm:px-3 text-xs font-medium text-gray-500 text-center uppercase tracking-wide">Tue</div>
-                <div class="bg-gray-50 py-2 px-2 sm:px-3 text-xs font-medium text-gray-500 text-center uppercase tracking-wide">Wed</div>
-                <div class="bg-gray-50 py-2 px-2 sm:px-3 text-xs font-medium text-gray-500 text-center uppercase tracking-wide">Thu</div>
-                <div class="bg-gray-50 py-2 px-2 sm:px-3 text-xs font-medium text-gray-500 text-center uppercase tracking-wide">Fri</div>
-                <div class="bg-gray-50 py-2 px-2 sm:px-3 text-xs font-medium text-gray-500 text-center uppercase tracking-wide">Sat</div>
-                <div class="bg-gray-50 py-2 px-2 sm:px-3 text-xs font-medium text-gray-500 text-center uppercase tracking-wide">Sun</div>
+                <div class="bg-gray-100 py-3 text-center">
+                    <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Mon</span>
+                </div>
+                <div class="bg-gray-100 py-3 text-center">
+                    <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Tue</span>
+                </div>
+                <div class="bg-gray-100 py-3 text-center">
+                    <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Wed</span>
+                </div>
+                <div class="bg-gray-100 py-3 text-center">
+                    <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Thu</span>
+                </div>
+                <div class="bg-gray-100 py-3 text-center">
+                    <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Fri</span>
+                </div>
+                <div class="bg-gray-100 py-3 text-center">
+                    <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Sat</span>
+                </div>
+                <div class="bg-gray-100 py-3 text-center">
+                    <span class="text-xs font-semibold text-gray-700 uppercase tracking-wider">Sun</span>
+                </div>
 
                 <!-- Calendar Days -->
                 <div id="calendar-grid" class="contents">
-                    <!-- Days will be populated by JavaScript -->
+                    <!-- Populated by JavaScript -->
                 </div>
             </div>
         </div>
 
-        <!-- MOBILE: Day List View (visible only on mobile) -->
+        <!-- MOBILE: Day List View -->
         <div class="sm:hidden">
             <div id="mobile-day-list" class="divide-y divide-gray-200">
-                <!-- Days will be populated by JavaScript -->
+                <!-- Populated by JavaScript -->
             </div>
         </div>
     </div>
 
-    <!-- Legend -->
-    <div class="bg-white shadow rounded-lg p-4 sm:p-6">
-        <h3 class="text-sm font-medium text-gray-900 mb-3">Status Legend</h3>
-        <div class="flex flex-wrap gap-3 sm:gap-4">
+    <!-- Status Legend -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+        <div class="flex items-center mb-3">
+            <svg class="w-5 h-5 text-gray-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <h3 class="text-sm font-semibold text-gray-900">Status Legend</h3>
+        </div>
+        <div class="grid grid-cols-2 sm:flex sm:flex-wrap gap-3 sm:gap-5">
             <div class="flex items-center">
-                <div class="w-3 h-3 bg-yellow-500 rounded mr-2"></div>
-                <span class="text-xs sm:text-sm text-gray-700">Pending</span>
+                <div class="w-3 h-3 bg-yellow-500 rounded-full mr-2 flex-shrink-0"></div>
+                <span class="text-sm text-gray-700">Pending</span>
             </div>
             <div class="flex items-center">
-                <div class="w-3 h-3 bg-green-500 rounded mr-2"></div>
-                <span class="text-xs sm:text-sm text-gray-700">Confirmed</span>
+                <div class="w-3 h-3 bg-green-500 rounded-full mr-2 flex-shrink-0"></div>
+                <span class="text-sm text-gray-700">Confirmed</span>
             </div>
             <div class="flex items-center">
-                <div class="w-3 h-3 bg-blue-500 rounded mr-2"></div>
-                <span class="text-xs sm:text-sm text-gray-700">Completed</span>
+                <div class="w-3 h-3 bg-blue-500 rounded-full mr-2 flex-shrink-0"></div>
+                <span class="text-sm text-gray-700">Completed</span>
             </div>
             <div class="flex items-center">
-                <div class="w-3 h-3 bg-red-500 rounded mr-2"></div>
-                <span class="text-xs sm:text-sm text-gray-700">Cancelled</span>
+                <div class="w-3 h-3 bg-red-500 rounded-full mr-2 flex-shrink-0"></div>
+                <span class="text-sm text-gray-700">Cancelled</span>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Appointment Details Modal -->
-<div id="appointmentModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
-    <div class="relative sm:top-20 sm:mx-auto sm:p-5 sm:border w-full sm:w-96 sm:shadow-lg sm:rounded-md bg-white h-full sm:h-auto">
-        <div class="p-4 sm:p-0 sm:mt-3">
-            <div class="flex items-center justify-between mb-4 pb-3 sm:pb-4 border-b sm:border-0">
-                <h3 class="text-base sm:text-lg font-medium text-gray-900" id="modalTitle">Appointment Details</h3>
-                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 p-2 -mr-2">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
+<div id="appointmentModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+            <div class="flex items-center">
+                <svg class="w-5 h-5 text-primary-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <h3 class="text-lg font-semibold text-gray-900" id="modalTitle">Appointment Details</h3>
             </div>
-            <div id="modalContent" class="overflow-y-auto max-h-[calc(100vh-120px)] sm:max-h-96">
-                <!-- Content will be populated by JavaScript -->
-            </div>
+            <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition-colors" aria-label="Close modal">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        
+        <!-- Modal Content -->
+        <div id="modalContent" class="flex-1 overflow-y-auto px-6 py-4">
+            <!-- Populated by JavaScript -->
         </div>
     </div>
 </div>
@@ -174,7 +205,7 @@ window.addEventListener('resize', () => {
     }
 });
 
-// Generate calendar
+// Generate calendar based on screen size
 function generateCalendar() {
     if (isMobile) {
         generateMobileDayList();
@@ -196,31 +227,40 @@ function generateMobileDayList() {
         const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const date = new Date(currentYear, currentMonth - 1, day);
         const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-        
-        // Skip Sundays
-        if (date.getDay() === 0) continue;
+        const isSunday = date.getDay() === 0;
         
         const dayAppointments = appointmentsByDate[dateStr] || [];
         const dayConfig = configsByDate[dateStr];
         const isToday = dateStr === today;
         
         const dayItem = document.createElement('div');
-        dayItem.className = `p-4 cursor-pointer hover:bg-gray-50 transition-colors duration-150 ${isToday ? 'bg-blue-50' : ''}`;
-        dayItem.onclick = () => showDayAppointments(dateStr, dayAppointments);
+        dayItem.className = `p-4 transition-colors ${isToday ? 'bg-blue-50' : ''} ${!isSunday ? 'cursor-pointer hover:bg-gray-50 active:bg-gray-100' : 'bg-gray-50'}`;
+        
+        if (!isSunday) {
+            dayItem.onclick = () => showDayAppointments(dateStr, dayAppointments);
+        }
         
         let configInfo = '';
-        if (dayConfig) {
+        if (isSunday) {
+            configInfo = '<div class="flex items-center gap-2 text-sm text-gray-500 mt-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg><span class="italic">Clinic Closed</span></div>';
+        } else if (dayConfig) {
+            const availabilityClass = dayConfig.available_count > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
             configInfo = `
-                <div class="flex items-center gap-3 text-xs text-gray-500 mt-2">
-                    <span>${dayConfig.start_time} - ${dayConfig.end_time}</span>
-                    <span class="inline-flex items-center px-2 py-0.5 rounded-full ${dayConfig.available_count > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                        ${dayConfig.available_count}/${dayConfig.total_slots} available
+                <div class="flex flex-wrap items-center gap-2 text-xs text-gray-600 mt-2">
+                    <div class="flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span>${dayConfig.start_time} - ${dayConfig.end_time}</span>
+                    </div>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${availabilityClass}">
+                        ${dayConfig.available_count}/${dayConfig.total_slots} slots
                     </span>
-                    ${dayConfig.pending_count > 0 ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">${dayConfig.pending_count} pending</span>` : ''}
+                    ${dayConfig.pending_count > 0 ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">${dayConfig.pending_count} pending</span>` : ''}
                 </div>
             `;
         } else {
-            configInfo = '<div class="text-xs text-gray-400 mt-2">No timeslots configured</div>';
+            configInfo = '<div class="flex items-center gap-2 text-xs text-gray-400 mt-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span class="italic">No timeslots configured</span></div>';
         }
         
         let appointmentsList = '';
@@ -230,33 +270,31 @@ function generateMobileDayList() {
                 const statusColor = getStatusDotColor(apt.status);
                 return `
                     <div class="flex items-center gap-2 mt-2">
-                        <div class="w-2 h-2 rounded-full ${statusColor}"></div>
-                        <span class="text-sm text-gray-700">${apt.start_time} - ${apt.patient_name}</span>
+                        <div class="w-2 h-2 rounded-full flex-shrink-0 ${statusColor}"></div>
+                        <span class="text-sm text-gray-700 truncate">${apt.start_time} - ${apt.patient_name}</span>
                     </div>
                 `;
             }).join('');
             
             if (dayAppointments.length > 2) {
-                appointmentsList += `<div class="text-xs text-gray-500 mt-1 ml-4">+${dayAppointments.length - 2} more</div>`;
+                appointmentsList += `<div class="text-xs text-primary-600 font-medium mt-1 ml-4">+${dayAppointments.length - 2} more appointment${dayAppointments.length - 2 > 1 ? 's' : ''}</div>`;
             }
-        } else if (dayConfig) {
-            appointmentsList = '<div class="text-sm text-gray-400 mt-2">No appointments</div>';
+        } else if (dayConfig && !isSunday) {
+            appointmentsList = '<div class="text-sm text-gray-400 italic mt-2">No appointments scheduled</div>';
         }
         
         dayItem.innerHTML = `
             <div class="flex items-start justify-between">
-                <div class="flex-1">
-                    <div class="flex items-baseline gap-2">
-                        <span class="text-lg font-semibold text-gray-900">${day}</span>
-                        <span class="text-sm text-gray-500">${dayName}</span>
-                        ${isToday ? '<span class="text-xs font-medium text-blue-600">Today</span>' : ''}
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-baseline gap-2 mb-1">
+                        <span class="text-xl font-bold text-gray-900">${day}</span>
+                        <span class="text-sm font-medium text-gray-600">${dayName}</span>
+                        ${isToday ? '<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-600 text-white">Today</span>' : ''}
                     </div>
                     ${configInfo}
                     ${appointmentsList}
                 </div>
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                </svg>
+                ${!isSunday ? '<svg class="w-5 h-5 text-gray-400 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>' : ''}
             </div>
         `;
         
@@ -278,7 +316,7 @@ function generateDesktopCalendar() {
     const startDay = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
     for (let i = 0; i < startDay; i++) {
         const emptyCell = document.createElement('div');
-        emptyCell.className = 'bg-gray-50 h-28 sm:h-32 p-2';
+        emptyCell.className = 'bg-gray-50 min-h-[120px] p-2';
         calendarGrid.appendChild(emptyCell);
     }
     
@@ -287,24 +325,37 @@ function generateDesktopCalendar() {
         const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const date = new Date(currentYear, currentMonth - 1, day);
         const isSunday = date.getDay() === 0;
+        const isToday = dateStr === today;
         
         const dayCell = document.createElement('div');
-        dayCell.className = `bg-white h-28 sm:h-32 p-2 border-r border-b border-gray-100 ${!isSunday ? 'cursor-pointer hover:bg-gray-50' : 'bg-gray-100'} transition-colors duration-150`;
+        dayCell.className = `bg-white min-h-[120px] p-3 transition-colors ${!isSunday ? 'cursor-pointer hover:bg-gray-50' : 'bg-gray-50'}`;
         
-        if (dateStr === today) {
-            dayCell.classList.add('bg-blue-50', 'border-blue-200');
+        if (isToday) {
+            dayCell.classList.add('bg-blue-50', 'ring-2', 'ring-inset', 'ring-blue-500');
         }
         
-        // Day number
+        // Day number with badge for today
+        const dayHeader = document.createElement('div');
+        dayHeader.className = 'flex items-center justify-between mb-2';
+        
         const dayNumber = document.createElement('div');
-        dayNumber.className = `font-semibold text-sm ${isSunday ? 'text-gray-400' : 'text-gray-900'} mb-1`;
+        dayNumber.className = `font-semibold text-sm ${isSunday ? 'text-gray-400' : isToday ? 'text-blue-600' : 'text-gray-900'}`;
         dayNumber.textContent = day;
-        dayCell.appendChild(dayNumber);
+        dayHeader.appendChild(dayNumber);
+        
+        if (isToday) {
+            const todayBadge = document.createElement('span');
+            todayBadge.className = 'text-xs font-semibold text-blue-600';
+            todayBadge.textContent = 'Today';
+            dayHeader.appendChild(todayBadge);
+        }
+        
+        dayCell.appendChild(dayHeader);
         
         if (isSunday) {
             const sundayNote = document.createElement('div');
-            sundayNote.className = 'text-xs text-gray-400 italic';
-            sundayNote.textContent = 'Closed';
+            sundayNote.className = 'flex items-center gap-1 text-xs text-gray-500 italic';
+            sundayNote.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>Closed';
             dayCell.appendChild(sundayNote);
             calendarGrid.appendChild(dayCell);
             continue;
@@ -316,37 +367,44 @@ function generateDesktopCalendar() {
         // Show timeslot config info
         if (dayConfig) {
             const configInfo = document.createElement('div');
-            configInfo.className = 'text-xs text-gray-500 mb-1';
-            configInfo.innerHTML = `<span class="font-medium">${dayConfig.available_count}/${dayConfig.total_slots}</span> slots`;
+            configInfo.className = 'text-xs text-gray-600 mb-2 flex items-center gap-1';
+            const availabilityColor = dayConfig.available_count > 0 ? 'text-green-600' : 'text-red-600';
+            configInfo.innerHTML = `<span class="${availabilityColor} font-semibold">${dayConfig.available_count}</span>/<span>${dayConfig.total_slots}</span> slots`;
             if (dayConfig.pending_count > 0) {
-                configInfo.innerHTML += ` <span class="text-yellow-600">(${dayConfig.pending_count} pending)</span>`;
+                configInfo.innerHTML += ` <span class="text-yellow-600 font-medium">(${dayConfig.pending_count})</span>`;
             }
             dayCell.appendChild(configInfo);
         } else {
             const noConfig = document.createElement('div');
-            noConfig.className = 'text-xs text-gray-400 italic mb-1';
+            noConfig.className = 'text-xs text-gray-400 italic mb-2';
+            noConfig.textContent = 'No slots';
             dayCell.appendChild(noConfig);
         }
         
         // Show appointments (max 3)
+        const appointmentContainer = document.createElement('div');
+        appointmentContainer.className = 'space-y-1';
+        
         dayAppointments.forEach((appointment, index) => {
             if (index < 3) {
                 const appointmentDiv = document.createElement('div');
-                appointmentDiv.className = `text-xs p-1 mb-1 rounded cursor-pointer border ${getStatusColor(appointment.status)}`;
-                appointmentDiv.textContent = `${appointment.start_time} - ${appointment.patient_name}`;
+                appointmentDiv.className = `text-xs p-1.5 rounded-md cursor-pointer border transition-colors ${getStatusColor(appointment.status)}`;
+                appointmentDiv.textContent = `${appointment.start_time} ${appointment.patient_name}`;
                 
                 appointmentDiv.onclick = (e) => {
                     e.stopPropagation();
                     showAppointmentDetails(appointment);
                 };
-                dayCell.appendChild(appointmentDiv);
+                appointmentContainer.appendChild(appointmentDiv);
             }
         });
+        
+        dayCell.appendChild(appointmentContainer);
         
         // Show "more" indicator
         if (dayAppointments.length > 3) {
             const moreDiv = document.createElement('div');
-            moreDiv.className = 'text-xs text-gray-500 font-medium';
+            moreDiv.className = 'text-xs text-primary-600 font-semibold mt-1';
             moreDiv.textContent = `+${dayAppointments.length - 3} more`;
             dayCell.appendChild(moreDiv);
         }
@@ -361,14 +419,14 @@ function generateDesktopCalendar() {
 
 function getStatusColor(status) {
     const colors = {
-        'pending': 'bg-yellow-100 text-yellow-800 border-yellow-200',
-        'confirmed': 'bg-green-100 text-green-800 border-green-200',
-        'completed': 'bg-blue-100 text-blue-800 border-blue-200',
-        'cancelled': 'bg-red-100 text-red-800 border-red-200',
-        'rejected': 'bg-red-100 text-red-800 border-red-200',
-        'did_not_arrive': 'bg-gray-100 text-gray-800 border-gray-200'
+        'pending': 'bg-yellow-100 text-yellow-800 border-yellow-300 hover:bg-yellow-200',
+        'confirmed': 'bg-green-100 text-green-800 border-green-300 hover:bg-green-200',
+        'completed': 'bg-blue-100 text-blue-800 border-blue-300 hover:bg-blue-200',
+        'cancelled': 'bg-red-100 text-red-800 border-red-300 hover:bg-red-200',
+        'rejected': 'bg-red-100 text-red-800 border-red-300 hover:bg-red-200',
+        'did_not_arrive': 'bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200'
     };
-    return colors[status] || 'bg-gray-100 text-gray-800 border-gray-200';
+    return colors[status] || 'bg-gray-100 text-gray-800 border-gray-300 hover:bg-gray-200';
 }
 
 function getStatusDotColor(status) {
@@ -392,8 +450,8 @@ function showDayAppointments(dateStr, dayAppointments) {
     try {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
             console.error('Invalid date format:', dateStr);
-            modalTitle.textContent = 'Appointments - Invalid Date';
-            modalContent.innerHTML = '<p class="text-red-500">Error: Invalid date format</p>';
+            modalTitle.textContent = 'Invalid Date';
+            modalContent.innerHTML = '<div class="text-center py-8"><svg class="w-12 h-12 text-red-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><p class="text-red-600 font-medium">Invalid date format</p></div>';
             modal.classList.remove('hidden');
             return;
         }
@@ -407,45 +465,98 @@ function showDayAppointments(dateStr, dayAppointments) {
         
     } catch (error) {
         console.error('Date parsing error:', error, 'for dateStr:', dateStr);
-        modalTitle.textContent = 'Appointments - Date Error';
-        modalContent.innerHTML = '<p class="text-red-500">Error loading appointment date</p>';
+        modalTitle.textContent = 'Date Error';
+        modalContent.innerHTML = '<div class="text-center py-8"><svg class="w-12 h-12 text-red-500 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><p class="text-red-600 font-medium">Error loading date</p></div>';
         modal.classList.remove('hidden');
         return;
     }
     
-    modalTitle.textContent = `${date.toLocaleDateString('en-US', { 
-        weekday: 'short', 
-        month: 'short', 
+    modalTitle.textContent = date.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        month: 'long', 
         day: 'numeric',
         year: 'numeric'
-    })}`;
+    });
     
     const appointments = Array.isArray(dayAppointments) ? dayAppointments : [];
     const dayConfig = configsByDate[dateStr];
     
     if (!dayConfig) {
-        modalContent.innerHTML = '<p class="text-gray-500 text-center py-8">No timeslots configured for this day.</p>';
+        modalContent.innerHTML = `
+            <div class="text-center py-12">
+                <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <p class="text-gray-600 font-medium mb-1">No Timeslots Configured</p>
+                <p class="text-sm text-gray-500">This day has not been set up for appointments.</p>
+            </div>
+        `;
     } else if (appointments.length === 0) {
         modalContent.innerHTML = `
-            <div class="text-center py-8">
-                <p class="text-sm text-gray-600 mb-2">Operating Hours: ${dayConfig.start_time} - ${dayConfig.end_time}</p>
-                <p class="text-sm text-gray-600">Available Slots: ${dayConfig.available_count}/${dayConfig.total_slots}</p>
-                <p class="text-gray-500 mt-4">No appointments scheduled for this day.</p>
+            <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                <div class="flex items-center justify-between text-sm mb-2">
+                    <div class="flex items-center gap-2 text-gray-700">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="font-medium">Operating Hours</span>
+                    </div>
+                    <span class="text-gray-900 font-semibold">${dayConfig.start_time} - ${dayConfig.end_time}</span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                    <div class="flex items-center gap-2 text-gray-700">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                        <span class="font-medium">Available Slots</span>
+                    </div>
+                    <span class="${dayConfig.available_count > 0 ? 'text-green-600' : 'text-red-600'} font-semibold">${dayConfig.available_count}/${dayConfig.total_slots}</span>
+                </div>
+            </div>
+            <div class="text-center py-12">
+                <svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <p class="text-gray-600 font-medium mb-1">No Appointments Scheduled</p>
+                <p class="text-sm text-gray-500">This day is available for new appointments.</p>
             </div>
         `;
     } else {
-        let content = `
-            <div class="mb-4 pb-3 border-b">
-                <p class="text-sm text-gray-600">Operating Hours: ${dayConfig.start_time} - ${dayConfig.end_time}</p>
-                <p class="text-sm text-gray-600">Available Slots: ${dayConfig.available_count}/${dayConfig.total_slots}</p>
-            </div>
-            <div class="space-y-3">
-        `;
-        
         // Sort appointments by start_time
         const sortedAppointments = [...appointments].sort((a, b) => {
             return a.start_time.localeCompare(b.start_time);
         });
+        
+        let content = `
+            <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                <div class="flex items-center justify-between text-sm mb-2">
+                    <div class="flex items-center gap-2 text-gray-700">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="font-medium">Operating Hours</span>
+                    </div>
+                    <span class="text-gray-900 font-semibold">${dayConfig.start_time} - ${dayConfig.end_time}</span>
+                </div>
+                <div class="flex items-center justify-between text-sm">
+                    <div class="flex items-center gap-2 text-gray-700">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                        </svg>
+                        <span class="font-medium">Available Slots</span>
+                    </div>
+                    <span class="${dayConfig.available_count > 0 ? 'text-green-600' : 'text-red-600'} font-semibold">${dayConfig.available_count}/${dayConfig.total_slots}</span>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <div class="flex items-center justify-between">
+                    <h4 class="text-sm font-semibold text-gray-900">Appointments (${sortedAppointments.length})</h4>
+                </div>
+            </div>
+            
+            <div class="space-y-3">
+        `;
         
         sortedAppointments.forEach(appointment => {
             content += createAppointmentCard(appointment);
@@ -460,29 +571,72 @@ function showDayAppointments(dateStr, dayAppointments) {
 }
 
 function createAppointmentCard(appointment) {
-    const statusLabel = {
+    const statusLabels = {
         'pending': 'Pending',
         'confirmed': 'Confirmed',
         'completed': 'Completed',
         'cancelled': 'Cancelled',
         'rejected': 'Rejected',
         'did_not_arrive': 'Did Not Arrive'
-    }[appointment.status] || appointment.status;
+    };
+    const statusLabel = statusLabels[appointment.status] || appointment.status;
     
     return `
-        <div class="border border-gray-200 rounded-lg p-3">
-            <div class="flex items-center justify-between mb-2">
-                <span class="font-medium text-sm">${appointment.patient_name}</span>
-                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(appointment.status)}">${statusLabel}</span>
+        <div class="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors">
+            <div class="flex items-start justify-between mb-3">
+                <div class="flex-1 min-w-0">
+                    <h5 class="font-semibold text-gray-900 truncate">${appointment.patient_name}</h5>
+                    <div class="flex items-center gap-2 mt-1">
+                        <svg class="w-4 h-4 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span class="text-sm text-gray-600">${appointment.time_display}</span>
+                    </div>
+                </div>
+                <span class="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-full ${getStatusColor(appointment.status).split(' ').slice(0, 2).join(' ')}">${statusLabel}</span>
             </div>
-            <div class="text-xs sm:text-sm text-gray-600 space-y-1">
-                <p><strong>Time:</strong> ${appointment.time_display}</p>
-                <p><strong>Service:</strong> ${appointment.service_name}</p>
-                ${appointment.dentist_name ? `<p><strong>Dentist:</strong> ${appointment.dentist_name}</p>` : '<p><strong>Dentist:</strong> <span class="italic text-gray-400">Unassigned</span></p>'}
-                ${appointment.reason ? `<p><strong>Reason:</strong> ${appointment.reason}</p>` : ''}
+            
+            <div class="space-y-2 text-sm">
+                <div class="flex items-start gap-2">
+                    <svg class="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                    </svg>
+                    <div class="flex-1 min-w-0">
+                        <span class="text-gray-600 font-medium">Service:</span>
+                        <span class="text-gray-900 ml-1">${appointment.service_name}</span>
+                    </div>
+                </div>
+                
+                <div class="flex items-start gap-2">
+                    <svg class="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                    </svg>
+                    <div class="flex-1 min-w-0">
+                        <span class="text-gray-600 font-medium">Dentist:</span>
+                        <span class="text-gray-900 ml-1">${appointment.dentist_name || '<span class="italic text-gray-400">Unassigned</span>'}</span>
+                    </div>
+                </div>
+                
+                ${appointment.reason ? `
+                <div class="flex items-start gap-2">
+                    <svg class="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <div class="flex-1 min-w-0">
+                        <span class="text-gray-600 font-medium">Reason:</span>
+                        <span class="text-gray-900 ml-1">${appointment.reason}</span>
+                    </div>
+                </div>
+                ` : ''}
             </div>
-            <div class="mt-3 flex flex-wrap gap-2">
-                <a href="/appointments/${appointment.id}/" class="text-primary-600 hover:text-primary-500 text-xs sm:text-sm font-medium">View Details</a>
+            
+            <div class="mt-4 pt-3 border-t border-gray-200">
+                <a href="/appointments/${appointment.id}/" class="inline-flex items-center text-sm font-medium text-primary-600 hover:text-primary-700 transition-colors">
+                    View Full Details
+                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </a>
             </div>
         </div>
     `;
@@ -502,9 +656,9 @@ document.addEventListener('DOMContentLoaded', function() {
     generateCalendar();
 });
 
-// Close modal when clicking outside (only on desktop)
+// Close modal when clicking outside
 document.getElementById('appointmentModal').addEventListener('click', function(e) {
-    if (e.target === this && !isMobile) {
+    if (e.target === this) {
         closeModal();
     }
 });

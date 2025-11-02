@@ -7,184 +7,387 @@
     input,
     select,
     textarea {
-        padding: 0.5rem 0.75rem;
+        padding: 0.625rem 0.75rem;
     }
 </style>
 
-<div class="container mx-auto px-4 py-6">
-    <!-- Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+<div class="space-y-6">
+    <!-- Header Section -->
+    <div class="sm:flex sm:items-center sm:justify-between">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Timeslot Configuration</h1>
-            <p class="text-gray-600">Manage daily operating hours and appointment availability</p>
+            <p class="mt-1 text-sm text-gray-600">Manage daily operating hours and appointment availability</p>
         </div>
-        <div class="flex flex-col sm:flex-row gap-3">
+        <div class="mt-4 sm:mt-0 flex flex-col sm:flex-row gap-2 sm:gap-3">
             <a href="{% url 'appointments:daily_slots_create' %}"
-               class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                Add Configuration
+               class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                <span>Add Configuration</span>
             </a>
             <button type="button" onclick="openBulkCreateModal()"
-                    class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                Bulk Create
+                    class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+                <span>Bulk Create</span>
             </button>
         </div>
     </div>
 
-    <!-- Info Message -->
+    <!-- Info Banner -->
     {% if default_range_info %}
-    <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-3">
-        <p class="text-sm text-blue-800">
-            ℹ️ {{ default_range_info }}. Use filters to view configurations outside this range.
-        </p>
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                </svg>
+            </div>
+            <div class="ml-3 flex-1">
+                <p class="text-sm text-blue-800">
+                    {{ default_range_info }}. Use filters to view configurations outside this range.
+                </p>
+            </div>
+        </div>
     </div>
     {% endif %}
 
-    <!-- Filters -->
-    <div class="bg-white shadow rounded-lg mb-6">
-        <div class="px-4 py-3 border-b border-gray-200">
-            <form method="get" class="flex flex-wrap items-center gap-4">
-                <div class="flex items-center space-x-2">
-                    <label for="date_from" class="text-sm font-medium text-gray-700">From:</label>
-                    <input type="date" id="date_from" name="date_from" value="{{ filters.date_from }}"
-                           class="rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
+    <!-- Search & Filters Card -->
+    <div class="bg-white shadow-sm rounded-lg border border-gray-200">
+        <div class="px-4 sm:px-6 py-4">
+            <form method="get" id="filterForm" class="space-y-4">
+                <!-- Main Filter Bar -->
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <div class="flex-1">
+                        <label for="date_from" class="block text-sm font-medium text-gray-700 mb-1">From Date</label>
+                        <input type="date" 
+                               id="date_from" 
+                               name="date_from" 
+                               value="{{ filters.date_from }}"
+                               class="block w-full rounded-lg px-3 py-2.5 border border-gray-300 shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
+                    </div>
+                    <div class="flex-1">
+                        <label for="date_to" class="block text-sm font-medium text-gray-700 mb-1">To Date</label>
+                        <input type="date" 
+                               id="date_to" 
+                               name="date_to" 
+                               value="{{ filters.date_to }}"
+                               class="block w-full rounded-lg px-3 py-2.5 border border-gray-300 shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
+                    </div>
+                    <div class="flex items-end gap-2">
+                        <button type="submit"
+                                class="inline-flex items-center justify-center px-4 py-2.5 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                            </svg>
+                            <span>Apply</span>
+                        </button>
+                        {% if filters.date_from or filters.date_to %}
+                        <a href="{% url 'appointments:daily_slots_list' %}"
+                           class="inline-flex items-center justify-center px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                            <span>Clear</span>
+                        </a>
+                        {% endif %}
+                    </div>
                 </div>
-                <div class="flex items-center space-x-2">
-                    <label for="date_to" class="text-sm font-medium text-gray-700">To:</label>
-                    <input type="date" id="date_to" name="date_to" value="{{ filters.date_to }}"
-                           class="rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 text-sm">
+
+                <!-- Active Filters Display -->
+                {% if filters.date_from or filters.date_to %}
+                <div class="flex flex-wrap gap-2 items-center pt-2 border-t border-gray-200">
+                    <span class="text-xs font-medium text-gray-500">Active filters:</span>
+                    {% if filters.date_from %}
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-primary-50 text-primary-700 border border-primary-200">
+                        From: {{ filters.date_from }}
+                    </span>
+                    {% endif %}
+                    {% if filters.date_to %}
+                    <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-primary-50 text-primary-700 border border-primary-200">
+                        To: {{ filters.date_to }}
+                    </span>
+                    {% endif %}
+                    <a href="{% url 'appointments:daily_slots_list' %}" 
+                       class="text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors">
+                        Clear all
+                    </a>
                 </div>
-                <button type="submit"
-                        class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700">
-                    Filter
-                </button>
-                <a href="{% url 'appointments:daily_slots_list' %}"
-                   class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                    Clear
-                </a>
+                {% endif %}
             </form>
         </div>
     </div>
 
-    <!-- Configurations Table -->
-    <div class="bg-white shadow rounded-lg overflow-hidden">
+    <!-- Results Summary -->
+    {% if configurations %}
+    <div class="flex items-center justify-between px-1">
+        <p class="text-sm text-gray-600">
+            <span class="font-medium text-gray-900">{{ configurations|length }}</span> 
+            configuration{{ configurations|length|pluralize }} found
+            {% if filters.date_from or filters.date_to %}
+            <span class="text-gray-500">
+                in selected range
+            </span>
+            {% endif %}
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- Desktop Table -->
+    <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
         {% if configurations %}
-            <div class="overflow-x-auto">
+            <div class="hidden md:block overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                 Date
                             </th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                 Day
                             </th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                 Operating Hours
                             </th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                 Total Slots
                             </th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Available
-                            </th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                 Pending
                             </th>
-                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
                                 Actions
                             </th>
                         </tr>
                     </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
+                    <tbody class="bg-white divide-y divide-gray-100">
                         {% for config in configurations %}
-                        <tr class="hover:bg-gray-50">
-                            <td class="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {{ config.date|date:"Y-m-d" }}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">
+                                    {{ config.date|date:"Y-m-d" }}
+                                </div>
                             </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ config.date|date:"l" }}
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-500">
+                                    {{ config.date|date:"l" }}
+                                </div>
                             </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                                {{ config.start_time|time:"g:i A" }} - {{ config.end_time|time:"g:i A" }}
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">
+                                    {{ config.start_time|time:"g:i A" }} - {{ config.end_time|time:"g:i A" }}
+                                </div>
                             </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                                <span class="font-medium">{{ config.total_slots }}</span>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">
+                                    {{ config.total_slots }}
+                                </div>
                             </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-sm">
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
-                                    {% if config.available_slots_count > 0 %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
-                                    {{ config.available_slots_count }}
-                                </span>
-                            </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-sm">
+                            <td class="px-6 py-4 whitespace-nowrap">
                                 {% if config.pending_count > 0 %}
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                        {{ config.pending_count }}
-                                    </span>
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    {{ config.pending_count }}
+                                </span>
                                 {% else %}
-                                    <span class="text-gray-400">0</span>
+                                <span class="text-sm text-gray-400">0</span>
                                 {% endif %}
                             </td>
-                            <td class="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                            <td class="px-6 py-4 whitespace-nowrap text-right">
                                 <a href="{% url 'appointments:daily_slots_update' config.pk %}"
-                                   class="text-primary-600 hover:text-primary-900">Edit</a>
+                                   class="text-primary-600 hover:text-primary-700 text-sm font-medium transition-colors">
+                                    Edit
+                                </a>
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+            <!-- Mobile Cards -->
+            <div class="md:hidden divide-y divide-gray-100">
+                {% for config in configurations %}
+                <div class="p-4 hover:bg-gray-50 transition-colors">
+                    <!-- Card Header -->
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center mb-1">
+                                <svg class="w-4 h-4 mr-2 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                                </svg>
+                                <h3 class="text-base font-semibold text-gray-900">
+                                    {{ config.date|date:"M d, Y" }}
+                                </h3>
+                            </div>
+                            <p class="text-xs text-gray-500 ml-6">
+                                {{ config.date|date:"l" }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Card Details -->
+                    <div class="space-y-2 mb-3 text-sm">
+                        <div class="flex items-start">
+                            <svg class="w-4 h-4 mr-2 text-gray-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <div class="flex-1">
+                                <span class="text-gray-900 font-medium">{{ config.start_time|time:"g:i A" }} - {{ config.end_time|time:"g:i A" }}</span>
+                                <div class="text-xs text-gray-500 mt-0.5">Operating hours</div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <svg class="w-4 h-4 mr-2 text-gray-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                            </svg>
+                            <div class="flex-1">
+                                <span class="text-gray-900 font-medium">{{ config.total_slots }} total slots</span>
+                                <div class="text-xs text-gray-500 mt-0.5">
+                                    {% if config.pending_count > 0 %}
+                                    <span class="text-yellow-600 font-medium">{{ config.pending_count }} pending</span>
+                                    {% else %}
+                                    <span class="text-gray-500">No pending appointments</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status Badges -->
+                    <div class="flex flex-wrap gap-2 mb-3">
+                        {% if config.pending_count > 0 %}
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">
+                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                            </svg>
+                            {{ config.pending_count }} Pending
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Action Button -->
+                    <div class="flex gap-2">
+                        <a href="{% url 'appointments:daily_slots_update' config.pk %}" 
+                           class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                            Edit Configuration
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
 
             <!-- Pagination -->
             {% if is_paginated %}
             <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                <!-- Mobile Pagination -->
                 <div class="flex-1 flex justify-between sm:hidden">
                     {% if page_obj.has_previous %}
                         <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
-                           class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                           class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
                             Previous
                         </a>
+                    {% else %}
+                        <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-400 bg-gray-50 cursor-not-allowed">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                            Previous
+                        </span>
                     {% endif %}
                     {% if page_obj.has_next %}
                         <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
-                           class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                           class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors">
                             Next
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
                         </a>
+                    {% else %}
+                        <span class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-400 bg-gray-50 cursor-not-allowed">
+                            Next
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </span>
                     {% endif %}
                 </div>
+
+                <!-- Desktop Pagination -->
                 <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                     <div>
                         <p class="text-sm text-gray-700">
-                            Showing <span class="font-medium">{{ page_obj.start_index }}</span> to <span class="font-medium">{{ page_obj.end_index }}</span> of <span class="font-medium">{{ page_obj.paginator.count }}</span> results
+                            Showing
+                            <span class="font-medium">{{ page_obj.start_index }}</span>
+                            to
+                            <span class="font-medium">{{ page_obj.end_index }}</span>
+                            of
+                            <span class="font-medium">{{ page_obj.paginator.count }}</span>
+                            results
                         </p>
                     </div>
                     <div>
-                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                        <nav class="relative z-0 inline-flex rounded-lg shadow-sm -space-x-px" aria-label="Pagination">
+                            <!-- Previous Button -->
                             {% if page_obj.has_previous %}
                                 <a href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
-                                   class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                   class="relative inline-flex items-center px-2 py-2 rounded-l-lg border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors">
                                     <span class="sr-only">Previous</span>
-                                    ←
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                    </svg>
                                 </a>
+                            {% else %}
+                                <span class="relative inline-flex items-center px-2 py-2 rounded-l-lg border border-gray-300 bg-gray-50 text-sm font-medium text-gray-300 cursor-not-allowed">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                    </svg>
+                                </span>
                             {% endif %}
+
+                            <!-- Page Numbers -->
                             {% for num in page_obj.paginator.page_range %}
                                 {% if page_obj.number == num %}
-                                    <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-primary-50 text-sm font-medium text-primary-600">
+                                    <span class="relative inline-flex items-center px-4 py-2 border border-primary-500 bg-primary-50 text-sm font-medium text-primary-600 z-10">
                                         {{ num }}
                                     </span>
                                 {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
                                     <a href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
-                                       class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                       class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
                                         {{ num }}
                                     </a>
+                                {% elif num == page_obj.number|add:'-3' or num == page_obj.number|add:'3' %}
+                                    <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                                        ...
+                                    </span>
                                 {% endif %}
                             {% endfor %}
+
+                            <!-- Next Button -->
                             {% if page_obj.has_next %}
                                 <a href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"
-                                   class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                   class="relative inline-flex items-center px-2 py-2 rounded-r-lg border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors">
                                     <span class="sr-only">Next</span>
-                                    →
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
                                 </a>
+                            {% else %}
+                                <span class="relative inline-flex items-center px-2 py-2 rounded-r-lg border border-gray-300 bg-gray-50 text-sm font-medium text-gray-300 cursor-not-allowed">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                </span>
                             {% endif %}
                         </nav>
                     </div>
@@ -193,80 +396,148 @@
             {% endif %}
         {% else %}
             <!-- Empty State -->
-            <div class="text-center py-12">
-                <div class="text-4xl mb-4">📅</div>
-                <h3 class="text-lg font-medium text-gray-900 mb-2">No timeslot configurations found</h3>
-                <p class="text-gray-500 mb-6">Get started by creating operating hours for upcoming dates.</p>
-                <a href="{% url 'appointments:daily_slots_create' %}"
-                   class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                    Add First Configuration
-                </a>
+            <div class="text-center py-12 px-4">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-base font-semibold text-gray-900 mb-1">No configurations found</h3>
+                <p class="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
+                    {% if filters.date_from or filters.date_to %}
+                        No timeslot configurations match your date range. Try adjusting your filters.
+                    {% else %}
+                        Get started by creating operating hours for upcoming dates.
+                    {% endif %}
+                </p>
+                <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                    {% if filters.date_from or filters.date_to %}
+                        <a href="{% url 'appointments:daily_slots_list' %}" 
+                           class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                            Clear Filters
+                        </a>
+                    {% endif %}
+                    <a href="{% url 'appointments:daily_slots_create' %}" 
+                       class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                        </svg>
+                        Add Your First Configuration
+                    </a>
+                </div>
             </div>
         {% endif %}
     </div>
 </div>
-
 <!-- Bulk Create Modal -->
-<div id="bulkCreateModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50 p-4">
+<div id="bulkCreateModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 p-4">
     <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] flex flex-col">
         <!-- Step 1: Form -->
         <div id="bulkStep1" class="flex flex-col flex-1">
             <div class="px-6 py-4 border-b border-gray-200 flex-shrink-0">
-                <h3 class="text-lg font-medium text-gray-900">Bulk Create Timeslot Configurations</h3>
+                <h3 class="text-lg font-semibold text-gray-900">Bulk Create Timeslot Configurations</h3>
+                <p class="mt-1 text-sm text-gray-600">Create multiple configurations at once</p>
             </div>
             <form id="bulkCreateForm" onsubmit="handleBulkPreview(event)" class="flex flex-col flex-1">
                 {% csrf_token %}
                 <div class="px-6 py-4 space-y-4 overflow-y-auto flex-1">
                     <!-- Error display area -->
-                    <div id="modalError" class="hidden rounded-lg p-3 bg-red-50 text-red-800 border border-red-200">
-                        <div class="flex items-center">
-                            <span class="mr-2">⚠️</span>
-                            <span id="modalErrorText"></span>
+                    <div id="modalError" class="hidden rounded-lg p-3 bg-red-50 border border-red-200">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-red-800" id="modalErrorText"></p>
+                            </div>
                         </div>
                     </div>
 
                     <div>
-                        <label for="bulk_start_date" class="block text-sm font-medium text-gray-700">
+                        <label for="bulk_start_date" class="block text-sm font-medium text-gray-700 mb-1">
                             Start Date <span class="text-red-600">*</span>
                         </label>
-                        <input type="date" id="bulk_start_date" name="start_date" required
-                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                        <input type="date" 
+                               id="bulk_start_date" 
+                               name="start_date" 
+                               required
+                               class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
                     </div>
+                    
                     <div>
-                        <label for="bulk_end_date" class="block text-sm font-medium text-gray-700">
+                        <label for="bulk_end_date" class="block text-sm font-medium text-gray-700 mb-1">
                             End Date <span class="text-red-600">*</span>
                         </label>
-                        <input type="date" id="bulk_end_date" name="end_date" required
-                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                        <input type="date" 
+                               id="bulk_end_date" 
+                               name="end_date" 
+                               required
+                               class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
                     </div>
+                    
                     <div>
-                        <label for="bulk_start_time" class="block text-sm font-medium text-gray-700">
+                        <label for="bulk_start_time" class="block text-sm font-medium text-gray-700 mb-1">
                             Opening Time <span class="text-red-600">*</span>
                         </label>
-                        <input type="time" id="bulk_start_time" name="start_time" value="10:00" step="1800" required
-                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                        <input type="time" 
+                               id="bulk_start_time" 
+                               name="start_time" 
+                               value="10:00" 
+                               step="1800" 
+                               required
+                               class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
                         <p class="mt-1 text-xs text-gray-500">Must be in 30-minute increments</p>
                     </div>
+                    
                     <div>
-                        <label for="bulk_end_time" class="block text-sm font-medium text-gray-700">
+                        <label for="bulk_end_time" class="block text-sm font-medium text-gray-700 mb-1">
                             Closing Time <span class="text-red-600">*</span>
                         </label>
-                        <input type="time" id="bulk_end_time" name="end_time" value="18:00" step="1800" required
-                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                        <input type="time" 
+                               id="bulk_end_time" 
+                               name="end_time" 
+                               value="18:00" 
+                               step="1800" 
+                               required
+                               class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
                         <p class="mt-1 text-xs text-gray-500">Must be in 30-minute increments</p>
                     </div>
-                    <div class="text-sm text-gray-500 bg-gray-50 p-3 rounded">
-                        <p class="mb-1">ℹ️ Sundays will be skipped automatically</p>
-                        <p>ℹ️ Existing dates will be skipped</p>
+                    
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-xs text-blue-800 space-y-1">
+                                    <span class="block">• Sundays will be skipped automatically</span>
+                                    <span class="block">• Existing dates will be skipped</span>
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="px-6 py-4 bg-gray-50 flex justify-end space-x-3 border-t border-gray-200 flex-shrink-0">
-                    <button type="button" onclick="closeBulkCreateModal()"
-                            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                
+                <div class="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-200 flex-shrink-0">
+                    <button type="button" 
+                            onclick="closeBulkCreateModal()"
+                            class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
                         Cancel
                     </button>
-                    <button type="submit" id="previewBtn"
-                            class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                    <button type="submit" 
+                            id="previewBtn"
+                            class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
                         Preview
                     </button>
                 </div>
@@ -276,18 +547,30 @@
         <!-- Step 2: Preview -->
         <div id="bulkStep2" class="hidden flex flex-col flex-1">
             <div class="px-6 py-4 border-b border-gray-200 flex-shrink-0">
-                <h3 class="text-lg font-medium text-gray-900">Review Plan</h3>
+                <h3 class="text-lg font-semibold text-gray-900">Review Configuration Plan</h3>
+                <p class="mt-1 text-sm text-gray-600">Verify before creating</p>
             </div>
+            
             <div id="previewContent" class="px-6 py-4 space-y-4 overflow-y-auto flex-1">
                 <!-- Populated by JavaScript -->
             </div>
-            <div class="px-6 py-4 bg-gray-50 flex justify-end space-x-3 border-t border-gray-200 flex-shrink-0">
-                <button type="button" onclick="backToForm()"
-                        class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                        Back
+            
+            <div class="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-200 flex-shrink-0">
+                <button type="button" 
+                        onclick="backToForm()"
+                        class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                    Back
                 </button>
-                <button type="button" onclick="confirmBulkCreate()" id="confirmBtn"
-                        class="px-4 py-2 border border-transparent rounded-md text-sm font-medium text-white bg-green-600 hover:bg-green-700">
+                <button type="button" 
+                        onclick="confirmBulkCreate()" 
+                        id="confirmBtn"
+                        class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
                     Confirm & Create
                 </button>
             </div>
@@ -296,10 +579,15 @@
 </div>
 
 <script>
+(function() {
+    'use strict';
+    
     let bulkCreateData = null;
 
-    function openBulkCreateModal() {
-        document.getElementById('bulkCreateModal').classList.remove('hidden');
+    window.openBulkCreateModal = function() {
+        const modal = document.getElementById('bulkCreateModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
         resetBulkForm();
 
         const tomorrow = new Date();
@@ -307,17 +595,21 @@
         const twoMonthsLater = new Date();
         twoMonthsLater.setDate(twoMonthsLater.getDate() + 60);
 
-        document.getElementById('bulk_start_date').value = tomorrow.toISOString().split('T')[0];
-        document.getElementById('bulk_end_date').value = twoMonthsLater.toISOString().split('T')[0];
+        const startDate = document.getElementById('bulk_start_date');
+        const endDate = document.getElementById('bulk_end_date');
         
-        document.getElementById('bulk_start_date').setAttribute('min', tomorrow.toISOString().split('T')[0]);
-        document.getElementById('bulk_end_date').setAttribute('min', tomorrow.toISOString().split('T')[0]);
-    }
+        startDate.value = tomorrow.toISOString().split('T')[0];
+        endDate.value = twoMonthsLater.toISOString().split('T')[0];
+        startDate.setAttribute('min', tomorrow.toISOString().split('T')[0]);
+        endDate.setAttribute('min', tomorrow.toISOString().split('T')[0]);
+    };
 
-    function closeBulkCreateModal() {
-        document.getElementById('bulkCreateModal').classList.add('hidden');
+    window.closeBulkCreateModal = function() {
+        const modal = document.getElementById('bulkCreateModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
         resetBulkForm();
-    }
+    };
 
     function resetBulkForm() {
         document.getElementById('bulkCreateForm').reset();
@@ -327,11 +619,11 @@
         bulkCreateData = null;
     }
 
-    function backToForm() {
+    window.backToForm = function() {
         document.getElementById('bulkStep1').classList.remove('hidden');
         document.getElementById('bulkStep2').classList.add('hidden');
         hideModalError();
-    }
+    };
 
     function showModalError(message) {
         const errorDiv = document.getElementById('modalError');
@@ -344,15 +636,15 @@
         document.getElementById('modalError').classList.add('hidden');
     }
 
-    async function handleBulkPreview(event) {
+    window.handleBulkPreview = async function(event) {
         event.preventDefault();
         hideModalError();
 
         const formData = new FormData(document.getElementById('bulkCreateForm'));
         const previewBtn = document.getElementById('previewBtn');
-        const originalText = previewBtn.textContent;
+        const originalText = previewBtn.innerHTML;
         previewBtn.disabled = true;
-        previewBtn.textContent = 'Generating preview...';
+        previewBtn.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Generating...';
 
         try {
             const response = await fetch('{% url "appointments:bulk_create_preview" %}', {
@@ -380,42 +672,47 @@
             console.error('Preview error:', error);
         } finally {
             previewBtn.disabled = false;
-            previewBtn.textContent = originalText;
+            previewBtn.innerHTML = originalText;
         }
-    }
+    };
 
     function displayPreview(data) {
         const previewContent = document.getElementById('previewContent');
         const summary = data.summary;
 
-        let html = `
-            <div class="space-y-4">
-                <!-- Summary -->
-                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
-                    <h4 class="font-semibold text-gray-900 mb-3">Summary</h4>
-                    <div class="space-y-2 text-sm">
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Period:</span>
-                            <span class="font-medium">${data.start_date} → ${data.end_date}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Operating Hours:</span>
-                            <span class="font-medium">${data.time_range}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Working days in range:</span>
-                            <span class="font-medium">${summary.total_days_in_range - summary.skipped_sundays}</span>
-                        </div>
-                        <div class="flex justify-between pt-2 border-t border-blue-100">
-                            <span class="text-green-700 font-semibold">Will create:</span>
-                            <span class="text-green-700 font-bold text-lg">${summary.will_create}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-yellow-700 font-semibold">Will skip (existing):</span>
-                            <span class="text-yellow-700 font-bold text-lg">${summary.will_skip}</span>
-                        </div>
+        let html = '<div class="space-y-4">';
+        
+        html += `
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+                <h4 class="font-semibold text-gray-900 mb-3 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                    Summary
+                </h4>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between py-1">
+                        <span class="text-gray-600">Period:</span>
+                        <span class="font-medium text-gray-900">${data.start_date} → ${data.end_date}</span>
+                    </div>
+                    <div class="flex justify-between py-1">
+                        <span class="text-gray-600">Operating Hours:</span>
+                        <span class="font-medium text-gray-900">${data.time_range}</span>
+                    </div>
+                    <div class="flex justify-between py-1">
+                        <span class="text-gray-600">Working days in range:</span>
+                        <span class="font-medium text-gray-900">${summary.total_days_in_range - summary.skipped_sundays}</span>
+                    </div>
+                    <div class="flex justify-between pt-2 border-t border-blue-200">
+                        <span class="text-green-700 font-semibold">Will create:</span>
+                        <span class="text-green-700 font-bold text-lg">${summary.will_create}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-yellow-700 font-semibold">Will skip (existing):</span>
+                        <span class="text-yellow-700 font-bold text-lg">${summary.will_skip}</span>
                     </div>
                 </div>
+            </div>
         `;
 
         if (summary.will_create > 0 && data.to_create.length > 0) {
@@ -423,20 +720,25 @@
             const last = data.to_create[data.to_create.length - 1];
             
             html += `
-                <div class="bg-green-50 border border-green-200 rounded-lg p-3">
-                    <h4 class="font-semibold text-green-900 mb-2">✅ Will Create Configurations</h4>
-                    <div class="text-sm text-green-800 space-y-1">
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-green-900 mb-2 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        Will Create Configurations
+                    </h4>
+                    <div class="text-sm text-green-800 space-y-1.5">
                         <div class="flex justify-between">
-                            <span>First:</span>
+                            <span class="text-gray-700">First:</span>
                             <span class="font-medium">${first.date} (${first.day_name})</span>
                         </div>
                         <div class="flex justify-between">
-                            <span>Last:</span>
+                            <span class="text-gray-700">Last:</span>
                             <span class="font-medium">${last.date} (${last.day_name})</span>
                         </div>
                         <div class="pt-2 border-t border-green-300">
-                            <p class="text-xs">
-                                ${first.start_time} - ${first.end_time} (${first.num_slots} slots per day)
+                            <p class="text-xs text-gray-700">
+                                ${first.start_time} - ${first.end_time} • ${first.num_slots} slots per day
                             </p>
                         </div>
                     </div>
@@ -449,19 +751,24 @@
             const last = data.to_skip[data.to_skip.length - 1];
             
             html += `
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                    <h4 class="font-semibold text-yellow-900 mb-2">⚠️ Will Skip (Already Exist)</h4>
-                    <div class="text-sm text-yellow-800 space-y-1">
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-yellow-900 mb-2 flex items-center">
+                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                        Will Skip (Already Exist)
+                    </h4>
+                    <div class="text-sm text-yellow-800 space-y-1.5">
                         <div class="flex justify-between">
-                            <span>First:</span>
+                            <span class="text-gray-700">First:</span>
                             <span class="font-medium">${first.date} (${first.day_name})</span>
                         </div>
                         <div class="flex justify-between">
-                            <span>Last:</span>
+                            <span class="text-gray-700">Last:</span>
                             <span class="font-medium">${last.date} (${last.day_name})</span>
                         </div>
                         <div class="pt-2 border-t border-yellow-300">
-                            <p class="text-xs">${data.to_skip.length} existing configurations will be preserved</p>
+                            <p class="text-xs text-gray-700">${data.to_skip.length} existing configuration${data.to_skip.length !== 1 ? 's' : ''} will be preserved</p>
                         </div>
                     </div>
                 </div>
@@ -471,22 +778,25 @@
         if (summary.will_create === 0) {
             html += `
                 <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
-                    <p class="text-gray-600">ℹ️ No new configurations will be created. All dates in this range already exist or fall on Sundays.</p>
+                    <svg class="w-12 h-12 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <p class="text-sm text-gray-600">No new configurations will be created. All dates in this range already exist or fall on Sundays.</p>
                 </div>
             `;
         }
 
-        html += `</div>`;
+        html += '</div>';
         previewContent.innerHTML = html;
     }
 
-    async function confirmBulkCreate() {
+    window.confirmBulkCreate = async function() {
         if (!bulkCreateData) return;
 
         const confirmBtn = document.getElementById('confirmBtn');
-        const originalText = confirmBtn.textContent;
+        const originalText = confirmBtn.innerHTML;
         confirmBtn.disabled = true;
-        confirmBtn.textContent = 'Creating...';
+        confirmBtn.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Creating...';
 
         try {
             const formData = new FormData();
@@ -515,14 +825,17 @@
             backToForm();
         } finally {
             confirmBtn.disabled = false;
-            confirmBtn.textContent = originalText;
+            confirmBtn.innerHTML = originalText;
         }
-    }
+    };
 
+    // Close modal when clicking backdrop
     document.getElementById('bulkCreateModal').addEventListener('click', function(e) {
         if (e.target === this) {
             closeBulkCreateModal();
         }
     });
+})();
 </script>
+
 {% endblock %}

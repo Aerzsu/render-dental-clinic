@@ -73,6 +73,7 @@ class Role(models.Model):
         super().save(*args, **kwargs)
 
 class User(AbstractUser):
+
     role = models.ForeignKey(Role, on_delete=models.PROTECT, null=True, blank=True)
     phone = models.CharField(max_length=20, blank=True)
     is_active_dentist = models.BooleanField(default=False, help_text="Can accept appointments")
@@ -93,3 +94,5 @@ class User(AbstractUser):
     @property
     def full_name(self):
         return self.get_full_name() or self.username
+
+# asd

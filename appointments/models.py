@@ -7,6 +7,8 @@ from decimal import Decimal
 from django.core.validators import MinValueValidator
 import secrets
 
+from core.models import AuditLog
+
 
 class TimeSlotConfiguration(models.Model):
     """
@@ -579,18 +581,24 @@ class Appointment(models.Model):
         
         # Only assign if not already assigned
         if not self.assigned_dentist:
+            old_dentist = self.assigned_dentist  # Will be None
             self.assigned_dentist = dentist
             self.save(update_fields=['assigned_dentist', 'updated_at'])
             
             # Create audit log if assigned_by provided
             if assigned_by:
                 from core.models import AuditLog
-                AuditLog.objects.create(
+                AuditLog.log_action(
                     user=assigned_by,
-                    action='assign_dentist',
-                    model_name='Appointment',
-                    object_id=self.pk,
-                    details=f"Assigned dentist: Dr. {dentist.get_full_name()}"
+                    action='update',
+                    model_instance=self,
+                    changes={
+                        'assigned_dentist': {
+                            'old': 'Not assigned',
+                            'new': f"Dr. {dentist.get_full_name()}"
+                        }
+                    },
+                    description=f"Assigned dentist: Dr. {dentist.get_full_name()}"
                 )
             
             return True
@@ -856,6 +864,42 @@ class Payment(models.Model):
     # Notes
     notes = models.TextField(blank=True, help_text="Optional notes about payment")
     
+    # Lock mechanism fields (ADD THESE)
+    is_locked = models.BooleanField(
+        default=False,
+        help_text='Invoice is locked after first payment to prevent accidental modifications'
+    )
+    locked_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text='Timestamp when invoice was locked'
+    )
+    locked_by = models.ForeignKey(
+        'users.User',
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+        related_name='locked_payments',
+        help_text='User who triggered the lock (via payment or manual action)'
+    )
+    lock_reason = models.CharField(
+        max_length=255,
+        blank=True,
+        default='',
+        help_text='Reason for locking (e.g., "first_payment_received", "manual_lock")'
+    )
+    
+    # Invoice delivery tracking (ADD THESE)
+    invoice_sent_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text='Timestamp when invoice was first emailed to patient'
+    )
+    invoice_download_count = models.PositiveIntegerField(
+        default=0,
+        help_text='Number of times invoice PDF was downloaded'
+    )
+
     class Meta:
         ordering = ['-created_at']
         indexes = [
@@ -950,6 +994,106 @@ class Payment(models.Model):
             self.save()
             self.update_status()
     
+    def lock_invoice(self, user, reason='first_payment_received', request=None):
+        """
+        Lock the invoice to prevent further modifications
+        
+        Args:
+            user: User who triggered the lock
+            reason: Why the invoice is being locked
+            request: HTTP request for audit logging
+        """
+        if self.is_locked:
+            return False  # Already locked
+        
+        self.is_locked = True
+        self.locked_at = timezone.now()
+        self.locked_by = user
+        self.lock_reason = reason
+        self.save(update_fields=['is_locked', 'locked_at', 'locked_by', 'lock_reason'])
+        
+        # Audit log
+        AuditLog.log_action(
+            user=user,
+            action='update',
+            model_instance=self,
+            changes={'is_locked': {'old': 'No', 'new': 'Yes'}},
+            request=request,
+            description=f'Invoice locked: {reason}'
+        )
+        
+        return True
+    
+    def unlock_invoice(self, user, reason, request=None):
+        """
+        Unlock the invoice (admin override only)
+        
+        Args:
+            user: Admin user unlocking the invoice
+            reason: Reason for unlocking (required)
+            request: HTTP request for audit logging
+        """
+        if not self.is_locked:
+            return False  # Already unlocked
+        
+        # Store old lock info for audit
+        old_lock_info = {
+            'locked_at': self.locked_at,
+            'locked_by': str(self.locked_by) if self.locked_by else 'Unknown',
+            'lock_reason': self.lock_reason
+        }
+        
+        self.is_locked = False
+        self.locked_at = None
+        self.locked_by = None
+        self.lock_reason = ''
+        self.save(update_fields=['is_locked', 'locked_at', 'locked_by', 'lock_reason'])
+        
+        # Critical audit log
+        AuditLog.log_action(
+            user=user,
+            action='update',
+            model_instance=self,
+            changes={
+                'is_locked': {'old': 'Yes', 'new': 'No'},
+                'unlock_reason': {'old': '', 'new': reason},
+                'previous_lock_info': {'old': '', 'new': str(old_lock_info)}
+            },
+            request=request,
+            description=f'🔓 ADMIN OVERRIDE: Invoice unlocked by {user.get_full_name()}. Reason: {reason}'
+        )
+        
+        return True
+    
+    def can_edit_items(self):
+        """Check if invoice items can be added/removed"""
+        return not self.is_locked
+    
+    def can_add_payment(self):
+        """Payments can always be added (even when locked)"""
+        return self.outstanding_balance > 0
+    
+    def get_lock_display(self):
+        """Get human-readable lock status"""
+        if not self.is_locked:
+            return "Unlocked - Can edit"
+        
+        locked_date = self.locked_at.strftime('%b %d, %Y at %I:%M %p') if self.locked_at else 'Unknown date'
+        locked_user = self.locked_by.get_full_name() if self.locked_by else 'System'
+        
+        return f"Locked on {locked_date} by {locked_user}"
+    
+    def mark_invoice_sent(self):
+        """Mark invoice as sent via email"""
+        if not self.invoice_sent_at:
+            self.invoice_sent_at = timezone.now()
+            self.save(update_fields=['invoice_sent_at'])
+    
+    def increment_download_count(self):
+        """Track PDF downloads"""
+        self.invoice_download_count += 1
+        self.save(update_fields=['invoice_download_count'])
+
     def clean(self):
         if self.amount_paid > self.total_amount:
             raise ValidationError("Amount paid cannot exceed total amount")

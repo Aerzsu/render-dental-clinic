@@ -50,6 +50,13 @@ urlpatterns = [
     path('payments/<int:payment_pk>/force-add-item/', payment_views.force_add_payment_item, name='force_add_payment_item'),
     path('payments/dashboard/', payment_views.payment_dashboard, name='payment_dashboard'),
     
+    # Lock/Unlock endpoints
+    path('payments/<int:payment_pk>/unlock/', payment_views.unlock_payment, name='unlock_payment'),
+    
+    # Invoice PDF and tracking
+    path('payments/<int:payment_pk>/invoice-pdf/', payment_views.invoice_pdf, name='invoice_pdf'),
+    path('payments/<int:payment_pk>/track-download/', payment_views.track_invoice_download, name='track_invoice_download'),
+
     # Helper endpoint to clear invoice modal flag
     path('clear-invoice-modal/', views.clear_invoice_modal, name='clear_invoice_modal'),
     

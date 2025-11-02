@@ -1,0 +1,156 @@
+<!-- templates/emails/invoice_receipt.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Invoice & Receipt</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f9fafb;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; padding: 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);">
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 32px; text-align: center;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">{{ clinic_name }}</h1>
+                            <p style="margin: 8px 0 0 0; color: #ffffff; font-size: 14px; font-weight: 500;">Payment Confirmation</p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Greeting -->
+                    <tr>
+                        <td style="padding: 24px 24px 16px 24px;">
+                            <h2 style="margin: 0 0 8px 0; color: #111827; font-size: 20px; font-weight: 600;">Hi {{ patient_name }},</h2>
+                            <p style="margin: 0; color: #6b7280; font-size: 14px; line-height: 20px;">
+                                Thank you for your payment! This email confirms your payment and includes your invoice details.
+                            </p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Payment Received Box -->
+                    <tr>
+                        <td style="padding: 0 24px 16px 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #d1fae5; border-left: 4px solid #059669; border-radius: 8px; border: 1px solid #a7f3d0;">
+                                <tr>
+                                    <td style="padding: 16px;">
+                                        <p style="margin: 0 0 8px 0; color: #065f46; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">✓ Payment Received</p>
+                                        <p style="margin: 0; color: #065f46; font-size: 24px; font-weight: 700;">{{ amount_paid }}</p>
+                                        <p style="margin: 8px 0 0 0; color: #065f46; font-size: 12px; font-weight: 500;">Receipt #: {{ receipt_number }}</p>
+                                        <p style="margin: 4px 0 0 0; color: #065f46; font-size: 12px; font-weight: 500;">Date: {{ payment_date }}</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    
+                    <!-- Invoice Details -->
+                    <tr>
+                        <td style="padding: 0 24px 16px 24px;">
+                            <h3 style="margin: 0 0 12px 0; color: #111827; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.025em; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px;">Invoice Details</h3>
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Invoice Number:</td>
+                                    <td style="padding: 8px 0; color: #111827; font-size: 14px; font-weight: 600; text-align: right;">#{{ invoice_number }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Appointment Date:</td>
+                                    <td style="padding: 8px 0; color: #111827; font-size: 14px; text-align: right;">{{ appointment_date }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px;">Service:</td>
+                                    <td style="padding: 8px 0; color: #111827; font-size: 14px; text-align: right;">{{ service_name }}</td>
+                                </tr>
+                                <tr style="border-top: 1px solid #e5e7eb;">
+                                    <td style="padding: 12px 0 8px 0; color: #6b7280; font-size: 14px; font-weight: 500;">Total Amount:</td>
+                                    <td style="padding: 12px 0 8px 0; color: #111827; font-size: 16px; font-weight: 600; text-align: right;">{{ total_amount }}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; color: #6b7280; font-size: 14px; font-weight: 500;">Amount Paid:</td>
+                                    <td style="padding: 8px 0; color: #059669; font-size: 16px; font-weight: 600; text-align: right;">{{ amount_paid }}</td>
+                                </tr>
+                                <tr style="border-top: 2px solid #111827;">
+                                    <td style="padding: 12px 0 8px 0; color: #111827; font-size: 14px; font-weight: 700;">Outstanding Balance:</td>
+                                    <td style="padding: 12px 0 8px 0; font-size: 18px; font-weight: 700; text-align: right; color: {% if is_fully_paid %}#059669{% else %}#d97706{% endif %};">
+                                        {{ outstanding_balance }}
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    
+                    <!-- Next Payment Due (if applicable) -->
+                    {% if not is_fully_paid and next_due_date %}
+                    <tr>
+                        <td style="padding: 0 24px 16px 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fef3c7; border-left: 4px solid #d97706; border-radius: 8px; border: 1px solid #fde68a;">
+                                <tr>
+                                    <td style="padding: 12px;">
+                                        <p style="margin: 0 0 4px 0; color: #92400e; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Next Payment Due</p>
+                                        <p style="margin: 0; color: #92400e; font-size: 14px; font-weight: 600;">{{ next_due_date }}</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    
+                    <!-- Full Payment Success (if applicable) -->
+                    {% if is_fully_paid %}
+                    <tr>
+                        <td style="padding: 0 24px 16px 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #d1fae5; border-left: 4px solid #059669; border-radius: 8px; border: 1px solid #a7f3d0;">
+                                <tr>
+                                    <td style="padding: 16px; text-align: center;">
+                                        <p style="margin: 0; color: #065f46; font-size: 16px; font-weight: 700;">🎉 Payment Complete!</p>
+                                        <p style="margin: 4px 0 0 0; color: #065f46; font-size: 14px; font-weight: 500;">Your invoice has been fully settled. Thank you!</p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    
+                    <!-- Patient Portal Link -->
+                    <tr>
+                        <td style="padding: 0 24px 24px 24px; text-align: center;">
+                            <p style="margin: 0 0 12px 0; color: #6b7280; font-size: 14px;">View your complete payment history and upcoming appointments:</p>
+                            <a href="{{ portal_url }}" style="display: inline-block; padding: 10px 24px; background-color: #667eea; color: #ffffff; text-decoration: none; border-radius: 8px; font-size: 14px; font-weight: 600;">
+                                View Patient Portal
+                            </a>
+                        </td>
+                    </tr>
+                    
+                    <!-- Important Note -->
+                    <tr>
+                        <td style="padding: 0 24px 16px 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb;">
+                                <tr>
+                                    <td style="padding: 12px;">
+                                        <p style="margin: 0 0 8px 0; color: #111827; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Important Note:</p>
+                                        <p style="margin: 0; color: #6b7280; font-size: 12px; line-height: 18px;">
+                                            Please keep this email for your records. If you have any questions about your invoice or payment, 
+                                            please contact us directly or reply to this email.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f9fafb; padding: 16px 24px; text-align: center; border-top: 1px solid #e5e7eb;">
+                            <p style="margin: 0 0 4px 0; color: #6b7280; font-size: 14px; font-weight: 600;">{{ clinic_name }}</p>
+                            <p style="margin: 0; color: #9ca3af; font-size: 12px;">
+                                This is an automated email. Please do not reply directly to this message.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

@@ -8,7 +8,14 @@
     input,
     select,
     textarea {
-        padding: 0.5rem 0.75rem;
+        padding: 0.625rem 0.875rem;
+        transition: all 0.2s ease;
+    }
+    
+    input:focus,
+    select:focus,
+    textarea:focus {
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
     
     .btn-loading {
@@ -38,57 +45,105 @@
     
     .service-item-card {
         transition: all 0.2s ease;
+        border: 2px solid #e5e7eb;
     }
     
     .service-item-card:hover {
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border-color: #d1d5db;
+        box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
     }
     
     .product-item {
         background: #f9fafb;
-        border-left: 3px solid #e5e7eb;
+        border-left: 3px solid #3b82f6;
+        transition: background 0.2s ease;
+    }
+    
+    .product-item:hover {
+        background: #f3f4f6;
     }
     
     .summary-sticky {
         position: sticky;
         top: 1rem;
     }
+    
+    .remove-btn {
+        transition: all 0.2s ease;
+    }
+    
+    .remove-btn:hover {
+        transform: scale(1.05);
+    }
+    
+    .add-btn {
+        transition: all 0.2s ease;
+    }
+    
+    .add-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .radio-card {
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+    
+    .radio-card:hover {
+        background: #f9fafb;
+    }
+    
+    .radio-card input:checked ~ label {
+        border-color: #3b82f6;
+        background: #eff6ff;
+    }
+    
+    @media print {
+        .no-print { display: none; }
+    }
 </style>
 
-<div class="space-y-6">
-    <!-- Header -->
-    <div class="sm:flex sm:items-center sm:justify-between">
-        <div>
-            <nav class="flex mb-2" aria-label="Breadcrumb">
-                <ol role="list" class="flex items-center space-x-4">
-                    <li>
-                        <div class="flex">
-                            <a href="{% url 'appointments:payment_list' %}" class="text-sm font-medium text-gray-500 hover:text-gray-700">
-                                Payments
-                            </a>
-                        </div>
-                    </li>
-                    <li>
-                        <div class="flex items-center">
-                            <svg class="flex-shrink-0 h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                            </svg>
-                            <span class="ml-4 text-sm font-medium text-gray-500">Create Invoice</span>
-                        </div>
-                    </li>
-                </ol>
-            </nav>
-            <h1 class="text-2xl font-bold text-gray-900">Create Invoice</h1>
-            <p class="mt-1 text-sm text-gray-600">
-                Create an invoice for {{ appointment.patient.full_name }}
-            </p>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+    <!-- Header Section -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <nav class="flex mb-3" aria-label="Breadcrumb">
+            <ol role="list" class="flex items-center space-x-3 text-sm">
+                <li>
+                    <a href="{% url 'appointments:payment_list' %}" class="text-gray-500 hover:text-gray-700 font-medium transition-colors">
+                        <svg class="w-4 h-4 inline-block mr-1 -mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                        Payments
+                    </a>
+                </li>
+                <li>
+                    <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                    </svg>
+                </li>
+                <li>
+                    <span class="text-gray-900 font-medium">Create Invoice</span>
+                </li>
+            </ol>
+        </nav>
+        <div class="flex items-start justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Create Invoice</h1>
+                <p class="text-base text-gray-600 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    {{ appointment.patient.full_name }}
+                </p>
+            </div>
         </div>
     </div>
 
     <!-- Form -->
-    <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+    <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <!-- Main Form (Left - 2 columns on large screens) -->
-        <div class="lg:col-span-2">
+        <div class="lg:col-span-2 space-y-6">
             <form method="post" id="paymentForm" class="space-y-6">
                 {% csrf_token %}
                 
@@ -96,22 +151,29 @@
                 {{ form.service_items_data }}
                 
                 <!-- Service Items Section -->
-                <div class="bg-white shadow rounded-lg">
-                    <div class="px-6 py-4 border-b border-gray-200">
-                        <h3 class="text-lg font-medium text-gray-900">Services & Products</h3>
-                        <p class="mt-1 text-sm text-gray-500">Add services and the products/supplies used</p>
+                <div class="bg-white shadow-sm rounded-lg border border-gray-200">
+                    <div class="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-white">
+                        <div class="flex items-center">
+                            <svg class="w-6 h-6 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">Services & Products</h3>
+                                <p class="mt-1 text-sm text-gray-600">Add services provided and products used</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="px-6 py-4">
+                    <div class="px-6 py-6">
                         <!-- Service Items Container -->
                         <div id="serviceItemsContainer" class="space-y-6">
                             <!-- Service items will be dynamically added here -->
                         </div>
                         
                         <!-- Add Service Button -->
-                        <div class="mt-6 pt-4 border-t border-gray-200">
+                        <div class="mt-6 pt-6 border-t border-gray-200">
                             <button type="button" id="addServiceBtn" 
-                                    class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                                <svg class="-ml-0.5 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    class="add-btn inline-flex items-center px-5 py-2.5 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                <svg class="w-5 h-5 mr-2 -ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                 </svg>
                                 Add Another Service
@@ -121,130 +183,179 @@
                 </div>
 
                 <!-- Discount Application -->
-                <div class="bg-white shadow rounded-lg">
-                    <div class="px-6 py-4 border-b border-gray-200">
-                        <h3 class="text-lg font-medium text-gray-900">Discount Application</h3>
-                        <p class="mt-1 text-sm text-gray-500">Choose how discounts should be applied</p>
+                <div class="bg-white shadow-sm rounded-lg border border-gray-200">
+                    <div class="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-green-50 to-white">
+                        <div class="flex items-center">
+                            <svg class="w-6 h-6 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                            </svg>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">Discount Application</h3>
+                                <p class="mt-1 text-sm text-gray-600">Choose how discounts should be applied</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="px-6 py-4">
+                    <div class="px-6 py-6">
                         <fieldset>
                             <legend class="sr-only">Discount application method</legend>
-                            <div class="space-y-4">
+                            <div class="space-y-3">
                                 <!-- Option 1: Apply to Individual Services -->
-                                <div>
-                                    <div class="flex items-center">
-                                        {{ form.discount_application.0 }}
-                                    </div>
-                                    <span class="block text-sm text-gray-500 ml-6 mt-1">Discounts apply only to service base fees (products excluded)</span>
+                                <div class="radio-card relative flex items-start p-4 border-2 border-gray-200 rounded-lg">
+                                    {{ form.discount_application.0 }}
+                                    <label for="{{ form.discount_application.0.id_for_label }}" class="ml-3 flex-1 cursor-pointer">
+                                        <!-- django already has label rendered, so no need for label here-->
+                                        <span class="block text-sm text-gray-600 mt-1">Discounts apply only to service base fees (products excluded)</span>
+                                    </label>
                                 </div>
                                 
                                 <!-- Option 2: Apply to Total Bill -->
-                                <div>
-                                    <div class="flex items-center">
-                                        {{ form.discount_application.1 }}
-                                    </div>
-                                    <span class="block text-sm text-gray-500 ml-6 mt-1">One discount applied to total service fees only</span>
+                                <div class="radio-card relative flex items-start p-4 border-2 border-gray-200 rounded-lg">
+                                    {{ form.discount_application.1 }}
+                                    <label for="{{ form.discount_application.1.id_for_label }}" class="ml-3 flex-1 cursor-pointer">
+                                        <!-- django already has label rendered, so no need for label here-->
+                                        <span class="block text-sm text-gray-600 mt-1">One discount applied to total service fees only</span>
+                                    </label>
                                 </div>
                             </div>
                             
                             {% if form.discount_application.errors %}
-                                <p class="mt-2 text-sm text-red-600">{{ form.discount_application.errors.0 }}</p>
+                                <div class="mt-3 flex items-center p-3 bg-red-50 border border-red-200 rounded-lg">
+                                    <svg class="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                    </svg>
+                                    <p class="text-sm text-red-700">{{ form.discount_application.errors.0 }}</p>
+                                </div>
                             {% endif %}
                         </fieldset>
                         
                         <!-- Total Discount Selection -->
-                        <div id="totalDiscountSection" class="mt-4 hidden">
-                            <label for="{{ form.total_discount.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        <div id="totalDiscountSection" class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg hidden">
+                            <label for="{{ form.total_discount.id_for_label }}" class="block text-sm font-semibold text-gray-900 mb-2">
+                                <svg class="w-4 h-4 inline-block mr-1 -mt-0.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                </svg>
                                 Discount to Apply
                             </label>
                             {{ form.total_discount }}
                             {% if form.total_discount.errors %}
                                 <p class="mt-2 text-sm text-red-600">{{ form.total_discount.errors.0 }}</p>
                             {% endif %}
-                            <p class="mt-2 text-sm text-gray-500">This discount will be applied to the total of all service base fees only (excludes products)</p>
+                            <p class="mt-2 text-xs text-gray-600 flex items-start">
+                                <svg class="w-4 h-4 mr-1 mt-0.5 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                </svg>
+                                This discount will be applied to the total of all service base fees only (excludes products)
+                            </p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Payment Configuration -->
-                <div class="bg-white shadow rounded-lg">
-                    <div class="px-6 py-4 border-b border-gray-200">
-                        <h3 class="text-lg font-medium text-gray-900">Payment Terms</h3>
-                        <p class="mt-1 text-sm text-gray-500">Set up the payment plan</p>
+                <div class="bg-white shadow-sm rounded-lg border border-gray-200">
+                    <div class="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-purple-50 to-white">
+                        <div class="flex items-center">
+                            <svg class="w-6 h-6 text-purple-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">Payment Terms</h3>
+                                <p class="mt-1 text-sm text-gray-600">Configure the payment plan and schedule</p>
+                            </div>
+                        </div>
                     </div>
-                    <div class="px-6 py-4">
-                        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                    <div class="px-6 py-6">
+                        <div class="space-y-6">
                             <!-- Payment Type -->
-                            <div class="sm:col-span-2">
+                            <div>
                                 <fieldset>
-                                    <legend class="text-sm font-medium text-gray-900 mb-3">Payment Type</legend>
-                                    <div class="space-y-4 sm:flex sm:items-center sm:space-y-0 sm:space-x-6">
-                                        <div class="flex items-center">
+                                    <legend class="text-sm font-semibold text-gray-900 mb-4">Payment Type <span class="text-red-500">*</span></legend>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        <div class="radio-card relative flex items-start p-4 border-2 border-gray-200 rounded-lg">
                                             {{ form.payment_type.0 }}
-                                            <label for="{{ form.payment_type.0.id_for_label }}" class="ml-3 text-sm font-medium text-gray-900">
-                                                <!-- Django renders the label text automatically, so no need to add label here-->
-                                            </label>
+                                            <label for="{{ form.payment_type.0.id_for_label }}" class="ml-3 flex-1 cursor-pointer flex flex-col">
+                                            </label> <!-- django already handles the label, no need to put one here-->
+                                            <div class="text-xs text-gray-600 mt-2">Pay the entire amount at once</div>
                                         </div>
-                                        <div class="flex items-center">
+                                        <div class="radio-card relative flex items-start p-4 border-2 border-gray-200 rounded-lg">
                                             {{ form.payment_type.1 }}
-                                            <label for="{{ form.payment_type.1.id_for_label }}" class="ml-3 text-sm font-medium text-gray-900">
-                                                <!-- Django renders the label text automatically, so no need to add label here-->
-                                            </label>
+                                            <label for="{{ form.payment_type.1.id_for_label }}" class="ml-3 flex-1 cursor-pointer flex flex-col">
+                                            </label> <!-- django already handles the label, no need to put one here-->
+                                            <div class="block text-xs text-gray-600 mt-2">Split payment over multiple months</div>
                                         </div>
                                     </div>
                                     {% if form.payment_type.errors %}
-                                        <p class="mt-2 text-sm text-red-600">{{ form.payment_type.errors.0 }}</p>
+                                        <div class="mt-3 flex items-center p-3 bg-red-50 border border-red-200 rounded-lg">
+                                            <svg class="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                            </svg>
+                                            <p class="text-sm text-red-700">{{ form.payment_type.errors.0 }}</p>
+                                        </div>
                                     {% endif %}
                                 </fieldset>
                             </div>
 
-                            <!-- Installment Months -->
-                            <div id="installmentMonths" class="hidden">
-                                <label for="{{ form.installment_months.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                                    Number of Months
-                                </label>
-                                {{ form.installment_months }}
-                                {% if form.installment_months.errors %}
-                                    <p class="mt-2 text-sm text-red-600">{{ form.installment_months.errors.0 }}</p>
-                                {% endif %}
-                                <p class="mt-2 text-sm text-gray-500">How many months to split the payment</p>
+                            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                                <!-- Installment Months -->
+                                <div id="installmentMonths" class="hidden">
+                                    <label for="{{ form.installment_months.id_for_label }}" class="block text-sm font-semibold text-gray-900 mb-2">
+                                        Number of Months <span class="text-red-500">*</span>
+                                    </label>
+                                    {{ form.installment_months }}
+                                    {% if form.installment_months.errors %}
+                                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                            </svg>
+                                            {{ form.installment_months.errors.0 }}
+                                        </p>
+                                    {% endif %}
+                                    <p class="mt-2 text-xs text-gray-600">How many months to split the payment</p>
+                                </div>
+
+                                <!-- Next Due Date -->
+                                <div id="nextDueDate">
+                                    <label for="{{ form.next_due_date.id_for_label }}" class="block text-sm font-semibold text-gray-900 mb-2">
+                                        <span id="dueDateLabel">Payment Due Date</span> <span class="text-red-500">*</span>
+                                    </label>
+                                    {{ form.next_due_date }}
+                                    {% if form.next_due_date.errors %}
+                                        <p class="mt-2 text-sm text-red-600 flex items-center">
+                                            <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                            </svg>
+                                            {{ form.next_due_date.errors.0 }}
+                                        </p>
+                                    {% endif %}
+                                    <p class="mt-2 text-xs text-gray-600" id="dueDateHelp">When the payment should be due</p>
+                                </div>
                             </div>
 
-                            <!-- Next Due Date -->
-                            <div id="nextDueDate">
-                                <label for="{{ form.next_due_date.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                                    <span id="dueDateLabel">Payment Due Date</span>
+                            <!-- Notes -->
+                            <div>
+                                <label for="{{ form.notes.id_for_label }}" class="block text-sm font-semibold text-gray-900 mb-2">
+                                    Notes (Optional)
                                 </label>
-                                {{ form.next_due_date }}
-                                {% if form.next_due_date.errors %}
-                                    <p class="mt-2 text-sm text-red-600">{{ form.next_due_date.errors.0 }}</p>
+                                {{ form.notes }}
+                                {% if form.notes.errors %}
+                                    <p class="mt-2 text-sm text-red-600">{{ form.notes.errors.0 }}</p>
                                 {% endif %}
-                                <p class="mt-2 text-sm text-gray-500" id="dueDateHelp">When should the payment be due</p>
+                                <p class="mt-2 text-xs text-gray-600">Add any additional information about this payment arrangement</p>
                             </div>
-                        </div>
-
-                        <!-- Notes -->
-                        <div class="mt-6">
-                            <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                                Notes
-                            </label>
-                            {{ form.notes }}
-                            {% if form.notes.errors %}
-                                <p class="mt-2 text-sm text-red-600">{{ form.notes.errors.0 }}</p>
-                            {% endif %}
-                            <p class="mt-2 text-sm text-gray-500">Optional notes about this payment arrangement</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Form Actions (Mobile) -->
-                <div class="flex flex-col sm:flex-row sm:justify-end space-y-3 sm:space-y-0 sm:space-x-3 lg:hidden">
+                <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 lg:hidden">
                     <a href="{% url 'appointments:appointment_detail' appointment.pk %}" 
-                       class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 text-center">
+                       class="px-5 py-2.5 border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 text-center transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
                         Cancel
                     </a>
                     <button type="submit" id="submitBtnMobile"
-                            class="inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                            class="inline-flex justify-center items-center px-5 py-2.5 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <svg class="w-5 h-5 mr-2 -ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
                         <span>Create Invoice</span>
                     </button>
                 </div>
@@ -253,93 +364,111 @@
 
         <!-- Sidebar Summary (Right - 1 column on large screens) -->
         <div class="lg:col-span-1">
-            <div class="summary-sticky">
+            <div class="summary-sticky space-y-6">
                 <!-- Payment Summary Card -->
-                <div class="bg-white shadow rounded-lg">
-                    <div class="px-6 py-4 border-b border-gray-200 bg-primary-50">
-                        <h3 class="text-lg font-medium text-gray-900">Payment Summary</h3>
+                <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-5 bg-gradient-to-r from-blue-600 to-blue-700">
+                        <h3 class="text-lg font-semibold text-white flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                            Payment Summary
+                        </h3>
                     </div>
-                    <div class="px-6 py-4">
-                        <dl class="space-y-3">
-                            <div class="flex justify-between text-sm">
-                                <dt class="text-gray-600">Services Subtotal:</dt>
-                                <dd class="font-medium text-gray-900" id="summaryServicesSubtotal">₱0.00</dd>
+                    <div class="px-6 py-5 space-y-4">
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center text-sm">
+                                <dt class="text-gray-600">Services Subtotal</dt>
+                                <dd class="font-semibold text-gray-900" id="summaryServicesSubtotal">₱0.00</dd>
                             </div>
-                            <div class="flex justify-between text-sm">
-                                <dt class="text-gray-600">Products Subtotal:</dt>
-                                <dd class="font-medium text-gray-900" id="summaryProductsSubtotal">₱0.00</dd>
+                            <div class="flex justify-between items-center text-sm">
+                                <dt class="text-gray-600">Products Subtotal</dt>
+                                <dd class="font-semibold text-gray-900" id="summaryProductsSubtotal">₱0.00</dd>
                             </div>
-                            <div class="flex justify-between text-sm pt-2 border-t border-gray-200">
-                                <dt class="font-medium text-gray-700">Subtotal:</dt>
-                                <dd class="font-semibold text-gray-900" id="summarySubtotal">₱0.00</dd>
+                            <div class="flex justify-between items-center text-sm pt-3 border-t-2 border-gray-200">
+                                <dt class="font-semibold text-gray-700">Subtotal</dt>
+                                <dd class="font-bold text-gray-900" id="summarySubtotal">₱0.00</dd>
                             </div>
-                            <div class="flex justify-between text-sm">
-                                <dt class="text-gray-600">Discount:</dt>
-                                <dd class="font-medium text-green-600" id="summaryDiscount">-₱0.00</dd>
+                            <div class="flex justify-between items-center text-sm">
+                                <dt class="text-gray-600">Discount</dt>
+                                <dd class="font-semibold text-green-600" id="summaryDiscount">-₱0.00</dd>
                             </div>
-                            <div class="flex justify-between text-lg font-bold pt-3 border-t-2 border-gray-300">
-                                <dt class="text-gray-900">Total Due:</dt>
-                                <dd class="text-primary-600" id="summaryTotal">₱0.00</dd>
+                            <div class="flex justify-between items-center text-xl font-bold pt-4 border-t-2 border-gray-300">
+                                <dt class="text-gray-900">Total Due</dt>
+                                <dd class="text-blue-600" id="summaryTotal">₱0.00</dd>
                             </div>
-                        </dl>
+                        </div>
                         
                         <!-- Installment Info -->
-                        <div id="installmentInfo" class="mt-4 pt-4 border-t border-gray-200 hidden">
-                            <div class="flex justify-between text-sm">
-                                <dt class="text-gray-600">Monthly Payment:</dt>
-                                <dd class="font-medium text-gray-900" id="monthlyAmount">₱0.00</dd>
+                        <div id="installmentInfo" class="mt-4 pt-4 border-t-2 border-gray-200 hidden">
+                            <div class="bg-purple-50 rounded-lg p-4">
+                                <div class="flex justify-between items-center">
+                                    <dt class="text-sm font-semibold text-gray-700">Monthly Payment</dt>
+                                    <dd class="text-lg font-bold text-purple-600" id="monthlyAmount">₱0.00</dd>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Appointment Info Card -->
-                <div class="bg-white shadow rounded-lg mt-6">
-                    <div class="px-6 py-4 border-b border-gray-200">
-                        <h3 class="text-sm font-medium text-gray-900">Appointment Details</h3>
+                <div class="bg-white shadow-sm rounded-lg border border-gray-200">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                        <h3 class="text-sm font-semibold text-gray-900 flex items-center">
+                            <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Appointment Details
+                        </h3>
                     </div>
-                    <div class="px-6 py-4">
-                        <dl class="space-y-3 text-sm">
+                    <div class="px-6 py-5">
+                        <dl class="space-y-4 text-sm">
                             <div>
-                                <dt class="text-gray-500">Patient</dt>
-                                <dd class="mt-1 font-medium text-gray-900">{{ appointment.patient.full_name }}</dd>
+                                <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Patient</dt>
+                                <dd class="mt-1 font-semibold text-gray-900">{{ appointment.patient.full_name }}</dd>
                             </div>
                             <div>
-                                <dt class="text-gray-500">Date & Time</dt>
+                                <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Date & Time</dt>
                                 <dd class="mt-1 text-gray-900">
                                     {{ appointment.appointment_date|date:"M d, Y" }}<br>
                                     <span class="text-gray-600 text-xs">{{ appointment.time_display }}</span>
                                 </dd>
                             </div>
                             <div>
-                                <dt class="text-gray-500">Service Booked</dt>
+                                <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Service Booked</dt>
                                 <dd class="mt-1 text-gray-900">{{ appointment.service.name }}</dd>
                             </div>
                             {% if appointment.assigned_dentist %}
                             <div>
-                                <dt class="text-gray-500">Dentist</dt>
+                                <dt class="text-xs font-medium text-gray-500 uppercase tracking-wide">Dentist</dt>
                                 <dd class="mt-1 text-gray-900">{{ appointment.assigned_dentist.full_name }}</dd>
                             </div>
                             {% endif %}
                         </dl>
                         
-                        <div class="mt-4 pt-4 border-t border-gray-200">
+                        <div class="mt-5 pt-5 border-t border-gray-200">
                             <a href="{% url 'appointments:appointment_detail' appointment.pk %}" 
-                               class="text-sm text-primary-600 hover:text-primary-500">
-                                View Appointment →
+                               class="inline-flex items-center text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
+                                View Full Appointment
+                                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
                             </a>
                         </div>
                     </div>
                 </div>
 
                 <!-- Form Actions (Desktop) -->
-                <div class="hidden lg:flex flex-col space-y-3 mt-6">
+                <div class="hidden lg:flex flex-col gap-3">
                     <button type="submit" form="paymentForm" id="submitBtn"
-                            class="w-full inline-flex justify-center items-center px-4 py-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
+                            class="w-full inline-flex justify-center items-center px-5 py-3 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <svg class="w-5 h-5 mr-2 -ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
                         <span id="submitBtnText">Create Invoice</span>
                     </button>
                     <a href="{% url 'appointments:appointment_detail' appointment.pk %}" 
-                       class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 text-center">
+                       class="w-full px-5 py-2.5 border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 text-center transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
                         Cancel
                     </a>
                 </div>
@@ -347,36 +476,43 @@
         </div>
     </div>
 </div>
+
 <!-- Admin Override Modal -->
-<div id="adminOverrideModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
-    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div class="mt-3 text-center">
-            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100">
-                <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<div id="adminOverrideModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50 transition-opacity">
+    <div class="relative top-20 mx-auto p-6 border border-gray-200 w-full max-w-md shadow-2xl rounded-xl bg-white">
+        <div class="text-center">
+            <div class="mx-auto flex items-center justify-center h-14 w-14 rounded-full bg-yellow-100">
+                <svg class="h-7 w-7 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
             </div>
-            <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4">Admin Override Required</h3>
-            <div class="mt-2 px-7 py-3">
-                <p class="text-sm text-gray-500" id="overrideMessage">
-                    Some service prices are outside the allowed range. Admin password required to proceed.
+            <h3 class="text-xl leading-6 font-bold text-gray-900 mt-4">Admin Override Required</h3>
+            <div class="mt-4 px-2">
+                <p class="text-sm text-gray-600" id="overrideMessage">
+                    Some service prices are outside the allowed range. Admin password is required to proceed.
                 </p>
-                <div id="priceViolations" class="mt-3 text-left bg-yellow-50 p-3 rounded text-sm">
+                <div id="priceViolations" class="mt-4 text-left bg-yellow-50 border border-yellow-200 p-4 rounded-lg text-sm space-y-2 max-h-48 overflow-y-auto">
                     <!-- Price violations will be listed here -->
                 </div>
-                <div class="mt-4">
+                <div class="mt-5">
+                    <label for="adminPassword" class="block text-sm font-semibold text-gray-900 text-left mb-2">Admin Password</label>
                     <input type="password" id="adminPassword" placeholder="Enter admin password" 
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" />
-                    <p class="text-xs text-red-600 mt-1 hidden" id="passwordError">Invalid admin password</p>
+                           class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 transition-colors" />
+                    <p class="text-sm text-red-600 mt-2 hidden flex items-center" id="passwordError">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                        </svg>
+                        Invalid admin password
+                    </p>
                 </div>
             </div>
-            <div class="flex items-center px-4 py-3 space-x-3">
+            <div class="flex items-center gap-3 mt-6 px-2">
                 <button id="cancelOverride" 
-                        class="flex-1 px-4 py-2 bg-gray-300 text-gray-900 text-base font-medium rounded-md shadow-sm hover:bg-gray-400">
+                        class="flex-1 px-4 py-2.5 bg-gray-100 text-gray-900 text-sm font-semibold rounded-lg hover:bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
                     Cancel
                 </button>
                 <button id="confirmOverride" 
-                        class="flex-1 px-4 py-2 bg-yellow-600 text-white text-base font-medium rounded-md shadow-sm hover:bg-yellow-700">
+                        class="flex-1 px-4 py-2.5 bg-yellow-600 text-white text-sm font-semibold rounded-lg hover:bg-yellow-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
                     Override Prices
                 </button>
             </div>
@@ -390,6 +526,7 @@ const availableServices = {{ services_json|safe }};
 const availableDiscounts = {{ discounts_json|safe }};
 const availableProducts = {{ products_json|safe }};
 const availableCategories = {{ categories_json|safe }};
+const initialItemsFromDjango = {{ initial_items_json|safe }};
 
 // Current service items data
 let serviceItems = [];
@@ -401,31 +538,76 @@ function roundAmount(value) {
 
 function formatCurrency(value) {
     const rounded = roundAmount(value);
-    return `₱${rounded.toLocaleString('en-PH')}`;
+    return `₱${rounded.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize service items from form data
-    const initialData = document.getElementById('id_service_items_data').value;
-    if (initialData) {
-        try {
-            serviceItems = JSON.parse(initialData);
-        } catch (e) {
-            console.error('Failed to parse initial service items:', e);
-            serviceItems = [];
+    // Load from Django's initial_items_json first
+    if (initialItemsFromDjango && initialItemsFromDjango.length > 0) {
+        console.log('Loading from treatment record:', initialItemsFromDjango);
+        serviceItems = initialItemsFromDjango.map(item => ({
+            service_id: item.service_id,
+            service_name: item.service_name,
+            price: item.default_price,  // Start with default price
+            discount_id: '',
+            notes: '',
+            min_price: item.min_price,
+            max_price: item.max_price,
+            products: item.products.map(prod => ({
+                product_id: prod.id,
+                product_name: prod.name,
+                quantity: prod.quantity,
+                unit_price: prod.unit_price,
+                notes: prod.notes || ''
+            }))
+        }));
+    } else {
+        // Fallback: Try to load from hidden form field (for form validation errors)
+        const initialData = document.getElementById('id_service_items_data').value;
+        if (initialData) {
+            try {
+                serviceItems = JSON.parse(initialData);
+                console.log('Loading from form data:', serviceItems);
+            } catch (e) {
+                console.error('Failed to parse initial service items:', e);
+                serviceItems = [];
+            }
         }
     }
     
-    // If no items, add a default one
+    // If still no items, add a default empty one
     if (serviceItems.length === 0) {
+        console.log('No initial items, adding default');
         addServiceItem();
     } else {
+        console.log('Rendering', serviceItems.length, 'initial items');
         renderServiceItems();
     }
     
     setupEventListeners();
     updatePaymentSummary();
+    
+    // Setup admin password field Enter key handler
+    const adminPasswordField = document.getElementById('adminPassword');
+    if (adminPasswordField) {
+        adminPasswordField.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                confirmAdminOverride();
+            }
+        });
+    }
+    
+    // Close modal on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('adminOverrideModal');
+            if (modal && !modal.classList.contains('hidden')) {
+                closeAdminModal();
+            }
+        }
+    });
 });
 
 function setupEventListeners() {
@@ -481,12 +663,12 @@ function handlePaymentTypeChange() {
     if (this.value === 'installment') {
         installmentMonths.classList.remove('hidden');
         dueDateLabel.textContent = 'First Payment Due Date';
-        dueDateHelp.textContent = 'When should the first installment be due';
+        dueDateHelp.textContent = 'When the first installment should be due';
         installmentInfo.classList.remove('hidden');
     } else {
         installmentMonths.classList.add('hidden');
         dueDateLabel.textContent = 'Payment Due Date';
-        dueDateHelp.textContent = 'When should the payment be due';
+        dueDateHelp.textContent = 'When the payment should be due';
         installmentInfo.classList.add('hidden');
     }
     
@@ -541,21 +723,31 @@ function createServiceItemHtml(item, index) {
     const discountApplicationType = document.querySelector('input[name="discount_application"]:checked')?.value;
     
     return `
-        <div class="service-item-card border-2 border-gray-200 rounded-lg p-5" data-index="${index}">
-            <div class="flex items-center justify-between mb-4">
-                <h4 class="text-md font-semibold text-gray-900">Service #${index + 1}</h4>
+        <div class="service-item-card rounded-xl p-6 bg-gradient-to-br from-white to-gray-50" data-index="${index}">
+            <div class="flex items-center justify-between mb-5">
+                <h4 class="text-base font-bold text-gray-900 flex items-center">
+                    <span class="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-blue-600 text-sm font-bold mr-3">
+                        ${index + 1}
+                    </span>
+                    Service #${index + 1}
+                </h4>
                 ${serviceItems.length > 1 ? `
-                    <button type="button" class="remove-service text-red-600 hover:text-red-800 text-sm font-medium" data-index="${index}">
+                    <button type="button" class="remove-service remove-btn text-red-600 hover:text-red-800 text-sm font-semibold flex items-center px-3 py-1.5 rounded-lg hover:bg-red-50 transition-all" data-index="${index}">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
                         Remove
                     </button>
                 ` : ''}
             </div>
             
-            <div class="grid grid-cols-1 gap-4">
+            <div class="space-y-5">
                 <!-- Service Selection -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Service <span class="text-red-500">*</span></label>
-                    <select class="service-select block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" data-index="${index}">
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">
+                        Service <span class="text-red-500">*</span>
+                    </label>
+                    <select class="service-select block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" data-index="${index}">
                         <option value="">Select a service...</option>
                         ${serviceOptions}
                     </select>
@@ -563,52 +755,77 @@ function createServiceItemHtml(item, index) {
                 
                 <!-- Service Price -->
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Service Base Fee (₱) <span class="text-red-500">*</span></label>
-                    <input type="number" class="price-input block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
-                           value="${item.price || ''}" step="1" min="1" data-index="${index}" placeholder="0">
-                    <p class="text-xs text-gray-500 mt-1">Range: ${formatCurrency(item.min_price || 0)} - ${formatCurrency(item.max_price || 999999)}</p>
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">
+                        Service Base Fee (₱) <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="text-gray-500 text-sm">₱</span>
+                        </div>
+                        <input type="number" class="price-input block w-full pl-8 rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" 
+                               value="${item.price || ''}" step="1" min="1" data-index="${index}" placeholder="0.00">
+                    </div>
+                    <p class="text-xs text-gray-600 mt-2 flex items-center">
+                        <svg class="w-3.5 h-3.5 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                        </svg>
+                        Allowed range: ${formatCurrency(item.min_price || 0)} - ${formatCurrency(item.max_price || 999999)}
+                    </p>
                 </div>
                 
                 <!-- Discount (per-item only) -->
                 <div class="discount-section ${discountApplicationType === 'per_item' ? '' : 'hidden'}">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Discount (applies to service fee only)</label>
-                    <select class="discount-select block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" data-index="${index}">
+                    <label class="block text-sm font-semibold text-gray-900 mb-2">
+                        <svg class="w-4 h-4 inline-block mr-1 -mt-0.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                        Discount (applies to service fee only)
+                    </label>
+                    <select class="discount-select block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" data-index="${index}">
                         <option value="">No discount</option>
                         ${discountOptions}
                     </select>
                 </div>
                 
                 <!-- Products Section -->
-                <div class="mt-3 pt-3 border-t border-gray-200">
-                    <div class="flex items-center justify-between mb-2">
-                        <label class="block text-sm font-medium text-gray-700">Products & Supplies Used</label>
-                        <button type="button" class="add-product text-primary-600 hover:text-primary-800 text-sm font-medium" data-index="${index}">
-                            + Add Product
+                <div class="mt-5 pt-5 border-t-2 border-gray-200">
+                    <div class="flex items-center justify-between mb-3">
+                        <label class="block text-sm font-semibold text-gray-900 flex items-center">
+                            <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                            Products & Supplies Used
+                        </label>
+                        <button type="button" class="add-product add-btn text-blue-600 hover:text-blue-800 text-sm font-semibold flex items-center px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-all" data-index="${index}">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            Add Product
                         </button>
                     </div>
                     <div class="products-container space-y-2" data-service-index="${index}">
-                        ${item.products && item.products.length > 0 ? item.products.map((prod, prodIdx) => createProductItemHtml(index, prodIdx, prod)).join('') : '<p class="text-sm text-gray-500 italic">No products added yet</p>'}
+                        ${item.products && item.products.length > 0 ? item.products.map((prod, prodIdx) => createProductItemHtml(index, prodIdx, prod)).join('') : '<p class="text-sm text-gray-500 italic py-3 text-center bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">No products added yet</p>'}
                     </div>
                 </div>
                 
                 <!-- Service Totals -->
-                <div class="mt-3 pt-3 border-t-2 border-gray-300 bg-gray-50 -mx-5 -mb-5 px-5 py-3 rounded-b-lg">
-                    <div class="space-y-1 text-sm">
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Service Fee:</span>
-                            <span class="service-subtotal font-medium">₱0</span>
+                <div class="mt-5 pt-5 border-t-2 border-gray-300 bg-gradient-to-br from-gray-50 to-white -mx-6 -mb-6 px-6 py-5 rounded-b-xl">
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-700 font-medium">Service Fee:</span>
+                            <span class="service-subtotal font-semibold text-gray-900">₱0.00</span>
                         </div>
-                        <div class="flex justify-between service-discount-row hidden">
-                            <span class="text-gray-600">Discount:</span>
-                            <span class="service-discount text-green-600">-₱0</span>
+                        <div class="flex justify-between items-center service-discount-row hidden">
+                            <span class="text-gray-700 font-medium">Discount:</span>
+                            <span class="service-discount font-semibold text-green-600">-₱0.00</span>
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Products:</span>
-                            <span class="products-subtotal font-medium">₱0</span>
+                        <div class="flex justify-between items-center">
+                            <span class="text-gray-700 font-medium">Products:</span>
+                            <span class="products-subtotal font-semibold text-gray-900">₱0.00</span>
                         </div>
-                        <div class="flex justify-between font-semibold text-base pt-1 border-t border-gray-400">
-                            <span>Service Total:</span>
-                            <span class="service-total text-primary-600">₱0</span>
+                        <div class="flex justify-between items-center font-bold text-base pt-3 border-t-2 border-gray-400">
+                            <span class="text-gray-900">Service Total:</span>
+                            <span class="service-total text-blue-600">₱0.00</span>
                         </div>
                     </div>
                 </div>
@@ -627,22 +844,27 @@ function createProductItemHtml(serviceIndex, productIndex, product) {
     ).join('');
     
     return `
-        <div class="product-item flex items-start space-x-2 p-3 rounded" data-service-index="${serviceIndex}" data-product-index="${productIndex}">
-            <div class="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div class="product-item flex items-center gap-3 p-3.5 rounded-lg shadow-sm" data-service-index="${serviceIndex}" data-product-index="${productIndex}">
+            <div class="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div class="sm:col-span-2">
-                    <select class="product-select block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                    <select class="product-select block w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         <option value="">Select product...</option>
                         ${categoriesHtml}
                     </select>
                 </div>
-                <div>
-                    <input type="number" class="product-quantity block w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" 
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
+                        </svg>
+                    </div>
+                    <input type="number" class="product-quantity block w-full pl-9 text-sm rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" 
                            value="${product.quantity || 1}" min="1" placeholder="Qty">
                 </div>
             </div>
-            <button type="button" class="remove-product text-red-600 hover:text-red-800 mt-2" data-service-index="${serviceIndex}" data-product-index="${productIndex}">
+            <button type="button" class="remove-product remove-btn flex-shrink-0 text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50 transition-all" data-service-index="${serviceIndex}" data-product-index="${productIndex}" title="Remove product">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
             </button>
         </div>
@@ -764,7 +986,9 @@ function updateServicePriceRange(index) {
         priceInput.value = roundAmount(serviceItems[index].price);
         
         const priceRange = item.querySelector('.text-xs');
-        priceRange.textContent = `Range: ${formatCurrency(serviceItems[index].min_price)} - ${formatCurrency(serviceItems[index].max_price)}`;
+        priceRange.innerHTML = `<svg class="w-3.5 h-3.5 mr-1 text-gray-400 inline-block" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+        </svg>Allowed range: ${formatCurrency(serviceItems[index].min_price)} - ${formatCurrency(serviceItems[index].max_price)}`;
         
         document.getElementById('id_service_items_data').value = JSON.stringify(serviceItems);
         updateServiceCalculations(index);
@@ -841,6 +1065,14 @@ function addServiceItem() {
     serviceItems.push(newItem);
     renderServiceItems();
     updatePaymentSummary();
+    
+    // Scroll to new service
+    setTimeout(() => {
+        const newServiceCard = document.querySelector(`[data-index="${serviceItems.length - 1}"]`);
+        if (newServiceCard) {
+            newServiceCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, 100);
 }
 
 function removeServiceItem(index) {
@@ -849,9 +1081,11 @@ function removeServiceItem(index) {
         return;
     }
     
-    serviceItems.splice(index, 1);
-    renderServiceItems();
-    updatePaymentSummary();
+    if (confirm('Are you sure you want to remove this service?')) {
+        serviceItems.splice(index, 1);
+        renderServiceItems();
+        updatePaymentSummary();
+    }
 }
 
 function addProductToService(serviceIndex) {
@@ -884,22 +1118,24 @@ function addProductToService(serviceIndex) {
 }
 
 function removeProductFromService(serviceIndex, productIndex) {
-    serviceItems[serviceIndex].products.splice(productIndex, 1);
-    
-    const container = document.querySelector(`[data-service-index="${serviceIndex}"].products-container`);
-    
-    // Re-render products for this service
-    if (serviceItems[serviceIndex].products.length === 0) {
-        container.innerHTML = '<p class="text-sm text-gray-500 italic">No products added yet</p>';
-    } else {
-        container.innerHTML = serviceItems[serviceIndex].products.map((prod, idx) => 
-            createProductItemHtml(serviceIndex, idx, prod)
-        ).join('');
-        attachProductListeners(serviceIndex);
+    if (confirm('Remove this product?')) {
+        serviceItems[serviceIndex].products.splice(productIndex, 1);
+        
+        const container = document.querySelector(`[data-service-index="${serviceIndex}"].products-container`);
+        
+        // Re-render products for this service
+        if (serviceItems[serviceIndex].products.length === 0) {
+            container.innerHTML = '<p class="text-sm text-gray-500 italic py-3 text-center bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">No products added yet</p>';
+        } else {
+            container.innerHTML = serviceItems[serviceIndex].products.map((prod, idx) => 
+                createProductItemHtml(serviceIndex, idx, prod)
+            ).join('');
+            attachProductListeners(serviceIndex);
+        }
+        
+        document.getElementById('id_service_items_data').value = JSON.stringify(serviceItems);
+        updateServiceCalculations(serviceIndex);
     }
-    
-    document.getElementById('id_service_items_data').value = JSON.stringify(serviceItems);
-    updateServiceCalculations(serviceIndex);
 }
 
 function updatePaymentSummary() {
@@ -1030,11 +1266,13 @@ function handleFormSubmission(e) {
     const submitBtnMobile = document.getElementById('submitBtnMobile');
     if (submitBtn) {
         submitBtn.classList.add('btn-loading');
-        submitBtn.querySelector('span').textContent = 'Creating...';
+        submitBtn.querySelector('span').textContent = 'Creating Invoice...';
+        submitBtn.disabled = true;
     }
     if (submitBtnMobile) {
         submitBtnMobile.classList.add('btn-loading');
-        submitBtnMobile.querySelector('span').textContent = 'Creating...';
+        submitBtnMobile.querySelector('span').textContent = 'Creating Invoice...';
+        submitBtnMobile.disabled = true;
     }
     
     return true;
@@ -1048,9 +1286,14 @@ function showAdminOverrideModal(violations) {
     
     violations.forEach(violation => {
         const violationHtml = `
-            <div class="mb-2 p-2 bg-yellow-100 rounded">
-                <strong>${violation.serviceName}</strong><br>
-                Price: ${formatCurrency(violation.price)} (Range: ${formatCurrency(violation.minPrice)} - ${formatCurrency(violation.maxPrice)})
+            <div class="p-3 bg-yellow-100 border border-yellow-300 rounded-lg">
+                <div class="font-semibold text-gray-900">${violation.serviceName}</div>
+                <div class="text-xs text-gray-700 mt-1">
+                    <span class="font-medium">Price:</span> ${formatCurrency(violation.price)}
+                </div>
+                <div class="text-xs text-gray-600">
+                    <span class="font-medium">Allowed:</span> ${formatCurrency(violation.minPrice)} - ${formatCurrency(violation.maxPrice)}
+                </div>
             </div>
         `;
         violationsContainer.insertAdjacentHTML('beforeend', violationHtml);
@@ -1059,6 +1302,11 @@ function showAdminOverrideModal(violations) {
     document.getElementById('adminPassword').value = '';
     document.getElementById('passwordError').classList.add('hidden');
     modal.classList.remove('hidden');
+    
+    // Focus password input
+    setTimeout(() => {
+        document.getElementById('adminPassword').focus();
+    }, 100);
 }
 
 function closeAdminModal() {
@@ -1070,7 +1318,12 @@ async function confirmAdminOverride() {
     const errorElement = document.getElementById('passwordError');
     
     if (!password) {
-        errorElement.textContent = 'Admin password is required';
+        errorElement.innerHTML = `
+            <svg class="w-4 h-4 mr-1 inline-block" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            </svg>
+            Admin password is required
+        `;
         errorElement.classList.remove('hidden');
         return;
     }
@@ -1103,12 +1356,24 @@ async function confirmAdminOverride() {
             // Submit form
             document.getElementById('paymentForm').submit();
         } else {
-            errorElement.textContent = result.error || 'Invalid admin password';
+            errorElement.innerHTML = `
+                <svg class="w-4 h-4 mr-1 inline-block" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+                ${result.error || 'Invalid admin password'}
+            `;
             errorElement.classList.remove('hidden');
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('adminPassword').focus();
         }
     } catch (error) {
         console.error('Admin verification error:', error);
-        errorElement.textContent = 'Error verifying admin password';
+        errorElement.innerHTML = `
+            <svg class="w-4 h-4 mr-1 inline-block" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            </svg>
+            Error verifying admin password. Please try again.
+        `;
         errorElement.classList.remove('hidden');
     }
 }

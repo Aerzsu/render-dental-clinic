@@ -138,197 +138,470 @@
 (function() {
     'use strict';
     
+    let chartInstances = {};
     let attempts = 0;
     const maxAttempts = 50;
     
+    // Wait for Chart.js to load
     function waitForChart() {
         attempts++;
         
         if (typeof Chart !== 'undefined') {
-            initializeCharts();
+            initializeDashboard();
         } else if (attempts < maxAttempts) {
             setTimeout(waitForChart, 100);
         } else {
             console.error('❌ Chart.js failed to load after 5 seconds');
+            showChartError();
         }
     }
     
-    function initializeCharts() {
-        
-        // Date range toggle
+    // Show error message if charts fail to load
+    function showChartError() {
+        const canvases = document.querySelectorAll('canvas[id$="Chart"]');
+        canvases.forEach(canvas => {
+            const container = canvas.closest('.chart-container');
+            if (container) {
+                container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">Failed to load chart. Please refresh the page.</div></div>';
+            }
+        });
+    }
+    
+    // Initialize dashboard functionality
+    function initializeDashboard() {
+        setupDateRangeToggle();
+        setupCharts();
+        setupFormValidation();
+    }
+    
+    // Setup date range toggle functionality
+    function setupDateRangeToggle() {
         const dateRangeSelect = document.getElementById('date_range');
-        if (dateRangeSelect) {
+        const customStartWrapper = document.getElementById('custom-start-wrapper');
+        const customEndWrapper = document.getElementById('custom-end-wrapper');
+        
+        if (dateRangeSelect && customStartWrapper && customEndWrapper) {
             dateRangeSelect.addEventListener('change', function() {
-                const customDates = document.getElementById('custom-dates');
-                if (this.value === 'custom') {
-                    customDates.classList.remove('hidden');
+                const isCustom = this.value === 'custom';
+                
+                if (isCustom) {
+                    customStartWrapper.classList.remove('hidden');
+                    customEndWrapper.classList.remove('hidden');
+                    
+                    // Set focus to first date input
+                    const customStartInput = document.getElementById('custom_start');
+                    if (customStartInput) {
+                        setTimeout(() => customStartInput.focus(), 100);
+                    }
                 } else {
-                    customDates.classList.add('hidden');
+                    customStartWrapper.classList.add('hidden');
+                    customEndWrapper.classList.add('hidden');
                 }
             });
         }
-
-        const chartColors = {
-            blue: 'rgb(59, 130, 246)',
-            green: 'rgb(16, 185, 129)',
-            yellow: 'rgb(245, 158, 11)',
-            red: 'rgb(239, 68, 68)',
-            purple: 'rgb(139, 92, 246)',
-            indigo: 'rgb(99, 102, 241)',
-            gray: 'rgb(107, 114, 128)',
-        };
-
-        Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-        Chart.defaults.plugins.legend.position = 'bottom';
-
-        // STATUS CHART
-        const statusCanvas = document.getElementById('statusChart');
-        if (statusCanvas) {
-            const statusLabels = [{% for status in appointments_by_status %}'{{ status.status|title }}'{% if not forloop.last %},{% endif %}{% endfor %}];
-            const statusData = [{% for status in appointments_by_status %}{{ status.count }}{% if not forloop.last %},{% endif %}{% endfor %}];
-            
-            if (statusLabels.length > 0 && statusData.length > 0) {
-                new Chart(statusCanvas, {
-                    type: 'doughnut',
-                    data: {
-                        labels: statusLabels,
-                        datasets: [{
-                            data: statusData,
-                            backgroundColor: [chartColors.green, chartColors.blue, chartColors.yellow, chartColors.red, chartColors.gray, chartColors.purple]
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { position: 'right' } }
+    }
+    
+    // Setup form validation
+    function setupFormValidation() {
+        const filterForm = document.getElementById('filterForm');
+        
+        if (filterForm) {
+            filterForm.addEventListener('submit', function(e) {
+                const dateRange = document.getElementById('date_range').value;
+                
+                if (dateRange === 'custom') {
+                    const customStart = document.getElementById('custom_start').value;
+                    const customEnd = document.getElementById('custom_end').value;
+                    
+                    if (!customStart || !customEnd) {
+                        e.preventDefault();
+                        alert('Please select both start and end dates for custom range.');
+                        return false;
                     }
-                });
-            }
-        }
-
-        // DAILY SCHEDULE CHART
-        const dailyCanvas = document.getElementById('dailyScheduleChart');
-        if (dailyCanvas) {
-            const dailyLabels = [{% for day in daily_schedule %}'{{ day.appointment_date|date:"M d" }}'{% if not forloop.last %},{% endif %}{% endfor %}];
-            const amData = [{% for day in daily_schedule %}{{ day.am_count }}{% if not forloop.last %},{% endif %}{% endfor %}];
-            const pmData = [{% for day in daily_schedule %}{{ day.pm_count }}{% if not forloop.last %},{% endif %}{% endfor %}];
-            
-            if (dailyLabels.length > 0) {
-                new Chart(dailyCanvas, {
-                    type: 'bar',
-                    data: {
-                        labels: dailyLabels,
-                        datasets: [
-                            { label: 'AM', data: amData, backgroundColor: chartColors.blue },
-                            { label: 'PM', data: pmData, backgroundColor: chartColors.green }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            x: { stacked: true },
-                            y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } }
-                        }
+                    
+                    // Validate that end date is after start date
+                    if (new Date(customEnd) < new Date(customStart)) {
+                        e.preventDefault();
+                        alert('End date must be after start date.');
+                        return false;
                     }
-                });
-            }
-        }
-
-        // SERVICES COUNT CHART
-        const countCanvas = document.getElementById('servicesCountChart');
-        if (countCanvas) {
-            const countLabels = [{% for service in popular_services_by_count %}'{{ service.service__name|truncatechars:20 }}'{% if not forloop.last %},{% endif %}{% endfor %}];
-            const countData = [{% for service in popular_services_by_count %}{{ service.service_count }}{% if not forloop.last %},{% endif %}{% endfor %}];
-            
-            if (countLabels.length > 0) {
-                new Chart(countCanvas, {
-                    type: 'bar',
-                    data: {
-                        labels: countLabels,
-                        datasets: [{ label: 'Times Performed', data: countData, backgroundColor: chartColors.blue }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        indexAxis: 'y',
-                        scales: { x: { beginAtZero: true, ticks: { precision: 0 } } },
-                        plugins: { legend: { display: false } }
-                    }
-                });
-            }
-        }
-
-        // REVENUE CHART
-        const revenueCanvas = document.getElementById('servicesRevenueChart');
-        if (revenueCanvas) {
-            const revenueLabels = [{% for service in popular_services_by_revenue %}'{{ service.service__name|truncatechars:20 }}'{% if not forloop.last %},{% endif %}{% endfor %}];
-            const revenueData = [{% for service in popular_services_by_revenue %}{{ service.total_revenue }}{% if not forloop.last %},{% endif %}{% endfor %}];
-            
-            if (revenueLabels.length > 0) {
-                new Chart(revenueCanvas, {
-                    type: 'bar',
-                    data: {
-                        labels: revenueLabels,
-                        datasets: [{ label: 'Revenue (₱)', data: revenueData, backgroundColor: chartColors.green }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        indexAxis: 'y',
-                        scales: {
-                            x: {
-                                beginAtZero: true,
-                                ticks: { callback: function(value) { return '₱' + value.toLocaleString(); } }
-                            }
-                        },
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: { callbacks: { label: function(context) { return '₱' + context.parsed.x.toLocaleString(); } } }
-                        }
-                    }
-                });
-            }
-        }
-
-        // PATIENT TYPE CHART
-        const patientTypeCanvas = document.getElementById('patientTypeChart');
-        if (patientTypeCanvas) {
-            const newPatients = {{ new_patients|default:0 }};
-            const returningPatients = {{ returning_patients|default:0 }};
-            
-            console.log('👥 Patient chart:', newPatients, returningPatients);
-            
-            if (newPatients > 0 || returningPatients > 0) {
-                new Chart(patientTypeCanvas, {
-                    type: 'pie',
-                    data: {
-                        labels: ['New Patients', 'Returning Patients'],
-                        datasets: [{ data: [newPatients, returningPatients], backgroundColor: [chartColors.purple, chartColors.indigo] }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { position: 'bottom' },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        const total = newPatients + returningPatients;
-                                        const pct = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
-                                        return context.label + ': ' + context.parsed + ' (' + pct + '%)';
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            }
+                }
+            });
         }
     }
     
-    // Start waiting for Chart.js
-    waitForChart();
+    // Setup all charts
+    function setupCharts() {
+        // Chart.js global defaults
+        Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+        Chart.defaults.plugins.legend.position = 'bottom';
+        Chart.defaults.plugins.legend.labels.padding = 15;
+        Chart.defaults.plugins.legend.labels.usePointStyle = true;
+        Chart.defaults.plugins.legend.labels.pointStyle = 'circle';
+        
+        // Color palette
+        const colors = {
+            blue: '#3b82f6',
+            green: '#10b981',
+            yellow: '#f59e0b',
+            red: '#ef4444',
+            purple: '#8b5cf6',
+            indigo: '#6366f1',
+            gray: '#6b7280',
+            pink: '#ec4899',
+            teal: '#14b8a6',
+            orange: '#f97316'
+        };
+        
+        // Initialize each chart
+        initStatusChart(colors);
+        initDailyScheduleChart(colors);
+        initServicesCountChart(colors);
+        initServicesRevenueChart(colors);
+        initPatientTypeChart(colors);
+    }
+    
+    // Status Chart (Doughnut)
+    function initStatusChart(colors) {
+        const canvas = document.getElementById('statusChart');
+        if (!canvas) return;
+        
+        const statusLabels = [];
+        const statusData = [];
+        
+        // Parse data from Django template
+        {% for status in appointments_by_status %}
+            statusLabels.push('{{ status.status|title }}');
+            statusData.push({{ status.count }});
+        {% endfor %}
+        
+        if (statusLabels.length === 0 || statusData.length === 0) return;
+        
+        const backgroundColors = [
+            colors.green,
+            colors.blue,
+            colors.yellow,
+            colors.red,
+            colors.gray,
+            colors.purple,
+            colors.pink,
+            colors.orange
+        ];
+        
+        chartInstances.status = new Chart(canvas, {
+            type: 'doughnut',
+            data: {
+                labels: statusLabels,
+                datasets: [{
+                    data: statusData,
+                    backgroundColor: backgroundColors.slice(0, statusLabels.length),
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            padding: 12,
+                            font: { size: 13 }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: { size: 13, weight: '600' },
+                        bodyFont: { size: 13 },
+                        callbacks: {
+                            label: function(context) {
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                return context.label + ': ' + context.parsed + ' (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Daily Schedule Chart (Stacked Bar)
+    function initDailyScheduleChart(colors) {
+        const canvas = document.getElementById('dailyScheduleChart');
+        if (!canvas) return;
+        
+        const dailyLabels = [];
+        const amData = [];
+        const pmData = [];
+        
+        {% for day in daily_schedule %}
+            dailyLabels.push('{{ day.appointment_date|date:"M d" }}');
+            amData.push({{ day.am_count }});
+            pmData.push({{ day.pm_count }});
+        {% endfor %}
+        
+        if (dailyLabels.length === 0) return;
+        
+        chartInstances.daily = new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels: dailyLabels,
+                datasets: [
+                    {
+                        label: 'Morning (AM)',
+                        data: amData,
+                        backgroundColor: colors.blue,
+                        borderRadius: 6,
+                        borderSkipped: false
+                    },
+                    {
+                        label: 'Afternoon (PM)',
+                        data: pmData,
+                        backgroundColor: colors.green,
+                        borderRadius: 6,
+                        borderSkipped: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                scales: {
+                    x: {
+                        stacked: true,
+                        grid: { display: false },
+                        ticks: { font: { size: 12 } }
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0,
+                            font: { size: 12 }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            font: { size: 13 }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: { size: 13, weight: '600' },
+                        bodyFont: { size: 13 }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Services Count Chart (Horizontal Bar)
+    function initServicesCountChart(colors) {
+        const canvas = document.getElementById('servicesCountChart');
+        if (!canvas) return;
+        
+        const countLabels = [];
+        const countData = [];
+        
+        {% for service in popular_services_by_count %}
+            countLabels.push('{{ service.service__name|truncatechars:30|escapejs }}');
+            countData.push({{ service.service_count }});
+        {% endfor %}
+        
+        if (countLabels.length === 0) return;
+        
+        chartInstances.count = new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels: countLabels,
+                datasets: [{
+                    label: 'Times Performed',
+                    data: countData,
+                    backgroundColor: colors.blue,
+                    borderRadius: 6,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0,
+                            font: { size: 12 }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: { font: { size: 12 } }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: { size: 13, weight: '600' },
+                        bodyFont: { size: 13 }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Services Revenue Chart (Horizontal Bar)
+    function initServicesRevenueChart(colors) {
+        const canvas = document.getElementById('servicesRevenueChart');
+        if (!canvas) return;
+        
+        const revenueLabels = [];
+        const revenueData = [];
+        
+        {% for service in popular_services_by_revenue %}
+            revenueLabels.push('{{ service.service__name|truncatechars:30|escapejs }}');
+            revenueData.push({{ service.total_revenue }});
+        {% endfor %}
+        
+        if (revenueLabels.length === 0) return;
+        
+        chartInstances.revenue = new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels: revenueLabels,
+                datasets: [{
+                    label: 'Revenue (₱)',
+                    data: revenueData,
+                    backgroundColor: colors.green,
+                    borderRadius: 6,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        ticks: {
+                            font: { size: 12 },
+                            callback: function(value) {
+                                return '₱' + value.toLocaleString('en-PH');
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: { font: { size: 12 } }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: { size: 13, weight: '600' },
+                        bodyFont: { size: 13 },
+                        callbacks: {
+                            label: function(context) {
+                                return 'Revenue: ₱' + context.parsed.x.toLocaleString('en-PH');
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Patient Type Chart (Pie)
+    function initPatientTypeChart(colors) {
+        const canvas = document.getElementById('patientTypeChart');
+        if (!canvas) return;
+        
+        const newPatients = {{ new_patients|default:0 }};
+        const returningPatients = {{ returning_patients|default:0 }};
+        
+        if (newPatients === 0 && returningPatients === 0) return;
+        
+        chartInstances.patientType = new Chart(canvas, {
+            type: 'pie',
+            data: {
+                labels: ['New Patients', 'Returning Patients'],
+                datasets: [{
+                    data: [newPatients, returningPatients],
+                    backgroundColor: [colors.purple, colors.indigo],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 15,
+                            font: { size: 13 }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: { size: 13, weight: '600' },
+                        bodyFont: { size: 13 },
+                        callbacks: {
+                            label: function(context) {
+                                const total = newPatients + returningPatients;
+                                const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                                return context.label + ': ' + context.parsed + ' (' + percentage + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', function() {
+        Object.keys(chartInstances).forEach(key => {
+            if (chartInstances[key]) {
+                chartInstances[key].destroy();
+            }
+        });
+    });
+    
+    // Start initialization
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', waitForChart);
+    } else {
+        waitForChart();
+    }
 })();
 </script>
 {% endblock %}
