@@ -191,17 +191,28 @@ class RoleForm(forms.ModelForm):
     def clean_name(self):
         name = self.cleaned_data['name'].lower().strip()
         
-        # Only prevent new roles from using reserved names
-        # Allow editing existing roles (including default ones)
+        # Reserved names (case-insensitive)
         reserved_names = ['admin', 'dentist', 'staff']
         
+        # Check if the name (or any variation) is reserved
         if name in reserved_names:
             # If this is an existing role with the same name, allow it (editing existing role)
             if self.instance and self.instance.pk and self.instance.name == name:
                 return name
             # If this is a new role or changing name to reserved name, prevent it
             else:
-                raise forms.ValidationError("This name is reserved for system roles.")
+                raise forms.ValidationError(
+                    "This name is reserved for system roles. "
+                    f"Reserved names: {', '.join(reserved_names)}"
+                )
+        
+        # Also block any variation like "Admin", "ADMIN", "Dentist", etc.
+        for reserved in reserved_names:
+            if name.lower() == reserved.lower():
+                if not (self.instance and self.instance.pk and self.instance.name.lower() == reserved.lower()):
+                    raise forms.ValidationError(
+                        f"Name variations of '{reserved}' are reserved for system roles."
+                    )
         
         return name
     

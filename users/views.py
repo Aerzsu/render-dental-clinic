@@ -382,6 +382,7 @@ class RoleCreateView(LoginRequiredMixin, CreateView):
         return reverse_lazy('users:role_detail', kwargs={'pk': self.object.pk})
 
 class RoleUpdateView(LoginRequiredMixin, UpdateView):
+
     """Update role information"""
     model = Role
     form_class = RoleForm
@@ -407,3 +408,6 @@ class RoleUpdateView(LoginRequiredMixin, UpdateView):
     
     def get_success_url(self):
         return reverse_lazy('users:role_detail', kwargs={'pk': self.object.pk})
+
+
+# asd

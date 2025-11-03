@@ -25,16 +25,16 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Step 1: Add field without unique constraint
+        # Step 1: Add field as nullable with no constraints
         migrations.AddField(
             model_name='appointment',
             name='reschedule_token',
             field=models.CharField(
                 blank=True,
-                db_index=True,
                 default='',
                 help_text='Unique token for patient self-service actions',
-                max_length=32
+                max_length=32,
+                null=True  # Allow null initially
             ),
         ),
         # Step 2: Generate tokens for existing records
@@ -42,16 +42,28 @@ class Migration(migrations.Migration):
             generate_unique_tokens,
             reverse_code=migrations.RunPython.noop
         ),
-        # Step 3: Add unique constraint
+        # Step 3: Make field non-nullable
         migrations.AlterField(
             model_name='appointment',
             name='reschedule_token',
             field=models.CharField(
                 blank=True,
-                db_index=True,
+                default='',
                 help_text='Unique token for patient self-service actions',
                 max_length=32,
-                unique=True
+            ),
+        ),
+        # Step 4: Add index separately (without unique constraint first)
+        migrations.AddIndex(
+            model_name='appointment',
+            index=models.Index(fields=['reschedule_token'], name='appt_reschedule_token_idx'),
+        ),
+        # Step 5: Add unique constraint separately
+        migrations.AddConstraint(
+            model_name='appointment',
+            constraint=models.UniqueConstraint(
+                fields=['reschedule_token'],
+                name='unique_reschedule_token'
             ),
         ),
     ]

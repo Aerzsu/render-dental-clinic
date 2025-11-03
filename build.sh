@@ -16,7 +16,7 @@ python manage.py collectstatic --no-input
 # Run migrations
 python manage.py migrate
 
-# Initialize system settings (NEW - add this)
+# Initialize system settings
 python manage.py initialize_settings
 
 # Create default roles if they don't exist

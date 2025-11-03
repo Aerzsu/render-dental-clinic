@@ -9,38 +9,25 @@
     <div class="sm:flex sm:items-center sm:justify-between">
         <div>
             <h1 class="text-2xl font-bold text-gray-900">Discounts</h1>
-            <p class="mt-2 text-sm text-gray-700">Manage discount rates for services and billing</p>
+            <p class="mt-1 text-sm text-gray-600">Manage discount rates for services and billing</p>
         </div>
         <div class="mt-4 sm:mt-0">
             <a href="{% url 'services:discount_create' %}" 
-               class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+               class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                 </svg>
-                Add New Discount
+                <span>Add Discount</span>
             </a>
         </div>
     </div>
 
-    <!-- Search and Filters -->
-    <div class="bg-white shadow rounded-lg">
-        <div class="px-6 py-4 border-b border-gray-200">
-            <div class="flex items-center justify-between">
-                <h3 class="text-lg font-medium text-gray-900">Search & Filter Discounts</h3>
-                <button type="button" id="toggleFilters" 
-                        class="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                    <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                    </svg>
-                    Filters
-                </button>
-            </div>
-        </div>
-        
-        <div class="px-6 py-4">
-            <!-- Main Search -->
+    <!-- Search and Filters Card -->
+    <div class="bg-white shadow-sm rounded-lg border border-gray-200">
+        <div class="px-4 sm:px-6 py-4">
             <form method="get" class="space-y-4" id="searchForm">
-                <div class="flex space-x-4">
+                <!-- Main Search Bar -->
+                <div class="flex flex-col sm:flex-row gap-3">
                     <div class="flex-1">
                         <label for="search" class="sr-only">Search discounts</label>
                         <div class="relative">
@@ -51,31 +38,49 @@
                             </div>
                             <input type="text" 
                                    name="search" 
+                                   id="search"
                                    value="{{ search_query }}"
                                    placeholder="Search by discount name..." 
-                                   class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500">
+                                   class="block w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
+                            {% if search_query %}
+                            <button type="button" 
+                                    onclick="document.getElementById('search').value=''; document.getElementById('searchForm').submit();"
+                                    class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                <svg class="h-5 w-5 text-gray-400 hover:text-gray-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                            {% endif %}
                         </div>
                     </div>
-                    <div class="flex space-x-2">
-                        <button type="submit" 
-                                class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                            Search
+                    <div class="flex gap-2">
+                        <button type="button" 
+                                id="toggleFilters"
+                                class="inline-flex items-center px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                            <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
+                            </svg>
+                            <span>Filters</span>
                         </button>
-                        <a href="{% url 'services:discount_list' %}" 
-                           class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                            Clear
-                        </a>
+                        <button type="submit" 
+                                class="inline-flex items-center px-4 py-2.5 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                            <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            <span>Search</span>
+                        </button>
                     </div>
                 </div>
 
                 <!-- Advanced Filters (Collapsible) -->
-                <div id="advancedFilters" class="hidden border-t border-gray-200 pt-4 mt-4">
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div id="advancedFilters" class="hidden border-t border-gray-200 pt-4 space-y-4">
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <!-- Discount Type Filter -->
                         <div>
-                            <label for="discount_type" class="block text-sm font-medium text-gray-700">Discount Type</label>
+                            <label for="discount_type" class="block text-sm font-medium text-gray-700 mb-1">Discount Type</label>
                             <select name="discount_type" 
-                                    class="mt-1 block w-full rounded-md px-3 py-2 border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                    id="discount_type"
+                                    class="block w-full rounded-lg px-3 py-2.5 border border-gray-300 shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
                                 <option value="">All Types</option>
                                 <option value="percentage" {% if discount_type == 'percentage' %}selected{% endif %}>Percentage</option>
                                 <option value="fixed" {% if discount_type == 'fixed' %}selected{% endif %}>Fixed Amount</option>
@@ -84,9 +89,10 @@
 
                         <!-- Amount Range Filter -->
                         <div>
-                            <label for="amount_range" class="block text-sm font-medium text-gray-700">Amount Range</label>
+                            <label for="amount_range" class="block text-sm font-medium text-gray-700 mb-1">Amount Range</label>
                             <select name="amount_range" 
-                                    class="mt-1 block w-full rounded-md px-3 py-2 border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                    id="amount_range"
+                                    class="block w-full rounded-lg px-3 py-2.5 border border-gray-300 shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
                                 <option value="">All Amounts</option>
                                 <option value="0-5" {% if amount_range == '0-5' %}selected{% endif %}>Under 5% / ₱100</option>
                                 <option value="5-10" {% if amount_range == '5-10' %}selected{% endif %}>5-10% / ₱100-500</option>
@@ -97,9 +103,10 @@
 
                         <!-- Sort By -->
                         <div>
-                            <label for="sort" class="block text-sm font-medium text-gray-700">Sort By</label>
+                            <label for="sort" class="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
                             <select name="sort" 
-                                    class="mt-1 block w-full rounded-md px-3 py-2 border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                    id="sort"
+                                    class="block w-full rounded-lg px-3 py-2.5 border border-gray-300 shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
                                 <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Name (A-Z)</option>
                                 <option value="-name" {% if sort_by == '-name' %}selected{% endif %}>Name (Z-A)</option>
                                 <option value="amount" {% if sort_by == 'amount' %}selected{% endif %}>Amount (Low to High)</option>
@@ -109,34 +116,70 @@
                                 <option value="-updated_at" {% if sort_by == '-updated_at' %}selected{% endif %}>Recently Updated</option>
                             </select>
                         </div>
-
-                        <!-- Empty column for spacing -->
-                        <div></div>
                     </div>
                     
-                    <div class="flex justify-between items-center mt-4">
-                        <div class="flex space-x-2">
-                            <button type="submit" 
-                                    class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700">
-                                Apply Filters
+                    <!-- Active Filters Display -->
+                    {% if discount_type or amount_range or sort_by != 'name' or show_inactive %}
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <span class="text-xs font-medium text-gray-500">Active filters:</span>
+                        {% if discount_type %}
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-primary-50 text-primary-700">
+                            Type: {% if discount_type == 'percentage' %}Percentage{% else %}Fixed{% endif %}
+                            <button type="button" onclick="document.getElementById('discount_type').value=''; document.getElementById('searchForm').submit();" class="ml-1.5">
+                                <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                </svg>
                             </button>
-                            <button type="button" id="clearFilters"
-                                    class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                                Clear Filters
+                        </span>
+                        {% endif %}
+                        {% if amount_range %}
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-primary-50 text-primary-700">
+                            Range: {{ amount_range }}
+                            <button type="button" onclick="document.getElementById('amount_range').value=''; document.getElementById('searchForm').submit();" class="ml-1.5">
+                                <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                </svg>
                             </button>
-                        </div>
-                        
-                        <!-- Show Inactive Option -->
+                        </span>
+                        {% endif %}
+                        {% if show_inactive %}
+                        <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-primary-50 text-primary-700">
+                            Showing inactive
+                            <button type="button" onclick="const cb = document.querySelector('input[name=show_inactive]'); cb.checked = false; document.getElementById('searchForm').submit();" class="ml-1.5">
+                                <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                </svg>
+                            </button>
+                        </span>
+                        {% endif %}
+                        <a href="{% url 'services:discount_list' %}" class="text-xs font-medium text-primary-600 hover:text-primary-700 transition-colors">
+                            Clear all
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    <!-- Filter Actions -->
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
                         <div class="flex items-center">
                             <label class="inline-flex items-center">
                                 <input type="checkbox" 
                                        name="show_inactive" 
                                        value="1" 
                                        {% if show_inactive %}checked{% endif %}
-                                       class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                       class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-500 focus:ring-primary-500 transition-colors"
                                        onchange="document.getElementById('searchForm').submit();">
                                 <span class="ml-2 text-sm text-gray-600">Show inactive discounts</span>
                             </label>
+                        </div>
+                        <div class="flex justify-end gap-2">
+                            <button type="button" id="clearFilters"
+                                    class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                                Reset
+                            </button>
+                            <button type="submit" 
+                                    class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                                Apply Filters
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -144,259 +187,402 @@
         </div>
     </div>
 
-    <!-- Results Count -->
-    <div class="flex items-center justify-between">
-        <p class="text-sm text-gray-700">
-            Showing {{ discounts|length }} of {{ paginator.count }} discounts
-            {% if search_query %}for "{{ search_query }}"{% endif %}
+    <!-- Results Summary -->
+    <div class="flex items-center justify-between px-1">
+        <p class="text-sm text-gray-600">
+            <span class="font-medium text-gray-900">{{ discounts|length }}</span> 
+            discount{{ discounts|length|pluralize }} found
+            {% if search_query %}
+            <span class="text-gray-500">matching "{{ search_query }}"</span>
+            {% endif %}
         </p>
     </div>
 
-    <!-- Discounts List -->
-    <div class="bg-white shadow rounded-lg overflow-hidden">
-        {% if discounts %}
-            <ul class="divide-y divide-gray-200">
-                {% for discount in discounts %}
-                    <li class="{% if not discount.is_active %}bg-gray-50{% endif %}">
-                        <div class="px-4 py-4 sm:px-6 hover:bg-gray-50">
-                            <div class="flex items-center justify-between">
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex items-center space-x-3">
-                                        <p class="text-sm font-medium text-primary-600 truncate">
-                                            <a href="{% url 'services:discount_detail' discount.pk %}" class="hover:underline">
-                                                {{ discount.name }}
-                                            </a>
-                                        </p>
-                                        <div class="flex items-center space-x-2">
-                                            <!-- Discount Type Badge -->
-                                            {% if discount.is_percentage %}
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                    Percentage
-                                                </span>
-                                            {% else %}
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                    Fixed Amount
-                                                </span>
-                                            {% endif %}
-                                            
-                                            <!-- Status Badge -->
-                                            {% if not discount.is_active %}
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                                    Inactive
-                                                </span>
-                                            {% else %}
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                    Active
-                                                </span>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                    <div class="mt-2 flex items-center text-sm text-gray-500 space-x-6">
-                                        <div class="flex items-center">
-                                            <svg class="flex-shrink-0 mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
-                                            </svg>
-                                            <span class="font-medium">{{ discount.display_value }}</span>
-                                        </div>
-                                        {% if sort_by == '-created_at' or sort_by == 'created_at' %}
-                                            <div class="flex items-center">
-                                                <svg class="flex-shrink-0 mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V9a2 2 0 00-2-2h-2M8 7v8a2 2 0 002 2h4a2 2 0 002-2V7"></path>
-                                                </svg>
-                                                Created {{ discount.created_at|date:"M d, Y" }}
-                                            </div>
-                                        {% elif sort_by == '-updated_at' %}
-                                            <div class="flex items-center">
-                                                <svg class="flex-shrink-0 mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                                                </svg>
-                                                Updated {{ discount.updated_at|date:"M d, Y" }}
-                                            </div>
-                                        {% else %}
-                                            <div class="flex items-center">
-                                                <svg class="flex-shrink-0 mr-1.5 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3a2 2 0 012-2h4a2 2 0 012 2v4M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V9a2 2 0 00-2-2h-2M8 7v8a2 2 0 002 2h4a2 2 0 002-2V7"></path>
-                                                </svg>
-                                                Created {{ discount.created_at|date:"M d, Y" }}
-                                            </div>
-                                        {% endif %}
+    <!-- Desktop Table -->
+    <div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+        <div class="hidden md:block overflow-x-auto">
+            {% if discounts %}
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                            Discount
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                            Type
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                            Value
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                            Status
+                        </th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-100">
+                    {% for discount in discounts %}
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-primary-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a.997.997 0 01-1.414 0l-7-7A1.997 1.997 0 013 12V7a4 4 0 014-4z"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <div class="text-sm font-medium text-gray-900">
+                                        {{ discount.name }}
                                     </div>
                                 </div>
-                                <div class="flex items-center space-x-2">
-                                    <a href="{% url 'services:discount_detail' discount.pk %}" 
-                                       class="text-primary-600 hover:text-primary-900 text-sm font-medium">
-                                        View
-                                    </a>
-                                    <a href="{% url 'services:discount_update' discount.pk %}" 
-                                       class="text-gray-600 hover:text-gray-900 text-sm font-medium">
-                                        Edit
-                                    </a>
-                                    <a href="{% url 'services:discount_toggle' discount.pk %}" 
-                                       class="text-gray-600 hover:text-gray-900 text-sm font-medium"
-                                       onclick="return confirm('Are you sure you want to {% if discount.is_active %}deactivate{% else %}activate{% endif %} this discount?')">
-                                        {% if discount.is_active %}Deactivate{% else %}Activate{% endif %}
-                                    </a>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if discount.is_percentage %}
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 000 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Percentage
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path>
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Fixed Amount
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center text-sm font-medium text-gray-900">
+                                <svg class="w-4 h-4 mr-1.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                </svg>
+                                {{ discount.display_value }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if discount.is_active %}
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Active
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-200">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Inactive
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+                            <div class="flex items-center justify-end space-x-3">
+                                <a href="{% url 'services:discount_detail' discount.pk %}" 
+                                   class="text-primary-600 hover:text-primary-700 font-medium transition-colors">
+                                    View
+                                </a>
+                                <a href="{% url 'services:discount_update' discount.pk %}" 
+                                   class="text-gray-600 hover:text-gray-700 font-medium transition-colors">
+                                    Edit
+                                </a>
+                                <a href="{% url 'services:discount_toggle' discount.pk %}" 
+                                   class="text-gray-600 hover:text-gray-700 font-medium transition-colors"
+                                   onclick="return confirm('Are you sure you want to {% if discount.is_active %}deactivate{% else %}activate{% endif %} this discount?')">
+                                    {% if discount.is_active %}Deactivate{% else %}Activate{% endif %}
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+        </div>
+
+        <!-- Mobile Cards -->
+        <div class="md:hidden divide-y divide-gray-100">
+            {% if discounts %}
+                {% for discount in discounts %}
+                    <div class="p-4 hover:bg-gray-50 transition-colors">
+                        <!-- Card Header -->
+                        <div class="flex items-start justify-between mb-3">
+                            <div class="flex items-center flex-1 min-w-0 mr-3">
+                                <div class="flex-shrink-0 h-12 w-12 rounded-full bg-primary-100 flex items-center justify-center">
+                                    <svg class="w-6 h-6 text-primary-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a.997.997 0 01-1.414 0l-7-7A1.997 1.997 0 013 12V7a4 4 0 014-4z"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-3 min-w-0">
+                                    <h3 class="text-base font-semibold text-gray-900 truncate">
+                                        {{ discount.name }}
+                                    </h3>
+                                </div>
+                            </div>
+                            {% if discount.is_active %}
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200 flex-shrink-0">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Active
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-700 border border-gray-200 flex-shrink-0">
+                                    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Inactive
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <!-- Card Details -->
+                        <div class="space-y-2 mb-3 text-sm">
+                            <div class="flex items-start">
+                                <svg class="w-4 h-4 mr-2 text-gray-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a.997.997 0 01-1.414 0l-7-7A1.997 1.997 0 013 12V7a4 4 0 014-4z"></path>
+                                </svg>
+                                <div class="flex-1">
+                                    <span class="text-gray-900 font-medium">
+                                        {% if discount.is_percentage %}Percentage{% else %}Fixed Amount{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <svg class="w-4 h-4 mr-2 text-gray-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"></path>
+                                </svg>
+                                <div class="flex-1">
+                                    <span class="text-gray-900 font-medium">{{ discount.display_value }}</span>
                                 </div>
                             </div>
                         </div>
-                    </li>
+
+                        <!-- Action Buttons -->
+                        <div class="flex gap-2">
+                            <a href="{% url 'services:discount_detail' discount.pk %}" 
+                               class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                                View
+                            </a>
+                            <a href="{% url 'services:discount_update' discount.pk %}" 
+                               class="flex-1 inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                </svg>
+                                Edit
+                            </a>
+                        </div>
+                    </div>
                 {% endfor %}
-            </ul>
-        {% else %}
-            <div class="text-center py-12">
-                <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {% endif %}
+        </div>
+
+        <!-- Empty State -->
+        {% if not discounts %}
+        <div class="text-center py-12 px-4">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a.997.997 0 01-1.414 0l-7-7A1.997 1.997 0 013 12V7a4 4 0 014-4z"></path>
                 </svg>
-                <h3 class="mt-2 text-sm font-medium text-gray-900">No discounts found</h3>
-                <p class="mt-1 text-sm text-gray-500">
-                    {% if search_query or discount_type or amount_range %}
-                        No discounts match your search criteria or filters.
-                    {% else %}
-                        Get started by creating your first discount.
-                    {% endif %}
-                </p>
-                {% if not search_query and not discount_type and not amount_range %}
-                    <div class="mt-6">
-                        <a href="{% url 'services:discount_create' %}" 
-                           class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                            <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                            </svg>
-                            Add Discount
-                        </a>
-                    </div>
-                {% endif %}
             </div>
+            <h3 class="text-base font-semibold text-gray-900 mb-1">No discounts found</h3>
+            <p class="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
+                {% if search_query or discount_type or amount_range %}
+                    No discounts match your search criteria or filters. Try adjusting your search.
+                {% else %}
+                    Get started by adding your first discount to the system.
+                {% endif %}
+            </p>
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                {% if search_query or discount_type or amount_range %}
+                    <a href="{% url 'services:discount_list' %}" 
+                       class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        Clear Filters
+                    </a>
+                {% endif %}
+                <a href="{% url 'services:discount_create' %}" 
+                   class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                    </svg>
+                    Add Your First Discount
+                </a>
+            </div>
+        </div>
         {% endif %}
     </div>
 
     <!-- Pagination -->
     {% if is_paginated %}
-        <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
-            <div class="flex items-center justify-between">
-                <div class="flex-1 flex justify-between sm:hidden">
+    <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6 rounded-lg">
+        <!-- Mobile Pagination -->
+        <div class="flex-1 flex justify-between sm:hidden">
+            {% if page_obj.has_previous %}
+                <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" 
+                   class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                    Previous
+                </a>
+            {% else %}
+                <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-400 bg-gray-50 cursor-not-allowed">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                    Previous
+                </span>
+            {% endif %}
+            {% if page_obj.has_next %}
+                <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" 
+                   class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                    Next
+                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </a>
+            {% else %}
+                <span class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-400 bg-gray-50 cursor-not-allowed">
+                    Next
+                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </span>
+            {% endif %}
+        </div>
+
+        <!-- Desktop Pagination -->
+        <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+            <div>
+                <p class="text-sm text-gray-700">
+                    Showing
+                    <span class="font-medium">{{ page_obj.start_index }}</span>
+                    to
+                    <span class="font-medium">{{ page_obj.end_index }}</span>
+                    of
+                    <span class="font-medium">{{ paginator.count }}</span>
+                    results
+                </p>
+            </div>
+            <div>
+                <nav class="relative z-0 inline-flex rounded-lg shadow-sm -space-x-px" aria-label="Pagination">
+                    <!-- Previous Button -->
                     {% if page_obj.has_previous %}
                         <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" 
-                           class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                            Previous
+                           class="relative inline-flex items-center px-2 py-2 rounded-l-lg border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors">
+                            <span class="sr-only">Previous</span>
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
                         </a>
+                    {% else %}
+                        <span class="relative inline-flex items-center px-2 py-2 rounded-l-lg border border-gray-300 bg-gray-50 text-sm font-medium text-gray-300 cursor-not-allowed">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                            </svg>
+                        </span>
                     {% endif %}
+
+                    <!-- Page Numbers -->
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-primary-500 bg-primary-50 text-sm font-medium text-primary-600 z-10">
+                                {{ num }}
+                            </span>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}" 
+                               class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                                {{ num }}
+                            </a>
+                        {% elif num == page_obj.number|add:'-3' or num == page_obj.number|add:'3' %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                                ...
+                            </span>
+                        {% endif %}
+                    {% endfor %}
+
+                    <!-- Next Button -->
                     {% if page_obj.has_next %}
                         <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" 
-                           class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                            Next
+                           class="relative inline-flex items-center px-2 py-2 rounded-r-lg border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors">
+                            <span class="sr-only">Next</span>
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
                         </a>
+                    {% else %}
+                        <span class="relative inline-flex items-center px-2 py-2 rounded-r-lg border border-gray-300 bg-gray-50 text-sm font-medium text-gray-300 cursor-not-allowed">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                            </svg>
+                        </span>
                     {% endif %}
-                </div>
-                <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-                    <div>
-                        <p class="text-sm text-gray-700">
-                            Showing
-                            <span class="font-medium">{{ page_obj.start_index }}</span>
-                            to
-                            <span class="font-medium">{{ page_obj.end_index }}</span>
-                            of
-                            <span class="font-medium">{{ paginator.count }}</span>
-                            results
-                        </p>
-                    </div>
-                    <div>
-                        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-                            {% if page_obj.has_previous %}
-                                <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" 
-                                   class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                                    <span class="sr-only">Previous</span>
-                                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"></path>
-                                    </svg>
-                                </a>
-                            {% endif %}
-
-                            {% for num in page_obj.paginator.page_range %}
-                                {% if page_obj.number == num %}
-                                    <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-primary-50 text-sm font-medium text-primary-600">
-                                        {{ num }}
-                                    </span>
-                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                                    <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}" 
-                                       class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
-                                        {{ num }}
-                                    </a>
-                                {% endif %}
-                            {% endfor %}
-
-                            {% if page_obj.has_next %}
-                                <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" 
-                                   class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-                                    <span class="sr-only">Next</span>
-                                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-                                    </svg>
-                                </a>
-                            {% endif %}
-                        </nav>
-                    </div>
-                </div>
+                </nav>
             </div>
         </div>
+    </div>
     {% endif %}
 </div>
 
 <!-- JavaScript for Filter Toggle and Form Enhancement -->
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const toggleFilters = document.getElementById('toggleFilters');
-    const advancedFilters = document.getElementById('advancedFilters');
-    const clearFilters = document.getElementById('clearFilters');
+(function() {
+    'use strict';
+    
+    const toggleBtn = document.getElementById('toggleFilters');
+    const filtersDiv = document.getElementById('advancedFilters');
+    const clearBtn = document.getElementById('clearFilters');
     const searchForm = document.getElementById('searchForm');
     
-    // Toggle advanced filters
-    toggleFilters.addEventListener('click', function() {
-        if (advancedFilters.classList.contains('hidden')) {
-            advancedFilters.classList.remove('hidden');
-            toggleFilters.innerHTML = `
-                <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-                </svg>
-                Hide Filters
-            `;
-        } else {
-            advancedFilters.classList.add('hidden');
-            toggleFilters.innerHTML = `
-                <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path>
-                </svg>
-                Filters
-            `;
-        }
+    if (!toggleBtn || !filtersDiv) return;
+    
+    // Check if filters are active on page load
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasActiveFilters = ['discount_type', 'amount_range', 'sort', 'show_inactive'].some(p => urlParams.has(p));
+    
+    if (hasActiveFilters) {
+        filtersDiv.classList.remove('hidden');
+        updateToggleButton(true);
+    }
+    
+    // Toggle filters
+    toggleBtn.addEventListener('click', function() {
+        const isHidden = filtersDiv.classList.contains('hidden');
+        filtersDiv.classList.toggle('hidden');
+        updateToggleButton(!isHidden);
     });
+    
+    function updateToggleButton(isOpen) {
+        toggleBtn.innerHTML = isOpen 
+            ? '<svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg><span>Hide Filters</span>'
+            : '<svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg><span>Filters</span>';
+    }
     
     // Clear filters
-    clearFilters.addEventListener('click', function() {
-        const formInputs = searchForm.querySelectorAll('input, select');
-        formInputs.forEach(input => {
-            if (input.type === 'text' || input.type === 'email' || input.type === 'tel') {
-                input.value = '';
-            } else if (input.type === 'select-one') {
-                input.selectedIndex = 0;
-            } else if (input.type === 'checkbox') {
-                input.checked = false;
-            }
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            const inputs = searchForm.querySelectorAll('input[type="text"], input[type="number"], input[type="date"]');
+            const selects = searchForm.querySelectorAll('select');
+            const checkboxes = searchForm.querySelectorAll('input[type="checkbox"]');
+            
+            inputs.forEach(input => input.value = '');
+            selects.forEach(select => select.selectedIndex = 0);
+            checkboxes.forEach(checkbox => checkbox.checked = false);
         });
-    });
-    
-    // Show advanced filters if any filters are active
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasFilters = ['discount_type', 'amount_range', 'sort', 'show_inactive'].some(param => urlParams.has(param));
-    if (hasFilters) {
-        advancedFilters.classList.remove('hidden');
-        toggleFilters.innerHTML = `
-            <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
-            </svg>
-            Hide Filters
-        `;
     }
-});
+})();
 </script>
 {% endblock %}

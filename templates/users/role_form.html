@@ -6,187 +6,574 @@
 {% endblock %}
 
 {% block content %}
-<div class="max-w-2xl mx-auto">
-    <!-- Header with Back Navigation -->
+<style>
+    /* Form input consistency */
+    input:not([type="checkbox"]),
+    select,
+    textarea {
+        padding: 0.625rem 0.875rem;
+        font-size: 0.9375rem;
+        line-height: 1.5;
+    }
+    
+    /* Smooth focus transitions */
+    input:not([type="checkbox"]):focus,
+    select:focus,
+    textarea:focus {
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+    
+    /* Enhanced checkbox styling */
+    input[type="checkbox"] {
+        width: 1.125rem;
+        height: 1.125rem;
+        cursor: pointer;
+        transition: all 0.15s ease-in-out;
+    }
+    
+    input[type="checkbox"]:focus {
+        outline: 2px solid rgba(59, 130, 246, 0.5);
+        outline-offset: 2px;
+    }
+    
+    /* Loading button state */
+    button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    
+    /* Smooth animations */
+    .fade-in {
+        animation: fadeIn 0.2s ease-in;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-4px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Required indicator styling */
+    .required-indicator {
+        color: #ef4444;
+        font-weight: 600;
+    }
+    
+    /* Section divider enhancement */
+    .section-divider {
+        border-top: 1px solid #e5e7eb;
+        margin: 0;
+    }
+    
+    /* Permission card hover effect */
+    .permission-card {
+        transition: all 0.15s ease-in-out;
+    }
+    
+    .permission-card:hover {
+        background-color: #f9fafb;
+    }
+</style>
+
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- Breadcrumb Navigation -->
+    <nav class="mb-4" aria-label="Breadcrumb">
+        <ol class="flex items-center space-x-2 text-sm text-gray-600">
+            <li>
+                <a href="{% url 'users:user_list' %}" 
+                   class="hover:text-primary-600 transition-colors duration-150 focus:outline-none focus:underline">
+                    User Management
+                </a>
+            </li>
+            <li>
+                <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                </svg>
+            </li>
+            <li>
+                <a href="{% url 'users:role_list' %}" 
+                   class="hover:text-primary-600 transition-colors duration-150 focus:outline-none focus:underline">
+                    Role Management
+                </a>
+            </li>
+            <li>
+                <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                </svg>
+            </li>
+            <li>
+                <span class="text-gray-900 font-medium">
+                    {% if role.pk %}Edit Role{% else %}Add New Role{% endif %}
+                </span>
+            </li>
+        </ol>
+    </nav>
+
+    <!-- Page Header -->
     <div class="mb-6">
-        <div class="flex items-center space-x-2 text-sm text-gray-500 mb-2">
-            <a href="{% url 'users:user_list' %}" class="hover:text-gray-700">← Back to Users</a>
-            <span>/</span>
-            <a href="{% url 'users:role_list' %}" class="hover:text-gray-700">Role Management</a>
-            <span>/</span>
-            <span>{% if role.pk %}Edit Role{% else %}Add New Role{% endif %}</span>
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 tracking-tight flex items-center">
+                    {% if role.pk %}
+                        Edit Role
+                        {% if role.is_protected %}
+                            <span class="inline-flex items-center ml-3 px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-200">
+                                <svg class="w-3.5 h-3.5 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                                </svg>
+                                Protected
+                            </span>
+                        {% endif %}
+                    {% else %}
+                        Add New Role
+                    {% endif %}
+                </h1>
+                <p class="mt-1 text-sm text-gray-600">
+                    {% if role.pk %}
+                        Modify permissions and settings for <span class="font-medium text-gray-900">{{ role.display_name }}</span>
+                    {% else %}
+                        Create a new role with custom permissions to control system access
+                    {% endif %}
+                </p>
+            </div>
         </div>
-        <h1 class="text-2xl font-bold text-gray-900">
-            {% if role.pk %}
-                Edit Role: {{ role.display_name }}
-                {% if role.is_protected %}
-                    <span class="inline-flex items-center px-3 py-0.5 rounded-full text-sm font-medium bg-red-100 text-red-800 ml-3">
-                        🔒 Protected
-                    </span>
-                {% endif %}
-            {% else %}
-                Add New Role
-            {% endif %}
-        </h1>
-        
-        {% if role.pk and role.user_set.filter.count > 0 %}
-            <div class="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                <div class="flex">
+    </div>
+
+    <!-- Warning: Active Users Affected -->
+    {% if role.pk and role.user_set.count > 0 %}
+        <div class="mb-6 bg-yellow-50 border-l-4 border-yellow-400 rounded-r-lg shadow-sm fade-in" role="alert">
+            <div class="p-4">
+                <div class="flex items-start">
                     <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                        <svg class="w-5 h-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
                         </svg>
                     </div>
-                    <div class="ml-3">
-                        <h3 class="text-sm font-medium text-yellow-800">
+                    <div class="ml-3 flex-1">
+                        <h3 class="text-sm font-semibold text-yellow-800 mb-1">
                             Permission Changes Will Affect Active Users
                         </h3>
-                        <div class="mt-2 text-sm text-yellow-700">
-                            <p>This role is assigned to {{ role.user_set.filter.count }} user{{ role.user_set.filter.count|pluralize }}. Changes to permissions will take effect immediately for all active users with this role.</p>
-                        </div>
+                        <p class="text-sm text-yellow-700">
+                            This role is currently assigned to <span class="font-semibold">{{ role.user_set.count }} user{{ role.user_set.count|pluralize }}</span>. 
+                            Any changes to permissions will take effect immediately for all users with this role.
+                        </p>
                     </div>
                 </div>
             </div>
-        {% endif %}
-    </div>
+        </div>
+    {% endif %}
 
-    <!-- Form -->
-    <div class="bg-white rounded-lg shadow-sm border">
-        <form method="post" class="p-6 space-y-6" onsubmit="return confirmChanges()">
+    <!-- Form Errors Summary -->
+    {% if form.errors %}
+        <div class="mb-6 bg-red-50 border-l-4 border-red-400 rounded-r-lg shadow-sm fade-in" role="alert">
+            <div class="p-4">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <svg class="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3 flex-1">
+                        <h3 class="text-sm font-semibold text-red-800 mb-2">
+                            Please correct the following {{ form.errors|length }} error{{ form.errors|length|pluralize }}:
+                        </h3>
+                        <ul class="list-none space-y-1 text-sm text-red-700">
+                            {% for field, errors in form.errors.items %}
+                                {% for error in errors %}
+                                    <li class="flex items-start">
+                                        <svg class="w-4 h-4 mr-1.5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                        </svg>
+                                        <span>
+                                            {% if field == '__all__' or field == 'non_field_errors' %}
+                                                {{ error }}
+                                            {% else %}
+                                                <strong class="font-medium">{{ field|title }}:</strong> {{ error }}
+                                            {% endif %}
+                                        </span>
+                                    </li>
+                                {% endfor %}
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Main Form Container -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+        <form method="post" x-data="{ loading: false }" @submit="loading = true; return confirmChanges()" novalidate>
             {% csrf_token %}
             
-            <!-- Basic Information -->
-            <div>
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Basic Information</h3>
-                <div class="space-y-4">
+            <!-- Basic Information Section -->
+            <div class="p-6">
+                <div class="flex items-center mb-5">
+                    <div class="flex-shrink-0 w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <h2 class="text-lg font-semibold text-gray-900">Basic Information</h2>
+                        <p class="text-sm text-gray-600">Define the role name and description</p>
+                    </div>
+                </div>
+
+                <div class="space-y-5">
+                    <!-- Role Name -->
                     <div>
-                        <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            Role Name *
+                        <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">
+                            Role Name <span class="required-indicator" aria-label="required">*</span>
                         </label>
                         {{ form.name }}
-                        {% if form.name.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.name.errors.0 }}</p>
-                        {% endif %}
                         {% if form.name.help_text %}
-                            <p class="mt-1 text-sm text-gray-500">{{ form.name.help_text }}</p>
+                            <p class="mt-1.5 text-xs text-gray-600">
+                                {{ form.name.help_text }}
+                            </p>
+                        {% else %}
+                            <p class="mt-1.5 text-xs text-gray-600">
+                                Used internally in the system (lowercase, no spaces)
+                            </p>
+                        {% endif %}
+                        {% if form.name.errors %}
+                            <p class="mt-1.5 text-sm text-red-600" role="alert">
+                                <span class="sr-only">Error:</span>
+                                {{ form.name.errors.0 }}
+                            </p>
                         {% endif %}
                     </div>
-                    
+
+                    <!-- Display Name -->
                     <div>
-                        <label for="{{ form.display_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                            Display Name *
+                        <label for="{{ form.display_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">
+                            Display Name <span class="required-indicator" aria-label="required">*</span>
                         </label>
                         {{ form.display_name }}
-                        {% if form.display_name.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.display_name.errors.0 }}</p>
-                        {% endif %}
                         {% if form.display_name.help_text %}
-                            <p class="mt-1 text-sm text-gray-500">{{ form.display_name.help_text }}</p>
+                            <p class="mt-1.5 text-xs text-gray-600">
+                                {{ form.display_name.help_text }}
+                            </p>
+                        {% else %}
+                            <p class="mt-1.5 text-xs text-gray-600">
+                                Friendly name shown to users throughout the system
+                            </p>
+                        {% endif %}
+                        {% if form.display_name.errors %}
+                            <p class="mt-1.5 text-sm text-red-600" role="alert">
+                                <span class="sr-only">Error:</span>
+                                {{ form.display_name.errors.0 }}
+                            </p>
                         {% endif %}
                     </div>
-                    
+
+                    <!-- Description -->
                     <div>
-                        <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-1.5">
                             Description
                         </label>
                         {{ form.description }}
+                        <p class="mt-1.5 text-xs text-gray-600">
+                            Brief explanation of this role's purpose and responsibilities
+                        </p>
                         {% if form.description.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.description.errors.0 }}</p>
+                            <p class="mt-1.5 text-sm text-red-600" role="alert">
+                                <span class="sr-only">Error:</span>
+                                {{ form.description.errors.0 }}
+                            </p>
                         {% endif %}
                     </div>
                 </div>
             </div>
 
-            <!-- Permissions -->
-            <div class="border-t border-gray-200 pt-6">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Module Permissions</h3>
-                <p class="text-sm text-gray-600 mb-4">Select which modules users with this role can access.</p>
-                
+            <!-- Section Divider -->
+            <hr class="section-divider">
+
+            <!-- Permissions Section -->
+            <div class="p-6">
+                <div class="flex items-center mb-5">
+                    <div class="flex-shrink-0 w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <h2 class="text-lg font-semibold text-gray-900">Module Permissions</h2>
+                        <p class="text-sm text-gray-600">Select which system modules this role can access</p>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {% for field in form %}
                         {% if field.name|slice:":5" == "perm_" %}
-                        <div class="flex items-start space-x-3">
-                            {{ field }}
-                            <div class="flex-1">
-                                <label for="{{ field.id_for_label }}" class="text-sm font-medium text-gray-700">
+                        <div class="permission-card flex items-start p-4 border border-gray-200 rounded-lg hover:border-gray-300">
+                            <div class="flex items-center h-5 mt-0.5">
+                                {{ field }}
+                            </div>
+                            <div class="ml-3 flex-1">
+                                <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-900 cursor-pointer">
                                     {{ field.label }}
                                 </label>
-                                <div class="text-xs text-gray-500">
+                                <p class="text-xs text-gray-600 mt-1">
                                     {% if field.name == "perm_dashboard" %}
-                                        Access to the main dashboard and overview
+                                        <svg class="inline w-3.5 h-3.5 mr-1 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+                                        </svg>
+                                        Access to main dashboard and system overview
                                     {% elif field.name == "perm_appointments" %}
-                                        View, create, and manage appointments
+                                        <svg class="inline w-3.5 h-3.5 mr-1 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd" />
+                                        </svg>
+                                        View, create, and manage patient appointments
                                     {% elif field.name == "perm_patients" %}
-                                        Access patient records and information
+                                        <svg class="inline w-3.5 h-3.5 mr-1 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+                                        </svg>
+                                        Access patient records and medical information
                                     {% elif field.name == "perm_billing" %}
-                                        Manage payment processing
+                                        <svg class="inline w-3.5 h-3.5 mr-1 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
+                                            <path fill-rule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clip-rule="evenodd" />
+                                        </svg>
+                                        Manage billing, payments, and invoices
                                     {% elif field.name == "perm_reports" %}
-                                        Generate and view system reports
+                                        <svg class="inline w-3.5 h-3.5 mr-1 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                                        </svg>
+                                        Generate and view system reports and analytics
                                     {% elif field.name == "perm_maintenance" %}
-                                        System administration and settings
+                                        <svg class="inline w-3.5 h-3.5 mr-1 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                                        </svg>
+                                        System administration, settings, and user management
                                     {% endif %}
-                                </div>
+                                </p>
                                 {% if field.errors %}
-                                    <p class="text-xs text-red-600 mt-1">{{ field.errors.0 }}</p>
+                                    <p class="mt-1.5 text-xs text-red-600" role="alert">
+                                        <span class="sr-only">Error:</span>
+                                        {{ field.errors.0 }}
+                                    </p>
                                 {% endif %}
                             </div>
                         </div>
                         {% endif %}
                     {% endfor %}
                 </div>
-            </div>
 
-            <!-- Form Errors -->
-            {% if form.non_field_errors %}
-                <div class="border-t border-gray-200 pt-6">
-                    <div class="bg-red-50 border border-red-200 rounded-md p-4">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                                </svg>
-                            </div>
-                            <div class="ml-3">
-                                <h3 class="text-sm font-medium text-red-800">
-                                    Please correct the following errors:
-                                </h3>
-                                <div class="mt-2 text-sm text-red-700">
-                                    <ul class="list-disc list-inside">
-                                        {% for error in form.non_field_errors %}
-                                        <li>{{ error }}</li>
-                                        {% endfor %}
-                                    </ul>
-                                </div>
-                            </div>
+                <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3 flex-1">
+                            <p class="text-sm text-blue-800">
+                                <strong class="font-medium">Tip:</strong> Users with no permissions selected will only be able to access the dashboard.
+                            </p>
                         </div>
                     </div>
                 </div>
-            {% endif %}
+            </div>
 
             <!-- Form Actions -->
-            <div class="border-t border-gray-200 pt-6 flex justify-between">
-                <a href="{% url 'users:role_list' %}" 
-                   class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors">
-                    Cancel
-                </a>
-                <button type="submit" 
-                        class="bg-primary-600 hover:bg-primary-700 text-white px-6 py-2 rounded-md text-sm font-medium transition-colors">
-                    {% if role.pk %}Update Role{% else %}Create Role{% endif %}
-                </button>
+            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 rounded-b-lg">
+                <div class="flex flex-col-reverse sm:flex-row sm:justify-between gap-3">
+                    <a href="{% url 'users:role_list' %}" 
+                       class="inline-flex items-center justify-center px-5 py-2.5 border border-gray-300 bg-white text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-150">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Cancel
+                    </a>
+                    <button type="submit" 
+                            :disabled="loading"
+                            :class="loading ? 'bg-primary-400 cursor-not-allowed' : 'bg-primary-600 hover:bg-primary-700'"
+                            class="inline-flex items-center justify-center px-6 py-2.5 text-white rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 shadow-sm transition-all duration-150">
+                        
+                        <!-- Spinner (shows when loading) -->
+                        <svg x-show="loading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        
+                        <!-- Success Icon (hidden initially) -->
+                        <svg x-show="!loading" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        
+                        <!-- Button text -->
+                        <span x-text="loading ? 'Saving...' : '{% if role.pk %}Update Role{% else %}Create Role{% endif %}'"></span>
+                    </button>
+                </div>
             </div>
         </form>
     </div>
 
+    <!-- Additional Information Card (for existing roles) -->
+    {% if role.pk %}
+    <div class="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center mb-4">
+            <div class="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div class="ml-4">
+                <h2 class="text-lg font-semibold text-gray-900">Role Information</h2>
+                <p class="text-sm text-gray-600">Current status and usage statistics</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Total Users -->
+            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Total Users</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1">{{ role.user_set.count }}</p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Protection Status -->
+            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Protection Status</p>
+                        <p class="text-base font-semibold mt-1 {% if role.is_protected %}text-red-600{% else %}text-green-600{% endif %}">
+                            {% if role.is_protected %}
+                                Protected
+                            {% else %}
+                                Editable
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        {% if role.is_protected %}
+                            <svg class="w-8 h-8 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                            </svg>
+                        {% else %}
+                            <svg class="w-8 h-8 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 2a5 5 0 00-5 5v2a2 2 0 00-2 2v5a2 2 0 002 2h10a2 2 0 002-2v-5a2 2 0 00-2-2H7V7a3 3 0 015.905-.75 1 1 0 001.937-.5A5.002 5.002 0 0010 2z" />
+                            </svg>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Permission Count -->
+            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Active Permissions</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1">
+                            {% with perm_count=0 %}
+                                {% if role.perm_dashboard %}{% with perm_count=perm_count|add:1 %}{% endwith %}{% endif %}
+                                {% if role.perm_appointments %}{% with perm_count=perm_count|add:1 %}{% endwith %}{% endif %}
+                                {% if role.perm_patients %}{% with perm_count=perm_count|add:1 %}{% endwith %}{% endif %}
+                                {% if role.perm_billing %}{% with perm_count=perm_count|add:1 %}{% endwith %}{% endif %}
+                                {% if role.perm_reports %}{% with perm_count=perm_count|add:1 %}{% endwith %}{% endif %}
+                                {% if role.perm_maintenance %}{% with perm_count=perm_count|add:1 %}{% endwith %}{% endif %}
+                                {{ perm_count }}
+                            {% endwith %}
+                        </p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if role.is_protected %}
+        <div class="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd" />
+                    </svg>
+                </div>
+                <div class="ml-3 flex-1">
+                    <h3 class="text-sm font-medium text-red-800 mb-1">
+                        This is a Protected System Role
+                    </h3>
+                    <p class="text-sm text-red-700">
+                        Protected roles are critical to system operation and cannot be deleted. You can modify permissions, but use caution as changes may affect system administrators' access.
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
 </div>
 
 <script>
 function confirmChanges() {
-    {% if role.pk and role.user_set.filter.count > 0 %}
-        const userCount = {{ role.user_set.filter.count }};
-        const message = `Are you sure you want to update this role? This will immediately affect ${userCount} user${userCount !== 1 ? 's' : ''} with this role.`;
+    {% if role.pk and role.user_set.count > 0 %}
+        const userCount = {{ role.user_set.count }};
+        const roleName = "{{ role.display_name|escapejs }}";
+        const message = `⚠️ Update "${roleName}" Role?\n\nThis will immediately affect ${userCount} user${userCount !== 1 ? 's' : ''} with this role.\n\nChanges to permissions take effect right away and may impact:\n• User access to system modules\n• Available features and functionality\n• User workflows and capabilities\n\nAre you sure you want to continue?`;
         return confirm(message);
     {% endif %}
     return true;
 }
+
+// Auto-fill display name from role name (for new roles)
+{% if not role.pk %}
+document.addEventListener('DOMContentLoaded', function() {
+    const nameField = document.querySelector('#{{ form.name.id_for_label }}');
+    const displayNameField = document.querySelector('#{{ form.display_name.id_for_label }}');
+    
+    if (nameField && displayNameField) {
+        nameField.addEventListener('input', function() {
+            // Only auto-fill if display name is empty
+            if (!displayNameField.value) {
+                // Convert snake_case to Title Case
+                const displayValue = this.value
+                    .split('_')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                    .join(' ');
+                displayNameField.value = displayValue;
+            }
+        });
+    }
+});
+{% endif %}
+
+// Add visual feedback for permission selection
+document.addEventListener('DOMContentLoaded', function() {
+    const permissionCheckboxes = document.querySelectorAll('input[type="checkbox"][name^="perm_"]');
+    
+    permissionCheckboxes.forEach(checkbox => {
+        const card = checkbox.closest('.permission-card');
+        
+        // Set initial state
+        if (checkbox.checked && card) {
+            card.classList.add('border-primary-300', 'bg-primary-50');
+        }
+        
+        // Add change listener
+        checkbox.addEventListener('change', function() {
+            if (card) {
+                if (this.checked) {
+                    card.classList.add('border-primary-300', 'bg-primary-50');
+                    card.classList.remove('border-gray-200');
+                } else {
+                    card.classList.remove('border-primary-300', 'bg-primary-50');
+                    card.classList.add('border-gray-200');
+                }
+            }
+        });
+    });
+});
 </script>
 {% endblock %}

@@ -6,59 +6,264 @@
 
 {% block content %}
 <style> 
-    input,
+    /* Form Input Styles */
+    input:not([type="checkbox"]):not([type="radio"]),
     select,
     textarea {
-        padding: 0.5rem 0.75rem;
+        display: block;
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        color: #1f2937;
+        background-color: #ffffff;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
     }
     
-    /* Style for duration input to make it more prominent */
+    input:not([type="checkbox"]):not([type="radio"]):focus,
+    select:focus,
+    textarea:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    input:not([type="checkbox"]):not([type="radio"]):disabled,
+    select:disabled,
+    textarea:disabled {
+        background-color: #f3f4f6;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+    
+    /* Error state */
+    input.error,
+    select.error,
+    textarea.error {
+        border-color: #ef4444;
+    }
+    
+    input.error:focus,
+    select.error:focus,
+    textarea.error:focus {
+        border-color: #dc2626;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+    
+    /* Textarea specific */
+    textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
+    
+    /* Number input - duration */
     #id_duration_minutes {
         font-weight: 500;
         font-size: 1rem;
+        text-align: center;
+        letter-spacing: 0.025em;
+    }
+    
+    /* Number input buttons */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        opacity: 1;
+        height: 40px;
+    }
+    
+    /* Required indicator */
+    .required-indicator {
+        color: #dc2626;
+        font-weight: 600;
+        margin-left: 0.125rem;
+    }
+    
+    /* Form section header */
+    .form-section-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .form-section-header h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #374151;
+        margin: 0;
+    }
+    
+    .form-section-icon {
+        width: 1.25rem;
+        height: 1.25rem;
+        color: #6b7280;
+    }
+    
+    /* Helper text improvements */
+    .helper-text {
+        display: flex;
+        align-items: start;
+        gap: 0.375rem;
+        margin-top: 0.5rem;
+        font-size: 0.8125rem;
+        color: #6b7280;
+        line-height: 1.4;
+    }
+    
+    .helper-icon {
+        width: 0.875rem;
+        height: 0.875rem;
+        flex-shrink: 0;
+        margin-top: 0.125rem;
+        color: #9ca3af;
+    }
+    
+    /* Button improvements */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        line-height: 1.25rem;
+        border-radius: 0.375rem;
+        transition: all 0.15s ease-in-out;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    
+    .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    .btn-primary {
+        color: #ffffff;
+        background-color: #2563eb;
+        border: 1px solid transparent;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+        background-color: #1d4ed8;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-primary:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    }
+    
+    .btn-secondary {
+        color: #374151;
+        background-color: #ffffff;
+        border: 1px solid #d1d5db;
+    }
+    
+    .btn-secondary:hover:not(:disabled) {
+        background-color: #f9fafb;
+        border-color: #9ca3af;
+    }
+    
+    .btn-secondary:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.2);
+    }
+    
+    /* Price input prefix */
+    .input-with-prefix {
+        position: relative;
+    }
+    
+    .input-prefix {
+        position: absolute;
+        left: 0.875rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #6b7280;
+        pointer-events: none;
+    }
+    
+    .input-with-prefix input {
+        padding-left: 2rem;
+    }
+    
+    /* Smooth transitions */
+    * {
+        transition-property: background-color, border-color, color, fill, stroke;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+    
+    /* Focus visible for accessibility */
+    *:focus-visible {
+        outline: 2px solid #3b82f6;
+        outline-offset: 2px;
     }
 </style>
 
-<div class="max-w-2xl mx-auto space-y-6">
-    <!-- Header -->
-    <div>
-        <div class="flex items-center space-x-2 text-sm text-gray-500 mb-2">
-            <a href="{% url 'services:service_list' %}" class="hover:text-gray-700">Services</a>
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <!-- Breadcrumb Navigation -->
+    <nav class="flex items-center space-x-2 text-sm text-gray-600" aria-label="Breadcrumb">
+        <a href="{% url 'services:service_list' %}" class="hover:text-gray-900 transition-colors">
+            Services
+        </a>
+        <svg class="h-4 w-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+        </svg>
+        {% if object %}
+            <a href="{% url 'services:service_detail' object.pk %}" class="hover:text-gray-900 transition-colors">
+                {{ object.name }}
+            </a>
+            <svg class="h-4 w-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
             </svg>
-            {% if object %}
-                <a href="{% url 'services:service_detail' object.pk %}" class="hover:text-gray-700">{{ object.name }}</a>
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                </svg>
-            {% endif %}
-            <span>{% if object %}Edit Service{% else %}Add New Service{% endif %}</span>
-        </div>
-        <h1 class="text-2xl font-bold text-gray-900">
+        {% endif %}
+        <span class="text-gray-900 font-medium" aria-current="page">
+            {% if object %}Edit Service{% else %}Add New Service{% endif %}
+        </span>
+    </nav>
+
+    <!-- Page Header -->
+    <header class="space-y-2">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">
             {% if object %}Edit Service{% else %}Add New Service{% endif %}
         </h1>
-        <p class="mt-1 text-sm text-gray-600">
-            {% if object %}Update the details of this dental service{% else %}Add a new dental service with pricing and duration{% endif %}
+        <p class="text-base text-gray-600">
+            {% if object %}
+                Update the service details, pricing, and duration information
+            {% else %}
+                Define a new dental service with pricing and estimated duration
+            {% endif %}
         </p>
-    </div>
+    </header>
 
-    <!-- Form -->
-    <div class="bg-white shadow rounded-lg">
-        <form method="post" class="space-y-6 p-6">
+    <!-- Main Form Card -->
+    <div class="bg-white shadow-sm rounded-lg border border-gray-200">
+        <form method="post" class="p-6 sm:p-8 space-y-8" novalidate>
             {% csrf_token %}
             
-            <!-- Display non-field errors -->
+            <!-- Non-field errors alert -->
             {% if form.non_field_errors %}
-                <div class="rounded-md bg-red-50 p-4">
-                    <div class="flex">
+                <div class="rounded-lg bg-red-50 border border-red-200 p-4" role="alert">
+                    <div class="flex items-start">
                         <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="h-5 w-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.316 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
                             </svg>
                         </div>
-                        <div class="ml-3">
-                            <h3 class="text-sm font-medium text-red-800">Please correct the following errors:</h3>
+                        <div class="ml-3 flex-1">
+                            <h3 class="text-sm font-semibold text-red-800">
+                                Please correct the following errors
+                            </h3>
                             <div class="mt-2 text-sm text-red-700">
                                 <ul class="list-disc list-inside space-y-1">
                                     {% for error in form.non_field_errors %}
@@ -71,81 +276,167 @@
                 </div>
             {% endif %}
 
-            <!-- Service Name -->
-            <div>
-                <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                    Service Name <span class="text-red-500">*</span>
-                </label>
-                {{ form.name }}
-                {% if form.name.errors %}
-                    <p class="mt-2 text-sm text-red-600">{{ form.name.errors.0 }}</p>
-                {% endif %}
-                {% if form.name.help_text %}
-                    <p class="mt-2 text-sm text-gray-500">{{ form.name.help_text }}</p>
-                {% endif %}
-            </div>
+            <!-- Basic Information Section -->
+            <section>
+                <div class="form-section-header">
+                    <svg class="form-section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <h2>Basic Information</h2>
+                </div>
+                
+                <div class="space-y-5">
+                    <!-- Service Name -->
+                    <div>
+                        <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-900 mb-1.5">
+                            Service Name
+                            <span class="required-indicator" aria-label="required">*</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <p class="mt-2 text-sm text-red-600" role="alert">
+                                <span class="font-medium">Error:</span> {{ form.name.errors.0 }}
+                            </p>
+                        {% endif %}
+                        {% if form.name.help_text %}
+                            <div class="helper-text">
+                                <svg class="helper-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>{{ form.name.help_text }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
 
-            <!-- Description -->
-            <div>
-                <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                    Description
-                </label>
-                {{ form.description }}
-                {% if form.description.errors %}
-                    <p class="mt-2 text-sm text-red-600">{{ form.description.errors.0 }}</p>
-                {% endif %}
-                {% if form.description.help_text %}
-                    <p class="mt-2 text-sm text-gray-500">{{ form.description.help_text }}</p>
-                {% endif %}
-            </div>
+                    <!-- Description -->
+                    <div>
+                        <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-900 mb-1.5">
+                            Description
+                            <span class="text-gray-500 text-xs font-normal ml-1">(Optional)</span>
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <p class="mt-2 text-sm text-red-600" role="alert">
+                                <span class="font-medium">Error:</span> {{ form.description.errors.0 }}
+                            </p>
+                        {% endif %}
+                        <div class="helper-text">
+                            <span>Provide details about what this service includes</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             <!-- Pricing Section -->
-            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <!-- Minimum Price -->
-                <div>
-                    <label for="{{ form.min_price.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                        Minimum Price (₱) <span class="text-red-500">*</span>
-                    </label>
-                    {{ form.min_price }}
-                    {% if form.min_price.errors %}
-                        <p class="mt-2 text-sm text-red-600">{{ form.min_price.errors.0 }}</p>
-                    {% endif %}
+            <section>
+                <div class="form-section-header">
+                    <svg class="form-section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <h2>Pricing Information</h2>
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <!-- Minimum Price -->
+                    <div>
+                        <label for="{{ form.min_price.id_for_label }}" class="block text-sm font-medium text-gray-900 mb-1.5">
+                            Minimum Price
+                            <span class="required-indicator" aria-label="required">*</span>
+                        </label>
+                        <div class="input-with-prefix">
+                            <span class="input-prefix" aria-hidden="true">₱</span>
+                            {{ form.min_price }}
+                        </div>
+                        {% if form.min_price.errors %}
+                            <p class="mt-2 text-sm text-red-600" role="alert">
+                                <span class="font-medium">Error:</span> {{ form.min_price.errors.0 }}
+                            </p>
+                        {% endif %}
+                        <div class="helper-text">
+                            <span>Lowest price for this service</span>
+                        </div>
+                    </div>
+
+                    <!-- Maximum Price -->
+                    <div>
+                        <label for="{{ form.max_price.id_for_label }}" class="block text-sm font-medium text-gray-900 mb-1.5">
+                            Maximum Price
+                            <span class="required-indicator" aria-label="required">*</span>
+                        </label>
+                        <div class="input-with-prefix">
+                            <span class="input-prefix" aria-hidden="true">₱</span>
+                            {{ form.max_price }}
+                        </div>
+                        {% if form.max_price.errors %}
+                            <p class="mt-2 text-sm text-red-600" role="alert">
+                                <span class="font-medium">Error:</span> {{ form.max_price.errors.0 }}
+                            </p>
+                        {% endif %}
+                        <div class="helper-text">
+                            <span>Highest price for this service</span>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Maximum Price -->
-                <div>
-                    <label for="{{ form.max_price.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                        Maximum Price (₱) <span class="text-red-500">*</span>
-                    </label>
-                    {{ form.max_price }}
-                    {% if form.max_price.errors %}
-                        <p class="mt-2 text-sm text-red-600">{{ form.max_price.errors.0 }}</p>
-                    {% endif %}
+                <div class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <div class="flex items-start">
+                        <svg class="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <p class="ml-3 text-sm text-blue-800">
+                            Set a price range to accommodate different case complexities. The final price will be determined during the appointment.
+                        </p>
+                    </div>
                 </div>
-            </div>
+            </section>
 
-            <!-- Duration -->
-            <div>
-                <label for="{{ form.duration_minutes.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                    Duration (Minutes) <span class="text-red-500">*</span>
-                </label>
-                {{ form.duration_minutes }}
-                {% if form.duration_minutes.errors %}
-                    <p class="mt-2 text-sm text-red-600">{{ form.duration_minutes.errors.0 }}</p>
-                {% endif %}
-                <p class="mt-2 text-sm text-gray-500">
-                    Use the up/down arrows to adjust in 30-minute increments (30, 60, 90, 120, etc.)
-                </p>
-            </div>
+            <!-- Duration Section -->
+            <section>
+                <div class="form-section-header">
+                    <svg class="form-section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <h2>Appointment Duration</h2>
+                </div>
+                
+                <div>
+                    <label for="{{ form.duration_minutes.id_for_label }}" class="block text-sm font-medium text-gray-900 mb-1.5">
+                        Duration (Minutes)
+                        <span class="required-indicator" aria-label="required">*</span>
+                    </label>
+                    {{ form.duration_minutes }}
+                    {% if form.duration_minutes.errors %}
+                        <p class="mt-2 text-sm text-red-600" role="alert">
+                            <span class="font-medium">Error:</span> {{ form.duration_minutes.errors.0 }}
+                        </p>
+                    {% endif %}
+                    <div class="helper-text">
+                        <span>Use arrow keys or click arrows to adjust in 30-minute increments (30, 60, 90, 120, etc.)</span>
+                    </div>
+                    
+                    <div class="mt-3 flex items-center space-x-2 text-sm text-gray-600">
+                        <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span id="duration-display" class="font-medium"></span>
+                    </div>
+                </div>
+            </section>
 
             <!-- Form Actions -->
-            <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+            <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-6 border-t border-gray-200">
                 <a href="{% url 'services:service_list' %}" 
-                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                   class="btn btn-secondary">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
                     Cancel
                 </a>
                 <button type="submit" 
-                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        class="btn btn-primary">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
                     {% if object %}Update Service{% else %}Create Service{% endif %}
                 </button>
             </div>
@@ -154,11 +445,14 @@
 </div>
 
 <script>
-    // Duration input validation and snap to 30-minute increments
-    document.addEventListener('DOMContentLoaded', function() {
-        const durationInput = document.getElementById('id_duration_minutes');
+    // Duration input validation and management
+    (function() {
+        'use strict';
         
-        if (!durationInput) return;
+        const durationInput = document.getElementById('id_duration_minutes');
+        const durationDisplay = document.getElementById('duration-display');
+        
+        if (!durationInput || !durationDisplay) return;
         
         // Set default value if empty
         if (!durationInput.value) {
@@ -172,10 +466,43 @@
             return Math.round(numValue / 30) * 30;
         }
         
+        // Function to format duration display
+        function updateDurationDisplay(minutes) {
+            if (!minutes || minutes < 30) {
+                durationDisplay.textContent = '';
+                return;
+            }
+            
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            
+            let displayText = 'Appointment will last ';
+            
+            if (hours > 0) {
+                displayText += hours + (hours === 1 ? ' hour' : ' hours');
+                if (mins > 0) {
+                    displayText += ' and ' + mins + ' minutes';
+                }
+            } else {
+                displayText += mins + ' minutes';
+            }
+            
+            durationDisplay.textContent = displayText;
+        }
+        
+        // Initial display
+        updateDurationDisplay(parseInt(durationInput.value));
+        
+        // Update display on input
+        durationInput.addEventListener('input', function() {
+            updateDurationDisplay(parseInt(this.value));
+        });
+        
         // Snap to increment on blur
         durationInput.addEventListener('blur', function() {
             const snappedValue = snapToIncrement(this.value);
             this.value = snappedValue;
+            updateDurationDisplay(snappedValue);
         });
         
         // Handle keyboard up/down arrows for 30-minute increments
@@ -185,7 +512,9 @@
             // Arrow Up - increment by 30
             if (e.keyCode === 38) {
                 e.preventDefault();
-                this.value = currentValue + 30;
+                const newValue = currentValue + 30;
+                this.value = newValue;
+                updateDurationDisplay(newValue);
                 return;
             }
             
@@ -193,7 +522,9 @@
             if (e.keyCode === 40) {
                 e.preventDefault();
                 const newValue = currentValue - 30;
-                this.value = newValue < 30 ? 30 : newValue;
+                const finalValue = newValue < 30 ? 30 : newValue;
+                this.value = finalValue;
+                updateDurationDisplay(finalValue);
                 return;
             }
             
@@ -215,6 +546,15 @@
             }
         });
         
+        // Add error class to inputs with errors
+        const formInputs = document.querySelectorAll('input, select, textarea');
+        formInputs.forEach(function(input) {
+            const errorElement = input.parentElement.querySelector('[role="alert"]');
+            if (errorElement) {
+                input.classList.add('error');
+            }
+        });
+        
         // Validate on form submit
         const form = durationInput.closest('form');
         if (form) {
@@ -230,12 +570,15 @@
                 
                 if (duration % 30 !== 0) {
                     e.preventDefault();
-                    alert('Duration must be in 30-minute increments (e.g., 30, 60, 90, 120 minutes).');
+                    const snappedValue = snapToIncrement(duration);
+                    durationInput.value = snappedValue;
+                    updateDurationDisplay(snappedValue);
+                    alert('Duration has been adjusted to ' + snappedValue + ' minutes (nearest 30-minute increment).');
                     durationInput.focus();
                     return false;
                 }
             });
         }
-    });
+    })();
 </script>
 {% endblock %}

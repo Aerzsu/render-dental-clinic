@@ -5,174 +5,357 @@
 {% endblock %}
 
 {% block content %}
-<style> 
-    input,
-    select,
-    textarea {
-        padding: 0.5rem 0.75rem;
-    }
-    
-    .fade-transition {
-        transition: opacity 0.2s ease-in-out;
-    }
-</style>
-
-<div class="max-w-2xl mx-auto space-y-6">
-    <!-- Header -->
-    <div>
-        <div class="flex items-center space-x-2 text-sm text-gray-500 mb-2">
-            <a href="{% url 'services:discount_list' %}" class="hover:text-gray-700 transition-colors">Discounts</a>
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-            </svg>
-            {% if object %}
-                <a href="{% url 'services:discount_detail' object.pk %}" class="hover:text-gray-700 transition-colors font-medium">
-                    {{ object.name }}
-                </a>
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                </svg>
-                <span>Edit Discount</span>
-            {% else %}
-                <span>Add New Discount</span>
-            {% endif %}
-        </div>
-        <h1 class="text-2xl font-bold text-gray-900">
-            {% if object %}Edit Discount{% else %}Add New Discount{% endif %}
-        </h1>
-        <p class="mt-1 text-sm text-gray-600">
-            {% if object %}Update the details of this discount{% else %}Create a new discount for services and billing{% endif %}
-        </p>
-    </div>
-
-    <!-- Form -->
-    <div class="bg-white shadow rounded-lg">
-        <form method="post" class="space-y-6 p-6" id="discount-form">
-            {% csrf_token %}
-            
-            <!-- Display non-field errors -->
-            {% if form.non_field_errors %}
-                <div class="rounded-md bg-red-50 p-4">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <span class="text-red-400 text-lg">⚠️</span>
-                        </div>
-                        <div class="ml-3">
-                            <h3 class="text-sm font-medium text-red-800">Please correct the following errors:</h3>
-                            <div class="mt-2 text-sm text-red-700">
-                                <ul class="list-disc list-inside space-y-1">
-                                    {% for error in form.non_field_errors %}
-                                        <li>{{ error }}</li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            {% endif %}
-
-            <!-- Discount Name -->
-            <div>
-                <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                    Discount Name <span class="text-red-500">*</span>
-                </label>
-                {{ form.name }}
-                {% if form.name.errors %}
-                    <p class="mt-2 text-sm text-red-600">{{ form.name.errors.0 }}</p>
+<div class="min-h-screen bg-gray-50 py-6">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Breadcrumb Navigation -->
+        <nav class="flex mb-4" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-2 text-sm">
+                <li>
+                    <a href="{% url 'services:discount_list' %}" 
+                       class="text-gray-500 hover:text-gray-700 transition-colors font-medium">
+                        <span class="sr-only">Back to </span>Discounts
+                    </a>
+                </li>
+                {% if object %}
+                <li class="flex items-center">
+                    <svg class="flex-shrink-0 w-4 h-4 text-gray-400 mx-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                    </svg>
+                    <a href="{% url 'services:discount_detail' object.pk %}" 
+                       class="text-gray-500 hover:text-gray-700 transition-colors font-medium">
+                        {{ object.name }}
+                    </a>
+                </li>
                 {% endif %}
-                {% if form.name.help_text %}
-                    <p class="mt-2 text-sm text-gray-500">{{ form.name.help_text }}</p>
-                {% endif %}
-            </div>
+                <li class="flex items-center">
+                    <svg class="flex-shrink-0 w-4 h-4 text-gray-400 mx-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="text-gray-900 font-medium">{% if object %}Edit{% else %}New Discount{% endif %}</span>
+                </li>
+            </ol>
+        </nav>
 
-            <!-- Discount Type and Amount -->
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-3">
-                        Discount Type <span class="text-red-500">*</span>
-                    </label>
-                    <div class="space-y-3">
-                        <div class="flex items-center">
-                            <input type="radio" 
-                                   name="discount_type" 
-                                   id="fixed_amount" 
-                                   value="false"
-                                   {% if not form.is_percentage.value %}checked{% endif %}
-                                   class="focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300">
-                            <label for="fixed_amount" class="ml-3 block text-sm font-medium text-gray-700">
-                                Fixed Amount (₱)
-                            </label>
-                        </div>
-                        <div class="flex items-center">
-                            <input type="radio" 
-                                   name="discount_type" 
-                                   id="percentage" 
-                                   value="true"
-                                   {% if form.is_percentage.value %}checked{% endif %}
-                                   class="focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300">
-                            <label for="percentage" class="ml-3 block text-sm font-medium text-gray-700">
-                                Percentage (%)
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Hidden field for form submission -->
-                <div class="hidden">
-                    {{ form.is_percentage }}
-                </div>
-
-                <!-- Amount Field -->
-                <div>
-                    <label for="{{ form.amount.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                        <span id="amount-label">
-                            {% if form.is_percentage.value %}Discount Percentage (%){% else %}Discount Amount (₱){% endif %}
-                        </span>
-                        <span class="text-red-500">*</span>
-                    </label>
-                    <div class="mt-1 relative rounded-md shadow-sm">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <span class="text-gray-500 sm:text-sm" id="currency-symbol">
-                                {% if form.is_percentage.value %}%{% else %}₱{% endif %}
-                            </span>
-                        </div>
-                        <input type="number" 
-                               name="amount" 
-                               id="{{ form.amount.id_for_label }}"
-                               value="{{ form.amount.value|default:'' }}"
-                               step="0.01"
-                               min="0.01"
-                               {% if form.is_percentage.value %}max="100"{% endif %}
-                               class="focus:ring-primary-500 focus:border-primary-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md"
-                               required>
-                    </div>
-                    {% if form.amount.errors %}
-                        <p class="mt-2 text-sm text-red-600">{{ form.amount.errors.0 }}</p>
-                    {% endif %}
-                    <p class="mt-2 text-sm text-gray-500 fade-transition" id="amount-help">
-                        {% if form.is_percentage.value %}
-                            Enter percentage (1-100) to discount from the total
-                        {% else %}
-                            Enter the fixed amount to subtract from the total
-                        {% endif %}
+        <!-- Page Header -->
+        <div class="mb-8">
+            <div class="flex items-start justify-between">
+                <div class="flex-1">
+                    <h1 class="text-3xl font-bold text-gray-900 mb-2">
+                        {% if object %}Edit Discount{% else %}Add New Discount{% endif %}
+                    </h1>
+                    <p class="text-gray-600">
+                        {% if object %}Update the discount details and configuration{% else %}Create a new discount that can be applied to services and billing{% endif %}
                     </p>
                 </div>
+                <div class="ml-4 flex-shrink-0">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                        </svg>
+                        Discount
+                    </span>
+                </div>
             </div>
+        </div>
 
-            <!-- Form Actions -->
-            <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
-                <a href="{% url 'services:discount_list' %}" 
-                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
-                    Cancel
-                </a>
-                <button type="submit" 
-                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
-                    {% if object %}Update Discount{% else %}Create Discount{% endif %}
-                </button>
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Form Column (2/3 width) -->
+            <div class="lg:col-span-2">
+                <div class="bg-white shadow-sm rounded-lg border border-gray-200">
+                    <form method="post" class="divide-y divide-gray-200" id="discount-form" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Display non-field errors -->
+                        {% if form.non_field_errors %}
+                            <div class="p-6">
+                                <div class="rounded-lg bg-red-50 border border-red-200 p-4">
+                                    <div class="flex">
+                                        <div class="flex-shrink-0">
+                                            <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div class="ml-3">
+                                            <h3 class="text-sm font-semibold text-red-800 mb-2">Please correct the following errors:</h3>
+                                            <ul class="list-disc list-inside space-y-1 text-sm text-red-700">
+                                                {% for error in form.non_field_errors %}
+                                                    <li>{{ error }}</li>
+                                                {% endfor %}
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <!-- Discount Details Section -->
+                        <div class="p-6 space-y-6">
+                            <div>
+                                <div class="flex items-center mb-4">
+                                    <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <h2 class="text-lg font-semibold text-gray-900">Discount Details</h2>
+                                </div>
+
+                                <!-- Discount Name -->
+                                <div>
+                                    <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Discount Name <span class="text-red-500" aria-label="required">*</span>
+                                    </label>
+                                    {{ form.name }}
+                                    {% if form.name.errors %}
+                                        <p class="mt-2 text-sm text-red-600 flex items-start" role="alert">
+                                            <svg class="w-4 h-4 mt-0.5 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                            </svg>
+                                            <span>{{ form.name.errors.0 }}</span>
+                                        </p>
+                                    {% endif %}
+                                    <p class="mt-1.5 text-xs text-gray-500">
+                                        {% if form.name.help_text %}{{ form.name.help_text }}{% else %}Enter a clear, descriptive name (e.g., "Senior Citizen", "PWD", "Holiday Promo"){% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Discount Configuration Section -->
+                        <div class="p-6 space-y-6">
+                            <div>
+                                <div class="flex items-center mb-4">
+                                    <svg class="w-5 h-5 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <h2 class="text-lg font-semibold text-gray-900">Discount Configuration</h2>
+                                </div>
+
+                                <!-- Discount Type Selection -->
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-3">
+                                            Discount Type <span class="text-red-500" aria-label="required">*</span>
+                                        </label>
+                                        <div class="space-y-3">
+                                            <label class="relative flex items-start p-4 border border-gray-300 rounded-lg cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition-all group">
+                                                <input type="radio" 
+                                                       name="discount_type" 
+                                                       id="fixed_amount" 
+                                                       value="false"
+                                                       {% if not form.is_percentage.value %}checked{% endif %}
+                                                       class="focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300 mt-0.5 flex-shrink-0">
+                                                <div class="ml-3 flex-1">
+                                                    <span class="block text-sm font-medium text-gray-900 group-hover:text-primary-900">
+                                                        Fixed Amount (₱)
+                                                    </span>
+                                                    <span class="block text-xs text-gray-500 mt-1">
+                                                        Subtract a specific peso amount from the total
+                                                    </span>
+                                                </div>
+                                                <div class="ml-3">
+                                                    <svg class="w-5 h-5 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </div>
+                                            </label>
+                                            
+                                            <label class="relative flex items-start p-4 border border-gray-300 rounded-lg cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition-all group">
+                                                <input type="radio" 
+                                                       name="discount_type" 
+                                                       id="percentage" 
+                                                       value="true"
+                                                       {% if form.is_percentage.value %}checked{% endif %}
+                                                       class="focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300 mt-0.5 flex-shrink-0">
+                                                <div class="ml-3 flex-1">
+                                                    <span class="block text-sm font-medium text-gray-900 group-hover:text-primary-900">
+                                                        Percentage (%)
+                                                    </span>
+                                                    <span class="block text-xs text-gray-500 mt-1">
+                                                        Apply a percentage discount to the total amount
+                                                    </span>
+                                                </div>
+                                                <div class="ml-3">
+                                                    <svg class="w-5 h-5 text-gray-400 group-hover:text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                                    </svg>
+                                                </div>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <!-- Hidden field for form submission -->
+                                    <div class="hidden">
+                                        {{ form.is_percentage }}
+                                    </div>
+
+                                    <!-- Amount Field -->
+                                    <div class="pt-2">
+                                        <label for="{{ form.amount.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            <span id="amount-label" class="transition-all duration-200">
+                                                {% if form.is_percentage.value %}Discount Percentage{% else %}Discount Amount{% endif %}
+                                            </span>
+                                            <span class="text-red-500" aria-label="required">*</span>
+                                        </label>
+                                        <div class="relative rounded-lg shadow-sm">
+                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <span class="text-gray-500 text-sm font-medium transition-all duration-200" id="currency-symbol">
+                                                    {% if form.is_percentage.value %}%{% else %}₱{% endif %}
+                                                </span>
+                                            </div>
+                                            <input type="number" 
+                                                name="amount" 
+                                                id="{{ form.amount.id_for_label }}"
+                                                value="{{ form.amount.value|default:'' }}"
+                                                {% if form.is_percentage.value %}max="100"{% endif %}
+                                                class="block w-full {% if form.is_percentage.value %}pl-8{% else %}pl-11{% endif %} pr-16 py-2.5 text-sm border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                                                placeholder="0.00"
+                                                required
+                                                aria-describedby="amount-help">
+                                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                                <span class="text-gray-400 text-xs font-medium" id="amount-unit">
+                                                    {% if form.is_percentage.value %}percent{% else %}pesos{% endif %}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        {% if form.amount.errors %}
+                                            <p class="mt-2 text-sm text-red-600 flex items-start" role="alert">
+                                                <svg class="w-4 h-4 mt-0.5 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                                </svg>
+                                                <span>{{ form.amount.errors.0 }}</span>
+                                            </p>
+                                        {% endif %}
+                                        <p class="mt-2 text-xs text-gray-500 transition-opacity duration-200" id="amount-help">
+                                            {% if form.is_percentage.value %}
+                                                Enter a percentage between 1 and 100 to discount from the total amount
+                                            {% else %}
+                                                Enter the fixed peso amount to subtract from the total
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="px-6 py-4 bg-gray-50 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
+                            <a href="{% url 'services:discount_list' %}" 
+                               class="w-full sm:w-auto inline-flex justify-center items-center px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                                Cancel
+                            </a>
+                            <button type="submit" 
+                                    id="submitBtn"
+                                    class="w-full sm:w-auto inline-flex justify-center items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                                <svg class="w-5 h-5 mr-2 -ml-1 hidden animate-spin" id="loadingIcon" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span id="submitText">{% if object %}Update Discount{% else %}Create Discount{% endif %}</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-        </form>
+            <!-- Sidebar Column (1/3 width) -->
+            <div class="lg:col-span-1">
+                <div class="sticky top-6 space-y-6">
+                    <!-- Discount Preview Card -->
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                        <div class="px-4 py-3 bg-gradient-to-r from-primary-50 to-primary-100 border-b border-primary-200">
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 text-primary-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                <h3 class="text-sm font-semibold text-primary-900">Live Preview</h3>
+                            </div>
+                        </div>
+                        <div class="p-4 space-y-4">
+                            <div>
+                                <p class="text-xs font-medium text-gray-500 mb-1">Example Calculation</p>
+                                <div class="bg-gray-50 rounded-lg p-3 space-y-2">
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-600">Original Amount:</span>
+                                        <span class="font-medium text-gray-900">₱1,000.00</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-600">Discount:</span>
+                                        <span class="font-medium text-primary-600" id="preview-discount">-</span>
+                                    </div>
+                                    <div class="pt-2 border-t border-gray-200 flex justify-between">
+                                        <span class="text-sm font-medium text-gray-900">Final Amount:</span>
+                                        <span class="text-lg font-bold text-gray-900" id="preview-final">₱1,000.00</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-500 italic">
+                                Preview updates as you enter the discount amount
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Helpful Tips Card -->
+                    <div class="bg-blue-50 rounded-lg border border-blue-200 overflow-hidden">
+                        <div class="px-4 py-3 bg-blue-100 border-b border-blue-200">
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                </svg>
+                                <h3 class="text-sm font-semibold text-blue-900">Helpful Tips</h3>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <ul class="space-y-2.5 text-sm text-blue-900">
+                                <li class="flex items-start">
+                                    <svg class="w-4 h-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span>Use descriptive names to easily identify discounts during billing</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <svg class="w-4 h-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span>Fixed amounts work best for consistent discounts (e.g., ₱100 off)</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <svg class="w-4 h-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span>Percentage discounts scale better with varying bill amounts</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <svg class="w-4 h-4 text-blue-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span>Common examples: Senior Citizen (20%), PWD (20%), Holiday Promo (10%)</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Quick Reference Card -->
+                    <div class="bg-gray-50 rounded-lg border border-gray-200 p-4 hidden lg:block">
+                        <h3 class="text-sm font-semibold text-gray-900 mb-3">Quick Reference</h3>
+                        <dl class="space-y-2 text-xs text-gray-600">
+                            <div class="flex justify-between py-1">
+                                <dt>Required fields:</dt>
+                                <dd class="font-medium text-gray-900">Name, Amount</dd>
+                            </div>
+                            <div class="flex justify-between py-1">
+                                <dt>Percentage range:</dt>
+                                <dd class="font-medium text-gray-900">1% - 100%</dd>
+                            </div>
+                            <div class="flex justify-between py-1">
+                                <dt>Min. fixed amount:</dt>
+                                <dd class="font-medium text-gray-900">₱0.01</dd>
+                            </div>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-
 </div>
 
 <script>
@@ -184,25 +367,40 @@ document.addEventListener('DOMContentLoaded', function() {
     const amountInput = document.getElementById('{{ form.amount.id_for_label }}');
     const amountLabel = document.getElementById('amount-label');
     const currencySymbol = document.getElementById('currency-symbol');
+    const amountUnit = document.getElementById('amount-unit');
     const amountHelp = document.getElementById('amount-help');
+    const submitBtn = document.getElementById('submitBtn');
+    const submitText = document.getElementById('submitText');
+    const loadingIcon = document.getElementById('loadingIcon');
+    
+    // Preview elements
+    const previewDiscount = document.getElementById('preview-discount');
+    const previewFinal = document.getElementById('preview-final');
+    const baseAmount = 1000;
     
     function updateUI(isPercentage, clearAmount = true) {
-        // Update hidden field value (it's a hidden input with value, not a checkbox)
+        // Update hidden field value
         hiddenField.value = isPercentage ? 'True' : 'False';
         
-        // Update label and symbol
+        // Update label, symbol, and help text
         if (isPercentage) {
-            amountLabel.textContent = 'Discount Percentage (%)';
+            amountLabel.textContent = 'Discount Percentage';
             currencySymbol.textContent = '%';
+            amountUnit.textContent = 'percent';
             amountInput.setAttribute('max', '100');
             amountInput.setAttribute('min', '0.01');
-            amountHelp.textContent = 'Enter percentage (1-100) to discount from the total';
+            amountInput.classList.remove('pl-11');
+            amountInput.classList.add('pl-8');
+            amountHelp.textContent = 'Enter a percentage between 1 and 100 to discount from the total amount';
         } else {
-            amountLabel.textContent = 'Discount Amount (₱)';
+            amountLabel.textContent = 'Discount Amount';
             currencySymbol.textContent = '₱';
+            amountUnit.textContent = 'pesos';
             amountInput.removeAttribute('max');
             amountInput.setAttribute('min', '0.01');
-            amountHelp.textContent = 'Enter the fixed amount to subtract from the total';
+            amountInput.classList.remove('pl-8');
+            amountInput.classList.add('pl-11');
+            amountHelp.textContent = 'Enter the fixed peso amount to subtract from the total';
         }
         
         // Clear current value only when user switches types
@@ -210,11 +408,35 @@ document.addEventListener('DOMContentLoaded', function() {
             amountInput.value = '';
             amountInput.focus();
         }
+        
+        updatePreview();
+    }
+    
+    function updatePreview() {
+        const amount = parseFloat(amountInput.value) || 0;
+        const isPercentage = percentageRadio.checked;
+        
+        if (amount <= 0) {
+            previewDiscount.textContent = '-';
+            previewFinal.textContent = '₱1,000.00';
+            return;
+        }
+        
+        let discountAmount = 0;
+        if (isPercentage) {
+            discountAmount = (baseAmount * amount) / 100;
+            previewDiscount.textContent = `-₱${discountAmount.toFixed(2)} (${amount}%)`;
+        } else {
+            discountAmount = amount;
+            previewDiscount.textContent = `-₱${discountAmount.toFixed(2)}`;
+        }
+        
+        const finalAmount = Math.max(0, baseAmount - discountAmount);
+        previewFinal.textContent = `₱${finalAmount.toFixed(2)}`;
     }
     
     // Initialize UI on page load based on hidden field value
     function initializeUI() {
-        // Read the hidden field value (it's "True" or "False" as string, or empty)
         const hiddenValue = hiddenField.value;
         const isPercentage = hiddenValue === 'True' || hiddenValue === 'true';
         
@@ -244,6 +466,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    // Update preview on amount input
+    amountInput.addEventListener('input', updatePreview);
+    
     // Form validation
     form.addEventListener('submit', function(e) {
         const amount = parseFloat(amountInput.value);
@@ -262,10 +487,97 @@ document.addEventListener('DOMContentLoaded', function() {
             amountInput.focus();
             return;
         }
+        
+        // Show loading state
+        submitBtn.disabled = true;
+        submitText.textContent = '{% if object %}Updating...{% else %}Creating...{% endif %}';
+        loadingIcon.classList.remove('hidden');
     });
     
     // Initialize the UI on page load
     initializeUI();
 });
 </script>
+
+<style>
+/* Enhanced form field styling */
+input[type="text"],
+input[type="number"],
+select,
+textarea {
+    padding: 0.625rem 0.75rem;
+}
+
+select {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+}
+
+/* Smooth transitions */
+input:focus,
+select:focus,
+textarea:focus,
+button:focus {
+    outline: none;
+    transition: all 0.15s ease-in-out;
+}
+
+/* Radio button enhanced styling */
+input[type="radio"] {
+    cursor: pointer;
+}
+
+input[type="radio"]:checked {
+    background-color: rgb(var(--color-primary-600));
+    border-color: rgb(var(--color-primary-600));
+}
+
+/* Loading animation */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Smooth fade transitions */
+.transition-opacity {
+    transition-property: opacity;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+}
+
+.transition-all {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+}
+
+.transition-colors {
+    transition-property: color, background-color, border-color;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+/* Enhanced hover effects for radio options */
+label:has(input[type="radio"]:checked) {
+    border-color: rgb(var(--color-primary-500));
+    background-color: rgb(var(--color-primary-50));
+}
+
+/* Number input - hide spinner in some browsers */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type="number"] {
+    -moz-appearance: textfield;
+}
+</style>
 {% endblock %}

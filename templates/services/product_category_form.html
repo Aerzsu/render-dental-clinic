@@ -6,47 +6,295 @@
 
 {% block content %}
 <style> 
-    input,
+    /* Form Input Styles */
+    input:not([type="checkbox"]):not([type="radio"]),
     select,
     textarea {
-        padding: 0.5rem 0.75rem;
+        display: block;
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        color: #1f2937;
+        background-color: #ffffff;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+    
+    input:not([type="checkbox"]):not([type="radio"]):focus,
+    select:focus,
+    textarea:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    input:not([type="checkbox"]):not([type="radio"]):disabled,
+    select:disabled,
+    textarea:disabled {
+        background-color: #f3f4f6;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+    
+    /* Error state */
+    input.error,
+    select.error,
+    textarea.error {
+        border-color: #ef4444;
+    }
+    
+    input.error:focus,
+    select.error:focus,
+    textarea.error:focus {
+        border-color: #dc2626;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+    
+    /* Textarea specific */
+    textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
+    
+    /* Number input - display order */
+    #id_display_order {
+        text-align: center;
+        font-weight: 500;
+        max-width: 150px;
+    }
+    
+    /* Number input buttons */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        opacity: 1;
+        height: 40px;
+    }
+    
+    /* Required indicator */
+    .required-indicator {
+        color: #dc2626;
+        font-weight: 600;
+        margin-left: 0.125rem;
+    }
+    
+    /* Form section header */
+    .form-section-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .form-section-header h2 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #374151;
+        margin: 0;
+    }
+    
+    .form-section-icon {
+        width: 1.25rem;
+        height: 1.25rem;
+        color: #6b7280;
+    }
+    
+    /* Helper text improvements */
+    .helper-text {
+        display: flex;
+        align-items: start;
+        gap: 0.375rem;
+        margin-top: 0.5rem;
+        font-size: 0.8125rem;
+        color: #6b7280;
+        line-height: 1.4;
+    }
+    
+    .helper-icon {
+        width: 0.875rem;
+        height: 0.875rem;
+        flex-shrink: 0;
+        margin-top: 0.125rem;
+        color: #9ca3af;
+    }
+    
+    /* Button improvements */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        line-height: 1.25rem;
+        border-radius: 0.375rem;
+        transition: all 0.15s ease-in-out;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    
+    .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    .btn-primary {
+        color: #ffffff;
+        background-color: #2563eb;
+        border: 1px solid transparent;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+        background-color: #1d4ed8;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-primary:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    }
+    
+    .btn-secondary {
+        color: #374151;
+        background-color: #ffffff;
+        border: 1px solid #d1d5db;
+    }
+    
+    .btn-secondary:hover:not(:disabled) {
+        background-color: #f9fafb;
+        border-color: #9ca3af;
+    }
+    
+    .btn-secondary:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.2);
+    }
+    
+    /* Display order examples */
+    .order-examples {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+    }
+    
+    .order-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.625rem;
+        background-color: #f3f4f6;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        font-size: 0.75rem;
+        color: #4b5563;
+        cursor: pointer;
+        transition: all 0.15s ease-in-out;
+    }
+    
+    .order-badge:hover {
+        background-color: #e5e7eb;
+        border-color: #9ca3af;
+    }
+    
+    .order-badge:focus {
+        outline: 2px solid #3b82f6;
+        outline-offset: 2px;
+    }
+    
+    /* Info box styling */
+    .info-box {
+        background-color: #eff6ff;
+        border-left: 4px solid #3b82f6;
+        border-radius: 0.375rem;
+        padding: 1rem;
+        margin-top: 1.5rem;
+    }
+    
+    .info-box-content {
+        display: flex;
+        align-items: start;
+        gap: 0.75rem;
+    }
+    
+    .info-box-icon {
+        width: 1.25rem;
+        height: 1.25rem;
+        flex-shrink: 0;
+        color: #3b82f6;
+        margin-top: 0.125rem;
+    }
+    
+    .info-box-text {
+        font-size: 0.875rem;
+        color: #1e40af;
+        line-height: 1.5;
+    }
+    
+    /* Smooth transitions */
+    * {
+        transition-property: background-color, border-color, color, fill, stroke;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+    
+    /* Focus visible for accessibility */
+    *:focus-visible {
+        outline: 2px solid #3b82f6;
+        outline-offset: 2px;
     }
 </style>
 
-<div class="max-w-2xl mx-auto space-y-6">
-    <!-- Header -->
-    <div>
-        <div class="flex items-center space-x-2 text-sm text-gray-500 mb-2">
-            <a href="{% url 'services:product_category_list' %}" class="hover:text-gray-700">Product Categories</a>
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-            </svg>
-            <span>{% if object %}Edit Category{% else %}Add Category{% endif %}</span>
-        </div>
-        <h1 class="text-2xl font-bold text-gray-900">
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <!-- Breadcrumb Navigation -->
+    <nav class="flex items-center space-x-2 text-sm text-gray-600" aria-label="Breadcrumb">
+        <a href="{% url 'services:product_category_list' %}" class="hover:text-gray-900 transition-colors">
+            Product Categories
+        </a>
+        <svg class="h-4 w-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+        </svg>
+        <span class="text-gray-900 font-medium" aria-current="page">
+            {% if object %}Edit Category{% else %}Add Category{% endif %}
+        </span>
+    </nav>
+
+    <!-- Page Header -->
+    <header class="space-y-2">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">
             {% if object %}Edit Category{% else %}Add New Category{% endif %}
         </h1>
-        <p class="mt-1 text-sm text-gray-600">
-            {% if object %}Update the details of this product category{% else %}Create a new category to organize products{% endif %}
+        <p class="text-base text-gray-600">
+            {% if object %}
+                Update the category details and display order
+            {% else %}
+                Create a new category to organize and group your products
+            {% endif %}
         </p>
-    </div>
+    </header>
 
-    <!-- Form -->
-    <div class="bg-white shadow rounded-lg">
-        <form method="post" class="space-y-6 p-6">
+    <!-- Main Form Card -->
+    <div class="bg-white shadow-sm rounded-lg border border-gray-200">
+        <form method="post" class="p-6 sm:p-8 space-y-8" novalidate>
             {% csrf_token %}
             
-            <!-- Display non-field errors -->
+            <!-- Non-field errors alert -->
             {% if form.non_field_errors %}
-                <div class="rounded-md bg-red-50 p-4">
-                    <div class="flex">
+                <div class="rounded-lg bg-red-50 border border-red-200 p-4" role="alert">
+                    <div class="flex items-start">
                         <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="h-5 w-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.728-.833-2.498 0L3.316 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
                             </svg>
                         </div>
-                        <div class="ml-3">
-                            <h3 class="text-sm font-medium text-red-800">Please correct the following errors:</h3>
+                        <div class="ml-3 flex-1">
+                            <h3 class="text-sm font-semibold text-red-800">
+                                Please correct the following errors
+                            </h3>
                             <div class="mt-2 text-sm text-red-700">
                                 <ul class="list-disc list-inside space-y-1">
                                     {% for error in form.non_field_errors %}
@@ -59,60 +307,227 @@
                 </div>
             {% endif %}
 
-            <!-- Category Name -->
-            <div>
-                <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                    Category Name <span class="text-red-500">*</span>
-                </label>
-                {{ form.name }}
-                {% if form.name.errors %}
-                    <p class="mt-2 text-sm text-red-600">{{ form.name.errors.0 }}</p>
-                {% endif %}
-                {% if form.name.help_text %}
-                    <p class="mt-2 text-sm text-gray-500">{{ form.name.help_text }}</p>
-                {% endif %}
-            </div>
+            <!-- Basic Information Section -->
+            <section>
+                <div class="form-section-header">
+                    <svg class="form-section-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                    </svg>
+                    <h2>Category Information</h2>
+                </div>
+                
+                <div class="space-y-5">
+                    <!-- Category Name -->
+                    <div>
+                        <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-900 mb-1.5">
+                            Category Name
+                            <span class="required-indicator" aria-label="required">*</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <p class="mt-2 text-sm text-red-600" role="alert">
+                                <span class="font-medium">Error:</span> {{ form.name.errors.0 }}
+                            </p>
+                        {% endif %}
+                        {% if form.name.help_text %}
+                            <div class="helper-text">
+                                <svg class="helper-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span>{{ form.name.help_text }}</span>
+                            </div>
+                        {% else %}
+                            <div class="helper-text">
+                                <span>Clear, concise name for the product category (e.g., "Anesthetics", "Dental Instruments")</span>
+                            </div>
+                        {% endif %}
+                    </div>
 
-            <!-- Description -->
-            <div>
-                <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                    Description
-                </label>
-                {{ form.description }}
-                {% if form.description.errors %}
-                    <p class="mt-2 text-sm text-red-600">{{ form.description.errors.0 }}</p>
-                {% endif %}
-                {% if form.description.help_text %}
-                    <p class="mt-2 text-sm text-gray-500">{{ form.description.help_text }}</p>
-                {% endif %}
-            </div>
+                    <!-- Description -->
+                    <div>
+                        <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-900 mb-1.5">
+                            Description
+                            <span class="text-gray-500 text-xs font-normal ml-1">(Optional)</span>
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <p class="mt-2 text-sm text-red-600" role="alert">
+                                <span class="font-medium">Error:</span> {{ form.description.errors.0 }}
+                            </p>
+                        {% endif %}
+                        <div class="helper-text">
+                            <span>Brief description of what products belong in this category</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-            <!-- Display Order -->
-            <div>
-                <label for="{{ form.display_order.id_for_label }}" class="block text-sm font-medium text-gray-700">
-                    Display Order
-                </label>
-                {{ form.display_order }}
-                {% if form.display_order.errors %}
-                    <p class="mt-2 text-sm text-red-600">{{ form.display_order.errors.0 }}</p>
-                {% endif %}
-                <p class="mt-2 text-sm text-gray-500">
-                    {{ form.display_order.help_text|default:"Categories with lower numbers appear first in lists (e.g., 0, 10, 20)" }}
-                </p>
+            <!-- Display Order Section -->
+            <section>
+                <div class="form-section-header">
+                    <h2>Display Order</h2>
+                </div>
+                
+                <div>
+                    <label for="{{ form.display_order.id_for_label }}" class="block text-sm font-medium text-gray-900 mb-1.5">
+                        Order Number
+                        <span class="text-gray-500 text-xs font-normal ml-1">(Optional)</span>
+                    </label>
+                    {{ form.display_order }}
+                    {% if form.display_order.errors %}
+                        <p class="mt-2 text-sm text-red-600" role="alert">
+                            <span class="font-medium">Error:</span> {{ form.display_order.errors.0 }}
+                        </p>
+                    {% endif %}
+                    <div class="helper-text">
+                        <span>{{ form.display_order.help_text|default:"Categories with lower numbers appear first in lists. Use increments of 10 for easier reordering." }}</span>
+                    </div>
+                    
+                    <!-- Quick order examples -->
+                    <div class="order-examples">
+                        <span class="text-xs font-medium text-gray-700 mr-2">Quick select:</span>
+                        <button type="button" class="order-badge" data-order="0">First (0)</button>
+                        <button type="button" class="order-badge" data-order="10">10</button>
+                        <button type="button" class="order-badge" data-order="20">20</button>
+                        <button type="button" class="order-badge" data-order="30">30</button>
+                        <button type="button" class="order-badge" data-order="40">40</button>
+                        <button type="button" class="order-badge" data-order="50">50</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Info Box -->
+            <div class="info-box">
+                <div class="info-box-content">
+                    <svg class="info-box-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div class="info-box-text">
+                        <strong>Display Order Tip:</strong> Use increments of 10 (0, 10, 20, 30...) to make it easier to insert new categories between existing ones later. 
+                        For example, if you need to add a category between 10 and 20, you can use 15.
+                    </div>
+                </div>
             </div>
 
             <!-- Form Actions -->
-            <div class="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+            <div class="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 pt-6 border-t border-gray-200">
                 <a href="{% url 'services:product_category_list' %}" 
-                   class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                   class="btn btn-secondary">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
                     Cancel
                 </a>
                 <button type="submit" 
-                        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700">
+                        class="btn btn-primary">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
                     {% if object %}Update Category{% else %}Create Category{% endif %}
                 </button>
             </div>
         </form>
     </div>
 </div>
+
+<script>
+    // Display order quick select and validation
+    (function() {
+        'use strict';
+        
+        const displayOrderInput = document.getElementById('id_display_order');
+        
+        if (!displayOrderInput) return;
+        
+        // Quick select order buttons
+        const orderBadges = document.querySelectorAll('.order-badge');
+        orderBadges.forEach(function(badge) {
+            badge.addEventListener('click', function(e) {
+                e.preventDefault();
+                const orderValue = this.getAttribute('data-order');
+                displayOrderInput.value = orderValue;
+                displayOrderInput.focus();
+                
+                // Visual feedback
+                orderBadges.forEach(b => b.style.backgroundColor = '#f3f4f6');
+                this.style.backgroundColor = '#dbeafe';
+                
+                setTimeout(function() {
+                    badge.style.backgroundColor = '#f3f4f6';
+                }, 1000);
+            });
+        });
+        
+        // Validate display order input (only allow non-negative integers)
+        displayOrderInput.addEventListener('keypress', function(e) {
+            // Allow: backspace, delete, tab, escape, enter
+            if ([46, 8, 9, 27, 13].indexOf(e.keyCode) !== -1 ||
+                // Allow: Ctrl+A, Ctrl+C, Ctrl+V, Ctrl+X
+                (e.keyCode === 65 && e.ctrlKey === true) ||
+                (e.keyCode === 67 && e.ctrlKey === true) ||
+                (e.keyCode === 86 && e.ctrlKey === true) ||
+                (e.keyCode === 88 && e.ctrlKey === true) ||
+                // Allow: home, end, left, right
+                (e.keyCode >= 35 && e.keyCode <= 39)) {
+                return;
+            }
+            
+            // Ensure that it is a number and stop the keypress
+            if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && 
+                (e.keyCode < 96 || e.keyCode > 105)) {
+                e.preventDefault();
+            }
+        });
+        
+        // Prevent negative numbers
+        displayOrderInput.addEventListener('input', function() {
+            if (this.value && parseInt(this.value) < 0) {
+                this.value = 0;
+            }
+        });
+        
+        // Add error class to inputs with errors
+        const formInputs = document.querySelectorAll('input, select, textarea');
+        formInputs.forEach(function(input) {
+            const errorElement = input.parentElement.querySelector('[role="alert"]');
+            if (errorElement) {
+                input.classList.add('error');
+            }
+        });
+        
+        // Auto-focus first empty required field
+        const nameInput = document.getElementById('id_name');
+        if (nameInput && !nameInput.value) {
+            nameInput.focus();
+        }
+        
+        // Set default display order if empty on blur
+        displayOrderInput.addEventListener('blur', function() {
+            if (!this.value) {
+                this.value = 0;
+            }
+        });
+        
+        // Validate on form submit
+        const form = displayOrderInput.closest('form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const displayOrder = displayOrderInput.value;
+                
+                // Set default if empty
+                if (!displayOrder) {
+                    displayOrderInput.value = 0;
+                }
+                
+                // Validate non-negative
+                if (displayOrder && parseInt(displayOrder) < 0) {
+                    e.preventDefault();
+                    alert('Display order must be a non-negative number (0 or greater).');
+                    displayOrderInput.focus();
+                    return false;
+                }
+            });
+        }
+    })();
+</script>
 {% endblock %}
