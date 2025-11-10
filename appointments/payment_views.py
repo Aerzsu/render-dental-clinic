@@ -24,6 +24,7 @@ from .models import Appointment, Payment, PaymentItem, PaymentItemProduct, Payme
 from patients.models import Patient
 from .forms import PaymentForm, AdminOverrideForm
 from services.models import Product, ProductCategory, Service, Discount
+from core.utils import get_manila_today, get_manila_now
 
 
 class PaymentListView(LoginRequiredMixin, ListView):
@@ -143,7 +144,8 @@ class PaymentDetailView(LoginRequiredMixin, DetailView):
     model = Payment
     template_name = 'payment/payment_detail.html'
     context_object_name = 'payment'
-    
+
+
     def dispatch(self, request, *args, **kwargs):
         if not hasattr(request.user, 'has_permission') or not request.user.has_permission('billing'):
             messages.error(request, 'You do not have permission to access this page.')
@@ -154,6 +156,8 @@ class PaymentDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         payment = self.object
         
+        context['today'] = get_manila_today()
+
         # Get all payment items with their products
         payment_items = payment.items.all().select_related('service', 'discount').prefetch_related(
             'products__product__category'
@@ -200,7 +204,6 @@ class PaymentDetailView(LoginRequiredMixin, DetailView):
             products_by_category[cat_name].append(product)
         
         context['products_by_category'] = products_by_category
-        context['today'] = timezone.now().date()
         
         return context
 
@@ -790,8 +793,8 @@ def add_payment_transaction(request, payment_pk):
             payment_date = datetime.strptime(data['payment_date'], '%Y-%m-%d').date()
             payment_type = data.get('payment_type', 'full')
             
-            # Get today's date
-            today = timezone.now().date()
+            today = get_manila_today()
+            
             appointment_date = payment.appointment.appointment_date
             
             # Validate amount
@@ -841,7 +844,7 @@ def add_payment_transaction(request, payment_pk):
                 
                 # Update next due date for installments
                 if payment.payment_type == 'installment' and not payment.is_fully_paid:
-                    if payment.next_due_date and payment.next_due_date <= date.today():
+                    if payment.next_due_date and payment.next_due_date <= today:
                         payment.next_due_date = payment.next_due_date + timedelta(days=30)
                 
                 payment.save()
@@ -1043,7 +1046,7 @@ def payment_dashboard(request):
         messages.error(request, 'You do not have permission to access this page.')
         return redirect('core:dashboard')
     
-    today = date.today()
+    today = timezone.localdate()
     this_month = today.replace(day=1)
     
     # Key metrics

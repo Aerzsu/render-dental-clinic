@@ -30,6 +30,7 @@ from services.models import Service
 from users.models import User
 from core.email_service import EmailService
 from core.forms import SystemSettingsForm
+from core.utils import get_manila_today, get_manila_now
 
 logger = logging.getLogger(__name__)
 
@@ -82,9 +83,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         
         # Get today's date in Manila timezone
-        manila_tz = pytz.timezone('Asia/Manila')
-        manila_now = timezone.now().astimezone(manila_tz)
-        today = manila_now.date()
+        today = get_manila_now()
         this_month = today.replace(day=1)
         
         # Check if user has billing permissions

@@ -9,6 +9,27 @@
     textarea {
         padding: 0.625rem 0.75rem;
     }
+
+    tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        }
+                    }
+                }
+            }
+        }
 </style>
 
 <div class="space-y-6">
@@ -432,151 +453,228 @@
         {% endif %}
     </div>
 </div>
-<!-- Bulk Create Modal -->
-<div id="bulkCreateModal" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] flex flex-col">
-        <!-- Step 1: Form -->
-        <div id="bulkStep1" class="flex flex-col flex-1">
-            <div class="px-6 py-4 border-b border-gray-200 flex-shrink-0">
-                <h3 class="text-lg font-semibold text-gray-900">Bulk Create Timeslot Configurations</h3>
-                <p class="mt-1 text-sm text-gray-600">Create multiple configurations at once</p>
-            </div>
-            <form id="bulkCreateForm" onsubmit="handleBulkPreview(event)" class="flex flex-col flex-1">
-                {% csrf_token %}
-                <div class="px-6 py-4 space-y-4 overflow-y-auto flex-1">
-                    <!-- Error display area -->
-                    <div id="modalError" class="hidden rounded-lg p-3 bg-red-50 border border-red-200">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
-                                </svg>
-                            </div>
-                            <div class="ml-3">
-                                <p class="text-sm text-red-800" id="modalErrorText"></p>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div>
-                        <label for="bulk_start_date" class="block text-sm font-medium text-gray-700 mb-1">
-                            Start Date <span class="text-red-600">*</span>
-                        </label>
-                        <input type="date" 
-                               id="bulk_start_date" 
-                               name="start_date" 
-                               required
-                               class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
+<!-- Bulk Create Modal -->
+    <div id="bulkCreateModal" 
+         class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden items-center justify-center z-50 p-4 overflow-y-auto"
+         role="dialog"
+         aria-labelledby="modalTitle"
+         aria-modal="true">
+        
+        <!-- Modal Container - Improved sizing and overflow handling -->
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl my-8 flex flex-col" 
+             style="max-height: calc(100vh - 4rem);">
+            
+            <!-- Step 1: Form -->
+            <div id="bulkStep1" class="flex flex-col h-full">
+                <!-- Fixed Header -->
+                <div class="px-4 sm:px-6 py-4 border-b border-gray-200 flex-shrink-0">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <h3 id="modalTitle" class="text-lg sm:text-xl font-semibold text-gray-900">
+                                Bulk Create Timeslot Configurations
+                            </h3>
+                            <p class="mt-1 text-sm text-gray-600">Create multiple configurations at once</p>
+                        </div>
+                        <!-- Close button with proper accessibility -->
+                        <button type="button"
+                                onclick="closeBulkCreateModal()"
+                                class="ml-4 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-lg p-1 transition-colors"
+                                aria-label="Close modal">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
                     </div>
-                    
-                    <div>
-                        <label for="bulk_end_date" class="block text-sm font-medium text-gray-700 mb-1">
-                            End Date <span class="text-red-600">*</span>
-                        </label>
-                        <input type="date" 
-                               id="bulk_end_date" 
-                               name="end_date" 
-                               required
-                               class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
-                    </div>
-                    
-                    <div>
-                        <label for="bulk_start_time" class="block text-sm font-medium text-gray-700 mb-1">
-                            Opening Time <span class="text-red-600">*</span>
-                        </label>
-                        <input type="time" 
-                               id="bulk_start_time" 
-                               name="start_time" 
-                               value="10:00" 
-                               step="1800" 
-                               required
-                               class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
-                        <p class="mt-1 text-xs text-gray-500">Must be in 30-minute increments</p>
-                    </div>
-                    
-                    <div>
-                        <label for="bulk_end_time" class="block text-sm font-medium text-gray-700 mb-1">
-                            Closing Time <span class="text-red-600">*</span>
-                        </label>
-                        <input type="time" 
-                               id="bulk_end_time" 
-                               name="end_time" 
-                               value="18:00" 
-                               step="1800" 
-                               required
-                               class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
-                        <p class="mt-1 text-xs text-gray-500">Must be in 30-minute increments</p>
-                    </div>
-                    
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                        <div class="flex">
-                            <div class="flex-shrink-0">
-                                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
-                                </svg>
-                            </div>
-                            <div class="ml-3">
-                                <p class="text-xs text-blue-800 space-y-1">
-                                    <span class="block">• Sundays will be skipped automatically</span>
-                                    <span class="block">• Existing dates will be skipped</span>
-                                </p>
+                </div>
+
+                <form id="bulkCreateForm" onsubmit="handleBulkPreview(event)" class="flex flex-col flex-1 min-h-0">
+                    <!-- Scrollable Content Area -->
+                    <div class="px-4 sm:px-6 py-4 space-y-5 overflow-y-auto flex-1">
+                        <!-- Error display with improved styling -->
+                        <div id="modalError" 
+                             class="hidden rounded-lg p-4 bg-red-50 border border-red-200"
+                             role="alert"
+                             aria-live="assertive">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-3 flex-1">
+                                    <h4 class="text-sm font-medium text-red-800">Error</h4>
+                                    <p class="mt-1 text-sm text-red-700" id="modalErrorText"></p>
+                                </div>
+                                <button type="button" 
+                                        onclick="document.getElementById('modalError').classList.add('hidden')"
+                                        class="ml-3 flex-shrink-0 text-red-400 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 rounded p-1"
+                                        aria-label="Dismiss error">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </button>
                             </div>
                         </div>
+
+                        <!-- Form Fields with improved spacing and layout -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <!-- Start Date -->
+                            <div>
+                                <label for="bulk_start_date" class="block text-sm font-medium text-gray-700 mb-1.5">
+                                    Start Date <span class="text-red-600" aria-label="required">*</span>
+                                </label>
+                                <input type="date" 
+                                       id="bulk_start_date" 
+                                       name="start_date" 
+                                       required
+                                       aria-required="true"
+                                       class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
+                            </div>
+                            
+                            <!-- End Date -->
+                            <div>
+                                <label for="bulk_end_date" class="block text-sm font-medium text-gray-700 mb-1.5">
+                                    End Date <span class="text-red-600" aria-label="required">*</span>
+                                </label>
+                                <input type="date" 
+                                       id="bulk_end_date" 
+                                       name="end_date" 
+                                       required
+                                       aria-required="true"
+                                       class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                            <!-- Opening Time -->
+                            <div>
+                                <label for="bulk_start_time" class="block text-sm font-medium text-gray-700 mb-1.5">
+                                    Opening Time <span class="text-red-600" aria-label="required">*</span>
+                                </label>
+                                <input type="time" 
+                                       id="bulk_start_time" 
+                                       name="start_time" 
+                                       value="10:00" 
+                                       step="1800" 
+                                       required
+                                       aria-required="true"
+                                       aria-describedby="start_time_help"
+                                       class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
+                                <p id="start_time_help" class="mt-1.5 text-xs text-gray-500">Must be in 30-minute increments</p>
+                            </div>
+                            
+                            <!-- Closing Time -->
+                            <div>
+                                <label for="bulk_end_time" class="block text-sm font-medium text-gray-700 mb-1.5">
+                                    Closing Time <span class="text-red-600" aria-label="required">*</span>
+                                </label>
+                                <input type="time" 
+                                       id="bulk_end_time" 
+                                       name="end_time" 
+                                       value="18:00" 
+                                       step="1800" 
+                                       required
+                                       aria-required="true"
+                                       aria-describedby="end_time_help"
+                                       class="block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm transition-colors">
+                                <p id="end_time_help" class="mt-1.5 text-xs text-gray-500">Must be in 30-minute increments</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Info Box with improved design -->
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div class="flex items-start">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <h4 class="text-sm font-medium text-blue-900 mb-2">Automatic Handling</h4>
+                                    <ul class="text-xs text-blue-800 space-y-1.5">
+                                        <li class="flex items-start">
+                                            <span class="mr-2">•</span>
+                                            <span>Sundays will be skipped automatically</span>
+                                        </li>
+                                        <li class="flex items-start">
+                                            <span class="mr-2">•</span>
+                                            <span>Existing date configurations will be preserved</span>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Fixed Footer -->
+                    <div class="px-4 sm:px-6 py-4 bg-gray-50 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-gray-200 flex-shrink-0">
+                        <button type="button" 
+                                onclick="closeBulkCreateModal()"
+                                class="inline-flex items-center justify-center px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                                id="previewBtn"
+                                class="inline-flex items-center justify-center px-4 py-2.5 border border-transparent rounded-lg text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                            Preview Configurations
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Step 2: Preview -->
+            <div id="bulkStep2" class="hidden flex flex-col h-full">
+                <!-- Fixed Header -->
+                <div class="px-4 sm:px-6 py-4 border-b border-gray-200 flex-shrink-0">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <h3 class="text-lg sm:text-xl font-semibold text-gray-900">Review Configuration Plan</h3>
+                            <p class="mt-1 text-sm text-gray-600">Verify details before creating</p>
+                        </div>
+                        <button type="button"
+                                onclick="closeBulkCreateModal()"
+                                class="ml-4 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-lg p-1 transition-colors"
+                                aria-label="Close modal">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
                     </div>
                 </div>
                 
-                <div class="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-200 flex-shrink-0">
+                <!-- Scrollable Preview Content -->
+                <div id="previewContent" class="px-4 sm:px-6 py-4 overflow-y-auto flex-1">
+                    <!-- Populated by JavaScript -->
+                </div>
+                
+                <!-- Fixed Footer -->
+                <div class="px-4 sm:px-6 py-4 bg-gray-50 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-gray-200 flex-shrink-0">
                     <button type="button" 
-                            onclick="closeBulkCreateModal()"
-                            class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
-                        Cancel
-                    </button>
-                    <button type="submit" 
-                            id="previewBtn"
-                            class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            onclick="backToForm()"
+                            class="inline-flex items-center justify-center px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
                         </svg>
-                        Preview
+                        Back to Form
+                    </button>
+                    <button type="button" 
+                            onclick="confirmBulkCreate()" 
+                            id="confirmBtn"
+                            class="inline-flex items-center justify-center px-4 py-2.5 border border-transparent rounded-lg text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        Confirm & Create
                     </button>
                 </div>
-            </form>
-        </div>
-
-        <!-- Step 2: Preview -->
-        <div id="bulkStep2" class="hidden flex flex-col flex-1">
-            <div class="px-6 py-4 border-b border-gray-200 flex-shrink-0">
-                <h3 class="text-lg font-semibold text-gray-900">Review Configuration Plan</h3>
-                <p class="mt-1 text-sm text-gray-600">Verify before creating</p>
-            </div>
-            
-            <div id="previewContent" class="px-6 py-4 space-y-4 overflow-y-auto flex-1">
-                <!-- Populated by JavaScript -->
-            </div>
-            
-            <div class="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-200 flex-shrink-0">
-                <button type="button" 
-                        onclick="backToForm()"
-                        class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                    </svg>
-                    Back
-                </button>
-                <button type="button" 
-                        onclick="confirmBulkCreate()" 
-                        id="confirmBtn"
-                        class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                    </svg>
-                    Confirm & Create
-                </button>
             </div>
         </div>
     </div>
-</div>
 
 <script>
 (function() {
@@ -588,7 +686,8 @@
         const modal = document.getElementById('bulkCreateModal');
         modal.classList.remove('hidden');
         modal.classList.add('flex');
-        resetBulkForm();
+        document.body.style.overflow = 'hidden';
+        resetBulkForm();     
 
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
@@ -602,13 +701,19 @@
         endDate.value = twoMonthsLater.toISOString().split('T')[0];
         startDate.setAttribute('min', tomorrow.toISOString().split('T')[0]);
         endDate.setAttribute('min', tomorrow.toISOString().split('T')[0]);
+
+        const firstInput = document.getElementById('bulk_start_date');
+        setTimeout(() => firstInput?.focus(), 100);
+            
+        trapFocus(modal);
     };
 
     window.closeBulkCreateModal = function() {
         const modal = document.getElementById('bulkCreateModal');
         modal.classList.add('hidden');
         modal.classList.remove('flex');
-        resetBulkForm();
+        document.body.style.overflow = '';
+        resetBulkForm();      
     };
 
     function resetBulkForm() {
@@ -630,29 +735,60 @@
         const errorText = document.getElementById('modalErrorText');
         errorText.textContent = message;
         errorDiv.classList.remove('hidden');
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function hideModalError() {
         document.getElementById('modalError').classList.add('hidden');
     }
 
+    // Get CSRF token from cookie or meta tag
+    function getCSRFToken() {
+        // Try to get from form first
+        const tokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (tokenInput) {
+            return tokenInput.value;
+        }
+        
+        // Try to get from cookie
+        const name = 'csrftoken';
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
     window.handleBulkPreview = async function(event) {
         event.preventDefault();
         hideModalError();
 
-        const formData = new FormData(document.getElementById('bulkCreateForm'));
+        const form = document.getElementById('bulkCreateForm');
+        const formData = new FormData(form);
+        
         const previewBtn = document.getElementById('previewBtn');
         const originalText = previewBtn.innerHTML;
         previewBtn.disabled = true;
         previewBtn.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Generating...';
 
         try {
+            const csrfToken = getCSRFToken();
+            
             const response = await fetch('{% url "appointments:bulk_create_preview" %}', {
                 method: 'POST',
                 body: formData,
                 headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken
+                },
+                credentials: 'same-origin'
             });
 
             const data = await response.json();
@@ -680,114 +816,218 @@
         const previewContent = document.getElementById('previewContent');
         const summary = data.summary;
 
-        let html = '<div class="space-y-4">';
-        
-        html += `
-            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
-                <h4 class="font-semibold text-gray-900 mb-3 flex items-center">
-                    <svg class="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
-                    </svg>
-                    Summary
-                </h4>
-                <div class="space-y-2 text-sm">
-                    <div class="flex justify-between py-1">
-                        <span class="text-gray-600">Period:</span>
-                        <span class="font-medium text-gray-900">${data.start_date} → ${data.end_date}</span>
-                    </div>
-                    <div class="flex justify-between py-1">
-                        <span class="text-gray-600">Operating Hours:</span>
-                        <span class="font-medium text-gray-900">${data.time_range}</span>
-                    </div>
-                    <div class="flex justify-between py-1">
-                        <span class="text-gray-600">Working days in range:</span>
-                        <span class="font-medium text-gray-900">${summary.total_days_in_range - summary.skipped_sundays}</span>
-                    </div>
-                    <div class="flex justify-between pt-2 border-t border-blue-200">
-                        <span class="text-green-700 font-semibold">Will create:</span>
-                        <span class="text-green-700 font-bold text-lg">${summary.will_create}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-yellow-700 font-semibold">Will skip (existing):</span>
-                        <span class="text-yellow-700 font-bold text-lg">${summary.will_skip}</span>
+        let html = `
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                
+                <!-- Left Column: Summary -->
+                <div class="space-y-4">
+                    <div class="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-3">
+                            <svg class="w-5 h-5 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            <h4 class="text-sm font-semibold text-gray-900">Configuration Summary</h4>
+                        </div>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between items-start py-1.5">
+                                <span class="text-gray-600">Period:</span>
+                                <span class="font-medium text-gray-900 text-right">${data.start_date} to ${data.end_date}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-1.5">
+                                <span class="text-gray-600">Operating Hours:</span>
+                                <span class="font-medium text-gray-900">${data.time_range}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-1.5">
+                                <span class="text-gray-600">Working Days:</span>
+                                <span class="font-medium text-gray-900">${summary.total_days_in_range - summary.skipped_sundays}</span>
+                            </div>
+                            
+                            <div class="border-t border-blue-200 my-2"></div>
+                            
+                            <div class="flex justify-between items-center py-1.5">
+                                <span class="text-gray-900 font-medium">Will Create:</span>
+                                <span class="text-xl font-bold text-green-600">${summary.will_create}</span>
+                            </div>
+                            <div class="flex justify-between items-center py-1.5">
+                                <span class="text-gray-600">Will Skip:</span>
+                                <span class="text-lg font-semibold text-yellow-600">${summary.will_skip}</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
+                
+                <!-- Right Column: Details -->
+                <div class="space-y-4">
         `;
 
+        // Will Create Section
         if (summary.will_create > 0 && data.to_create.length > 0) {
             const first = data.to_create[0];
             const last = data.to_create[data.to_create.length - 1];
             
             html += `
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <h4 class="font-semibold text-green-900 mb-2 flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                        </svg>
-                        Will Create Configurations
-                    </h4>
-                    <div class="text-sm text-green-800 space-y-1.5">
-                        <div class="flex justify-between">
-                            <span class="text-gray-700">First:</span>
-                            <span class="font-medium">${first.date} (${first.day_name})</span>
+                    <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-3">
+                            <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            <h4 class="text-sm font-semibold text-gray-900">New Configurations</h4>
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-700">Last:</span>
-                            <span class="font-medium">${last.date} (${last.day_name})</span>
+                        <div class="space-y-2 max-h-48 overflow-y-auto pr-2">
+                            <div class="text-xs bg-white rounded-lg px-3 py-2.5 border border-green-200">
+                                <div class="font-medium text-gray-900 mb-1">First: ${first.date}</div>
+                                <div class="text-gray-600">${first.day_name}</div>
+                            </div>
+            `;
+            
+            if (data.to_create.length > 1) {
+                html += `
+                            <div class="text-xs bg-white rounded-lg px-3 py-2.5 border border-green-200">
+                                <div class="font-medium text-gray-900 mb-1">Last: ${last.date}</div>
+                                <div class="text-gray-600">${last.day_name}</div>
+                            </div>
+                `;
+            }
+            
+            html += `
+                            <div class="text-xs text-gray-700 bg-green-100 rounded-lg px-3 py-2.5 mt-2">
+                                <div class="font-medium">${first.start_time} - ${first.end_time}</div>
+                                <div class="text-gray-600 mt-0.5">${first.num_slots} slots per day</div>
+                            </div>
+            `;
+            
+            if (summary.skipped_sundays > 0) {
+                html += `
+                            <p class="text-xs text-gray-600 italic pt-2 px-1">
+                                ${summary.skipped_sundays} Sunday${summary.skipped_sundays > 1 ? 's' : ''} automatically skipped
+                            </p>
+                `;
+            }
+            
+            html += `
                         </div>
-                        <div class="pt-2 border-t border-green-300">
-                            <p class="text-xs text-gray-700">
-                                ${first.start_time} - ${first.end_time} • ${first.num_slots} slots per day
+                    </div>
+            `;
+        } else {
+            html += `
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <svg class="w-5 h-5 text-gray-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                            <h4 class="text-sm font-semibold text-gray-700">New Configurations</h4>
+                        </div>
+                        <p class="text-xs text-gray-500 italic">No new configurations to create</p>
+                    </div>
+            `;
+        }
+
+        // Will Skip Section
+        if (summary.will_skip > 0 && data.to_skip.length > 0) {
+            const skipItems = data.to_skip.length <= 6 
+                ? data.to_skip 
+                : [...data.to_skip.slice(0, 3), ...data.to_skip.slice(-3)];
+            
+            html += `
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-3">
+                            <svg class="w-5 h-5 text-yellow-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                            </svg>
+                            <h4 class="text-sm font-semibold text-gray-900">Existing Configurations</h4>
+                        </div>
+                        <div class="space-y-1.5 max-h-48 overflow-y-auto pr-2">
+            `;
+            
+            skipItems.forEach((item, index) => {
+                if (data.to_skip.length > 6 && index === 3) {
+                    html += `
+                            <div class="text-xs text-center text-gray-500 py-2">
+                                ... ${data.to_skip.length - 6} more dates ...
+                            </div>
+                    `;
+                }
+                
+                html += `
+                            <div class="text-xs bg-white rounded-lg px-3 py-2 border border-yellow-200">
+                                <span class="font-medium text-gray-900">${item.date}</span>
+                                <span class="text-gray-600 ml-1.5">(${item.day_name})</span>
+                            </div>
+                `;
+            });
+            
+            html += `
+                            <p class="text-xs text-gray-600 pt-2 px-1">
+                                ${data.to_skip.length} existing configuration${data.to_skip.length !== 1 ? 's' : ''} will be preserved
                             </p>
                         </div>
                     </div>
-                </div>
             `;
-        }
-
-        if (summary.will_skip > 0 && data.to_skip.length > 0) {
-            const first = data.to_skip[0];
-            const last = data.to_skip[data.to_skip.length - 1];
-            
+        } else {
             html += `
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <h4 class="font-semibold text-yellow-900 mb-2 flex items-center">
-                        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                        </svg>
-                        Will Skip (Already Exist)
-                    </h4>
-                    <div class="text-sm text-yellow-800 space-y-1.5">
-                        <div class="flex justify-between">
-                            <span class="text-gray-700">First:</span>
-                            <span class="font-medium">${first.date} (${first.day_name})</span>
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                        <div class="flex items-center gap-2 mb-2">
+                            <svg class="w-5 h-5 text-yellow-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                            </svg>
+                            <h4 class="text-sm font-semibold text-gray-700">Existing Configurations</h4>
                         </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-700">Last:</span>
-                            <span class="font-medium">${last.date} (${last.day_name})</span>
-                        </div>
-                        <div class="pt-2 border-t border-yellow-300">
-                            <p class="text-xs text-gray-700">${data.to_skip.length} existing configuration${data.to_skip.length !== 1 ? 's' : ''} will be preserved</p>
-                        </div>
+                        <p class="text-xs text-gray-500 italic">No existing configurations found in this range</p>
                     </div>
-                </div>
             `;
         }
 
+        html += `
+                </div>
+            </div>
+        `;
+
+        // Warning if nothing will be created
         if (summary.will_create === 0) {
             html += `
-                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
-                    <svg class="w-12 h-12 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            <div class="mt-4 sm:mt-6 bg-amber-50 border border-amber-300 rounded-lg p-4">
+                <div class="flex items-start gap-3">
+                    <svg class="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
                     </svg>
-                    <p class="text-sm text-gray-600">No new configurations will be created. All dates in this range already exist or fall on Sundays.</p>
+                    <div>
+                        <h5 class="text-sm font-semibold text-amber-900 mb-1.5">No New Configurations to Create</h5>
+                        <p class="text-xs text-amber-800 leading-relaxed">All dates in this range already have configurations or fall on Sundays. Please adjust your date range to create new configurations.</p>
+                    </div>
                 </div>
+            </div>
             `;
         }
 
-        html += '</div>';
         previewContent.innerHTML = html;
+    }
+
+    function trapFocus(element) {
+        const focusableElements = element.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const firstFocusable = focusableElements[0];
+        const lastFocusable = focusableElements[focusableElements.length - 1];
+
+        element.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeBulkCreateModal();
+            }
+
+            if (e.key === 'Tab') {
+                if (e.shiftKey) {
+                    if (document.activeElement === firstFocusable) {
+                        lastFocusable.focus();
+                        e.preventDefault();
+                    }
+                } else {
+                    if (document.activeElement === lastFocusable) {
+                        firstFocusable.focus();
+                        e.preventDefault();
+                    }
+                }
+            }
+        });
     }
 
     window.confirmBulkCreate = async function() {
@@ -800,7 +1040,8 @@
 
         try {
             const formData = new FormData();
-            formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+            const csrfToken = getCSRFToken();
+            
             formData.append('start_date', document.getElementById('bulk_start_date').value);
             formData.append('end_date', document.getElementById('bulk_end_date').value);
             formData.append('start_time', document.getElementById('bulk_start_time').value);
@@ -809,6 +1050,10 @@
             const response = await fetch('{% url "appointments:bulk_create_confirm" %}', {
                 method: 'POST',
                 body: formData,
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
+                credentials: 'same-origin',
                 redirect: 'manual'
             });
 

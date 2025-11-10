@@ -752,13 +752,21 @@
 function showAddPaymentModal() {
     document.getElementById('addPaymentModal').classList.remove('hidden');
     
-    // Set today as default payment date
-    const today = new Date().toISOString().split('T')[0];
+    // Set today's date in YYYY-MM-DD format (user's local timezone)
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+    
     const paymentDateInput = document.querySelector('input[name="payment_date"]');
-    paymentDateInput.value = today;
+    paymentDateInput.value = todayStr;
     
     // Clear any previous error messages
     document.getElementById('payment-date-error').classList.add('hidden');
+    
+    // Debug logging (remove after testing)
+    console.log('Setting payment date to:', todayStr);
 }
 
 function hideAddPaymentModal() {
@@ -849,24 +857,37 @@ function updateServicePriceRange(select) {
     }
 }
 
-// Client-side payment date validation
 function validatePaymentDate() {
     const paymentDateInput = document.querySelector('input[name="payment_date"]');
     const errorDiv = document.getElementById('payment-date-error');
     const submitButton = document.querySelector('#addPaymentForm button[type="submit"]');
     
+    // Get appointment date from template
     const appointmentDate = new Date('{{ payment.appointment.appointment_date|date:"Y-m-d" }}');
-    const today = new Date(new Date().toDateString()); // Today at midnight
+    appointmentDate.setHours(0, 0, 0, 0); // Reset time to midnight
+    
+    // 🔧 FIX: Get today's date in user's local timezone (Manila)
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    // Parse selected date
+    if (!paymentDateInput.value) {
+        return true; // Let HTML5 required attribute handle this
+    }
+    
     const selectedDate = new Date(paymentDateInput.value);
+    selectedDate.setHours(0, 0, 0, 0); // Reset time to midnight
     
     // Reset error state
     errorDiv.classList.add('hidden');
     paymentDateInput.classList.remove('border-red-300');
     submitButton.disabled = false;
     
-    if (!paymentDateInput.value) {
-        return true; // Let HTML5 required attribute handle this
-    }
+    // Debug logging (remove after testing)
+    console.log('Appointment Date:', appointmentDate);
+    console.log('Today:', today);
+    console.log('Selected Date:', selectedDate);
+    console.log('Selected > Today:', selectedDate > today);
     
     // Check if date is before appointment date
     if (selectedDate < appointmentDate) {
@@ -892,7 +913,7 @@ function validatePaymentDate() {
     return true;
 }
 
-// Auto-open payment modal if URL has #add-payment hash
+// Add event listeners when page loads
 document.addEventListener('DOMContentLoaded', function() {
     if (window.location.hash === '#add-payment') {
         showAddPaymentModal();
@@ -905,10 +926,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (paymentDateInput) {
         paymentDateInput.addEventListener('change', validatePaymentDate);
         paymentDateInput.addEventListener('blur', validatePaymentDate);
+        // Also validate on input to provide immediate feedback
+        paymentDateInput.addEventListener('input', validatePaymentDate);
     }
 });
 
-// Form submissions
+// Form submission
 document.getElementById('addPaymentForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
@@ -919,6 +942,9 @@ document.getElementById('addPaymentForm').addEventListener('submit', async funct
     
     const formData = new FormData(this);
     const data = Object.fromEntries(formData.entries());
+    
+    // Debug logging (remove after testing)
+    console.log('Submitting payment with data:', data);
     
     try {
         const response = await fetch(`/appointments/payments/{{ payment.pk }}/add-payment/`, {

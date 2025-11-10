@@ -1,5 +1,5 @@
 # services/views.py
-from django.shortcuts import redirect, get_object_or_404
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.views.decorators.http import require_POST
@@ -10,9 +10,21 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, V
 
 from django.db.models import Q, Count
 from users.templatetags.user_tags import has_permission
+from users.models import User
 from .models import Product, Service, Discount, ProductCategory, ServicePreset
 from .forms import ServiceForm, DiscountForm, ProductCategoryForm, ProductForm, ServicePresetForm
 import json
+
+# Helper function for permission checking
+def has_permission(user, permission):
+    """Check if user has a specific permission"""
+    if not user or not user.is_authenticated:
+        return False
+    if user.is_superuser:
+        return True
+    if not hasattr(user, 'role') or not user.role:
+        return False
+    return user.role.permissions.get(permission, False)
 
 class ServiceListView(LoginRequiredMixin, ListView):
     """List all services with search and filtering functionality"""
@@ -22,7 +34,8 @@ class ServiceListView(LoginRequiredMixin, ListView):
     paginate_by = 15
     
     def dispatch(self, request, *args, **kwargs):
-        if not has_permission(request.user, 'billing'):
+        # Allow access if user has billing OR maintenance permission
+        if not (has_permission(request.user, 'billing') or has_permission(request.user, 'maintenance')):
             messages.error(request, 'You do not have permission to access this page.')
             return redirect('core:dashboard')
         return super().dispatch(request, *args, **kwargs)
@@ -82,6 +95,8 @@ class ServiceListView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        # User can modify if they have maintenance permission
+        context['can_modify'] = has_permission(self.request.user, 'maintenance')
         context.update({
             'search_query': self.request.GET.get('search', ''),
             'show_archived': self.request.GET.get('show_archived', False),
@@ -169,7 +184,8 @@ class DiscountListView(LoginRequiredMixin, ListView):
     paginate_by = 15
     
     def dispatch(self, request, *args, **kwargs):
-        if not has_permission(request.user, 'billing'):
+        # Allow access if user has billing OR maintenance permission
+        if not (has_permission(request.user, 'billing') or has_permission(request.user, 'maintenance')):
             messages.error(request, 'You do not have permission to access this page.')
             return redirect('core:dashboard')
         return super().dispatch(request, *args, **kwargs)
@@ -231,6 +247,8 @@ class DiscountListView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        # User can modify if they have maintenance permission
+        context['can_modify'] = has_permission(self.request.user, 'maintenance')
         context.update({
             'search_query': self.request.GET.get('search', ''),
             'show_inactive': self.request.GET.get('show_inactive', False),
@@ -319,7 +337,8 @@ class ProductCategoryListView(LoginRequiredMixin, ListView):
     paginate_by = 15
     
     def dispatch(self, request, *args, **kwargs):
-        if not has_permission(request.user, 'maintenance'):
+        # Allow access if user has billing OR maintenance permission
+        if not (has_permission(request.user, 'billing') or has_permission(request.user, 'maintenance')):
             messages.error(request, 'You do not have permission to access this page.')
             return redirect('core:dashboard')
         return super().dispatch(request, *args, **kwargs)
@@ -353,12 +372,13 @@ class ProductCategoryListView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        # User can modify if they have maintenance permission
+        context['can_modify'] = has_permission(self.request.user, 'maintenance')
         context.update({
             'search_query': self.request.GET.get('search', ''),
             'sort_by': self.request.GET.get('sort', 'display_order'),
         })
         return context
-
 
 class ProductCategoryCreateView(LoginRequiredMixin, CreateView):
     """Create new product category"""
@@ -449,7 +469,8 @@ class ProductListView(LoginRequiredMixin, ListView):
     paginate_by = 15
     
     def dispatch(self, request, *args, **kwargs):
-        if not has_permission(request.user, 'maintenance'):
+        # Allow access if user has billing OR maintenance permission
+        if not (has_permission(request.user, 'billing') or has_permission(request.user, 'maintenance')):
             messages.error(request, 'You do not have permission to access this page.')
             return redirect('core:dashboard')
         return super().dispatch(request, *args, **kwargs)
@@ -504,6 +525,8 @@ class ProductListView(LoginRequiredMixin, ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        # User can modify if they have maintenance permission
+        context['can_modify'] = has_permission(self.request.user, 'maintenance')
         context.update({
             'search_query': self.request.GET.get('search', ''),
             'show_inactive': self.request.GET.get('show_inactive', False),
@@ -513,7 +536,6 @@ class ProductListView(LoginRequiredMixin, ListView):
             'categories': ProductCategory.objects.all(),
         })
         return context
-
 
 class ProductDetailView(LoginRequiredMixin, DetailView):
     """View product details"""

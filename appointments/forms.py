@@ -732,12 +732,19 @@ class PaymentTransactionForm(forms.ModelForm):
         self.payment = kwargs.pop('payment', None)
         super().__init__(*args, **kwargs)
         
-        # Set default payment date to today
-        self.fields['payment_date'].initial = date.today()
+        # 🔧 FIX: Set default payment date to today in Manila timezone
+        manila_now = timezone.localtime(timezone.now())
+        self.fields['payment_date'].initial = manila_now.date()
         
         if self.payment:
             # Set maximum amount to outstanding balance
             self.fields['amount'].widget.attrs['max'] = str(self.payment.outstanding_balance)
+            
+            # Set min date to appointment date
+            self.fields['payment_date'].widget.attrs['min'] = str(self.payment.appointment.appointment_date)
+            
+            # Set max date to today (Manila time)
+            self.fields['payment_date'].widget.attrs['max'] = str(manila_now.date())
             
             # If payment is already set up for installments, hide installment months
             if self.payment.payment_type == 'installment':
@@ -749,7 +756,7 @@ class PaymentTransactionForm(forms.ModelForm):
         if self.payment and amount:
             if amount > self.payment.outstanding_balance:
                 raise ValidationError(
-                    f'Payment amount cannot exceed outstanding balance of ₱{self.payment.outstanding_balance}'
+                    f'Payment amount cannot exceed outstanding balance of ₱{self.payment.outstanding_balance:,.2f}'
                 )
             
             if amount <= 0:
@@ -760,8 +767,23 @@ class PaymentTransactionForm(forms.ModelForm):
     def clean_payment_date(self):
         payment_date = self.cleaned_data.get('payment_date')
         
-        if payment_date and payment_date > date.today():
-            raise ValidationError('Payment date cannot be in the future.')
+        if not payment_date:
+            return payment_date
+        
+        # Use Manila timezone for today's date
+        manila_now = timezone.localtime(timezone.now())
+        today = manila_now.date()
+        
+        # Validate payment date is not in the future
+        if payment_date > today:
+            raise ValidationError('Payment date cannot be in the future. Please select today or an earlier date.')
+        
+        # Validate payment date is not before appointment date
+        if self.payment and payment_date < self.payment.appointment.appointment_date:
+            formatted_date = self.payment.appointment.appointment_date.strftime('%B %d, %Y')
+            raise ValidationError(
+                f'Payment date cannot be before the appointment date ({formatted_date}).'
+            )
         
         return payment_date
 
