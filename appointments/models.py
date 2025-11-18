@@ -6,6 +6,7 @@ from datetime import datetime, date, timedelta, time
 from decimal import Decimal
 from django.core.validators import MinValueValidator
 import secrets
+from core.utils import get_manila_today
 
 from core.models import AuditLog
 
@@ -428,7 +429,7 @@ class Appointment(models.Model):
     @property
     def is_past_or_today(self):
         """Check if appointment date is today or in the past (Asia/Manila timezone)"""
-        today = timezone.now().date()
+        today = get_manila_today()
         return self.appointment_date <= today
     
     def create_patient_from_temp_data(self):

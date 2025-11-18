@@ -701,8 +701,8 @@ class AppointmentDetailView(LoginRequiredMixin, DetailView):
                 'cancelled_appointments': 0,
             }
 
-        from core.utils import get_manila_now
-        today = get_manila_now()
+        from core.utils import get_manila_today
+        today = get_manila_today()
         # Current date for template comparisons
         context['today'] = today
         
@@ -885,9 +885,11 @@ def mark_patient_arrived(request, pk):
     
     try:
         appointment = get_object_or_404(Appointment, pk=pk)
-        
+
+        from core.utils import get_manila_today
+        today = get_manila_today()
         # Only allow check-in for today's appointments
-        if appointment.appointment_date != timezone.now().date():
+        if appointment.appointment_date != today:
             if request.headers.get('HX-Request'):
                 return HttpResponse('<div class="text-yellow-600">Can only check in today\'s appointments</div>')
             messages.error(request, 'Can only check in today\'s appointments.')
@@ -1354,9 +1356,9 @@ def update_appointment_status(request, pk):
             new_status = request.POST.get('status')
             
             # Date validation for completed and did_not_arrive statuses
-            from core.utils import get_manila_now
-            today = get_manila_now()
-            
+            from core.utils import get_manila_today
+            today = get_manila_today()
+
             if new_status in ['completed', 'did_not_arrive']:
                 if appointment.appointment_date > today:
                     status_display = dict(Appointment.STATUS_CHOICES).get(new_status, new_status)

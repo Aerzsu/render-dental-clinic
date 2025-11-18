@@ -165,10 +165,22 @@ class AppointmentForm(forms.ModelForm):
         start_time = cleaned_data.get('start_time')
         service = cleaned_data.get('service')
         patient = cleaned_data.get('patient')
+        status = cleaned_data.get('status')
         
         # Set default status for new appointments
         if self.is_creating and self.user and self.user.has_permission('appointments'):
             cleaned_data['status'] = 'confirmed'
+        
+        # Validate completed/did_not_arrive status for future dates
+        if status in ['completed', 'did_not_arrive'] and appointment_date:
+            from core.utils import get_manila_today
+            today = get_manila_today()
+            if appointment_date > today:
+                status_display = dict(self.fields['status'].choices).get(status, status)
+                raise ValidationError(
+                    f'Cannot mark appointment as "{status_display}" for future dates. '
+                    f'The appointment is scheduled for {appointment_date.strftime("%B %d, %Y")}.'
+                )
         
         if appointment_date and start_time and service:
             # Check if timeslot configuration exists
