@@ -297,7 +297,8 @@ class CheckInView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         
         # Get today's date
-        today = timezone.now().date().isoformat()
+        from core.utils import get_manila_now
+        today = get_manila_now()
         
         # Get all appointments for today (confirmed, pending)
         appointments = Appointment.objects.filter(
@@ -1353,7 +1354,9 @@ def update_appointment_status(request, pk):
             new_status = request.POST.get('status')
             
             # Date validation for completed and did_not_arrive statuses
-            today = timezone.now().date()
+            from core.utils import get_manila_now
+            today = get_manila_now()
+            
             if new_status in ['completed', 'did_not_arrive']:
                 if appointment.appointment_date > today:
                     status_display = dict(Appointment.STATUS_CHOICES).get(new_status, new_status)
