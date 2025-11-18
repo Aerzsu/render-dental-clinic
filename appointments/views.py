@@ -54,7 +54,8 @@ class AppointmentCalendarView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         
         # Get current month or requested month with validation
-        today = timezone.now().date()
+        from core.utils import get_manila_now
+        today = get_manila_now()
         
         try:
             month = int(self.request.GET.get('month', today.month))
@@ -698,9 +699,11 @@ class AppointmentDetailView(LoginRequiredMixin, DetailView):
                 'pending_appointments': 1,  # This appointment itself
                 'cancelled_appointments': 0,
             }
-        
+
+        from core.utils import get_manila_now
+        today = get_manila_now()
         # Current date for template comparisons
-        context['today'] = timezone.now().date()
+        context['today'] = today
         
         # Timeslot configuration info
         if appointment.appointment_date:
