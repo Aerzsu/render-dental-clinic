@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Receipt - {{ transaction.receipt_number }}</title>
     <style>
+        /* Define Colors (hardcoded for xhtml2pdf) */
+        /* Primary (Blue): #007bff; Success (Green): #28a745; Danger (Red): #dc3545; Background Light: #f8f9fa; */
+
         @page {
             size: A4;
             margin: 15mm;
@@ -18,9 +21,9 @@
         
         body {
             font-family: 'Segoe UI', 'Helvetica Neue', 'Arial', sans-serif;
-            font-size: 11pt;
-            line-height: 1.6;
-            color: #1f2937;
+            font-size: 10pt;
+            line-height: 1.5;
+            color: #212529;
             background-color: #ffffff;
         }
         
@@ -30,189 +33,191 @@
             background: #ffffff;
         }
         
-        /* Header */
+        /* --- Header --- */
         .header {
             text-align: center;
-            margin-bottom: 25px;
+            margin-bottom: 30px;
             padding-bottom: 20px;
-            border-bottom: 4px solid #111827;
-            position: relative;
+            border-bottom: 5px solid #007bff;
         }
         
-        .header::after {
-            content: '';
-            position: absolute;
-            bottom: -6px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100px;
-            height: 4px;
-            background: linear-gradient(to right, #3b82f6, #10b981);
-        }
-        
+        /* Increased size/weight for text-only branding */
         .clinic-name {
-            font-size: 26pt;
-            font-weight: 700;
+            font-size: 28pt; 
+            font-weight: 800; /* Extra bold */
             margin-bottom: 8px;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #111827;
+            letter-spacing: 2px;
+            color: #007bff;
         }
         
         .clinic-info {
-            font-size: 10pt;
-            color: #4b5563;
-            line-height: 1.6;
-            margin-top: 8px;
+            font-size: 9pt;
+            color: #6c757d;
+            line-height: 1.4;
+            margin-top: 5px;
         }
         
         .receipt-title {
-            font-size: 14pt;
+            font-size: 18pt; /* Larger title */
             font-weight: 700;
-            margin-top: 15px;
+            margin-top: 25px;
             text-transform: uppercase;
-            color: #3b82f6;
-            letter-spacing: 2px;
+            color: #212529;
+            letter-spacing: 3px;
         }
         
         .receipt-number {
-            font-size: 12pt;
+            font-size: 11pt;
             font-weight: 600;
-            color: #6b7280;
+            color: #6c757d;
             margin-top: 5px;
             font-family: 'Courier New', monospace;
         }
         
-        /* Info Section */
+        /* --- Info Section (Floating Columns) --- */
         .info-section {
             margin: 25px 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
         }
         
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
+        .info-grid::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
+        .info-column {
+            width: 49%; 
+            float: left;
+            padding-right: 1%;
         }
         
         .info-item {
-            margin-bottom: 12px;
+            margin-bottom: 12px; /* Increased spacing */
+            overflow: hidden; 
         }
         
         .info-label {
-            font-size: 9pt;
-            color: #6b7280;
+            font-size: 8pt;
+            color: #6c757d;
             text-transform: uppercase;
-            font-weight: 700;
+            font-weight: 600;
             display: block;
-            margin-bottom: 4px;
+            margin-bottom: 3px;
             letter-spacing: 0.5px;
         }
         
         .info-value {
-            font-size: 11pt;
-            color: #111827;
-            font-weight: 600;
+            font-size: 10pt;
+            color: #212529;
+            font-weight: 600; /* Made value slightly bolder */
         }
         
-        /* Section Titles */
+        /* --- Section Titles --- */
         .section-title {
-            font-size: 13pt;
+            font-size: 12pt;
             font-weight: 700;
             margin: 30px 0 15px 0;
-            padding: 10px 15px;
-            background: linear-gradient(to right, #111827, #374151);
+            padding: 8px 15px;
+            background: #007bff;
             color: #ffffff;
-            border-radius: 6px;
+            border-radius: 4px;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
         
-        /* Service Block */
+        /* --- Service Block --- */
         .service-block {
-            margin-bottom: 20px;
-            padding: 18px;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
+            margin-bottom: 20px; /* Increased spacing between services */
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
             background-color: #ffffff;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
         
         .service-header {
-            font-size: 12pt;
+            font-size: 11pt;
             font-weight: 700;
-            margin-bottom: 12px;
-            color: #111827;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #e5e7eb;
+            margin-bottom: 10px;
+            color: #007bff;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #dee2e6;
         }
         
         .service-note {
             font-size: 9pt;
-            color: #6b7280;
+            color: #6c757d;
             font-style: italic;
-            margin-bottom: 12px;
-            padding: 8px 12px;
-            background-color: #fef3c7;
-            border-left: 3px solid #f59e0b;
+            margin-bottom: 10px;
+            padding: 6px 10px;
+            background-color: #fff3cd; 
+            border-left: 3px solid #ffc107; 
             border-radius: 4px;
-        }
-        
-        .service-breakdown {
-            margin-left: 0;
         }
         
         .breakdown-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 12px;
-            font-size: 10pt;
-            border-radius: 4px;
+            padding: 6px 10px;
+            font-size: 9pt;
+            border-radius: 3px;
+            overflow: hidden; 
         }
         
         .breakdown-row:nth-child(odd) {
-            background-color: #f9fafb;
+            background-color: #f8f9fa;
         }
         
-        .breakdown-row.service-fee {
+        .breakdown-row span:first-child {
+            float: left;
+        }
+        .breakdown-row span:last-child {
+            float: right;
+        }
+
+        .breakdown-row.service-total-row {
+            border-top: 2px solid #212529;
+            padding-top: 10px;
+            margin-top: 10px;
+            font-size: 10pt;
             font-weight: 700;
-            color: #111827;
+            background-color: #f3f4f6;
+            color: #007bff;
         }
         
         .breakdown-row.discount {
-            color: #059669;
+            color: #28a745;
             font-weight: 600;
-            background-color: #d1fae5;
+            background-color: #d4edda; 
         }
         
-        /* Products Section */
+        /* --- Products Section --- */
         .products-section {
-            margin: 12px 0;
-            padding: 15px;
-            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-            border-left: 4px solid #3b82f6;
-            border-radius: 6px;
+            margin: 10px 0;
+            padding: 10px;
+            background: #e9f7ff; 
+            border-left: 3px solid #007bff;
+            border-radius: 4px;
         }
         
         .products-title {
-            font-size: 10pt;
+            font-size: 9pt;
             font-weight: 700;
-            color: #1e40af;
+            color: #007bff;
             text-transform: uppercase;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             letter-spacing: 0.5px;
         }
         
+        /* Simple structure for single product lines */
         .product-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 6px 0;
+            padding: 4px 0;
             font-size: 9pt;
-            color: #374151;
-            border-bottom: 1px dashed #bfdbfe;
+            color: #212529;
+            border-bottom: 1px dashed #b8daff;
+            overflow: hidden; 
         }
         
         .product-item:last-of-type {
@@ -220,56 +225,50 @@
         }
         
         .product-name {
-            flex: 1;
-            font-weight: 500;
+            font-weight: 400;
+            float: left;
+            max-width: 60%; 
         }
         
-        .product-qty {
-            color: #6b7280;
-            margin: 0 12px;
-            font-size: 8pt;
-        }
-        
-        .product-price {
-            min-width: 90px;
+        /* Combined price and qty span for better alignment control */
+        .product-price-details {
+            float: right;
             text-align: right;
             font-weight: 600;
-            color: #1e40af;
+            color: #007bff;
+            min-width: 150px; 
+            font-size: 9pt; 
         }
         
         .product-note {
             font-size: 8pt;
-            color: #6b7280;
+            color: #6c757d;
             font-style: italic;
-            margin-left: 15px;
-            margin-top: 3px;
+            margin-left: 10px;
+            margin-top: 2px;
         }
         
-        .service-total-row {
-            border-top: 3px solid #111827;
-            padding-top: 12px;
-            margin-top: 12px;
-            font-size: 11pt;
-            font-weight: 700;
-            background-color: #f3f4f6;
-            color: #111827;
-        }
-        
-        /* Totals Section */
+        /* --- Totals Section --- */
         .totals-section {
             margin-top: 35px;
-            padding: 25px;
-            background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-            border-radius: 8px;
-            border: 2px solid #e5e7eb;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 2px solid #dee2e6; /* Thicker border to stand out */
         }
         
         .total-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 15px;
-            font-size: 11pt;
-            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 10pt;
+            border-radius: 3px;
+            overflow: hidden; 
+        }
+
+        .total-row span:first-child {
+            float: left;
+        }
+        .total-row span:last-child {
+            float: right;
         }
         
         .total-row:nth-child(odd) {
@@ -278,193 +277,85 @@
         
         .total-row.subtotal {
             font-weight: 700;
-            border-top: 2px solid #d1d5db;
-            padding-top: 15px;
-            margin-top: 10px;
-            color: #374151;
+            border-top: 1px dashed #dee2e6;
+            padding-top: 12px;
+            margin-top: 8px;
+            color: #212529;
         }
         
         .total-row.discount-total {
-            color: #059669;
+            color: #28a745;
             font-weight: 700;
-            background-color: #d1fae5;
+            background-color: #d4edda;
         }
         
         .total-row.grand-total {
-            font-size: 15pt;
-            font-weight: 700;
-            border: 3px solid #111827;
-            background: linear-gradient(to right, #111827, #374151);
+            font-size: 16pt; /* Largest font */
+            font-weight: 800;
+            background: #007bff;
             color: #ffffff;
             padding: 15px 20px;
             margin: 15px 0;
-            border-radius: 6px;
-        }
-        
-        .total-row.payment {
-            color: #059669;
-            font-weight: 700;
-            background-color: #d1fae5;
-            border: 2px solid #10b981;
-        }
-        
-        .total-row.balance {
-            color: #dc2626;
-            font-weight: 700;
-            font-size: 12pt;
-            background-color: #fee2e2;
-            border: 2px solid #ef4444;
-        }
-        
-        /* Payment History */
-        .payment-history {
-            margin-top: 25px;
-            padding: 18px;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            background-color: #ffffff;
-        }
-        
-        .history-title {
-            font-size: 11pt;
-            font-weight: 700;
-            margin-bottom: 12px;
-            text-transform: uppercase;
-            color: #374151;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #e5e7eb;
-        }
-        
-        .history-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 12px;
-            font-size: 9pt;
-            color: #6b7280;
             border-radius: 4px;
         }
         
-        .history-item:nth-child(even) {
-            background-color: #f9fafb;
+        .total-row.payment {
+            color: #28a745;
+            font-weight: 700;
+            background-color: #d4edda;
+            border: 1px solid #28a745;
         }
         
-        /* Footer */
+        .total-row.balance {
+            color: #dc3545;
+            font-weight: 800;
+            font-size: 12pt;
+            background-color: #f8d7da; 
+            border: 1px solid #dc3545;
+        }
+        
+        /* --- Footer and Badges --- */
+        .history-item { overflow: hidden; }
+        .history-item span:first-child { float: left; }
+        .history-item span:last-child { float: right; }
+
         .footer {
             text-align: center;
-            margin-top: 45px;
-            padding-top: 25px;
-            border-top: 3px solid #111827;
-            position: relative;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 4px solid #007bff;
         }
         
-        .footer::before {
-            content: '';
-            position: absolute;
-            top: -6px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 100px;
-            height: 3px;
-            background: linear-gradient(to right, #3b82f6, #10b981);
-        }
-        
-        .thank-you {
-            font-size: 16pt;
-            font-weight: 700;
-            margin-bottom: 15px;
-            color: #111827;
-        }
-        
-        .footer-note {
-            font-size: 9pt;
-            color: #6b7280;
-            margin: 8px 0;
-            line-height: 1.6;
-        }
-        
-        .footer-important {
-            font-size: 10pt;
-            font-weight: 700;
-            margin-top: 20px;
-            padding: 12px 20px;
-            background-color: #fef3c7;
-            border: 2px solid #f59e0b;
-            border-radius: 6px;
-            color: #92400e;
-        }
-        
-        /* Watermark for partial payment */
-        .watermark {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 80pt;
-            color: rgba(239, 68, 68, 0.08);
-            font-weight: 700;
-            z-index: -1;
-            letter-spacing: 5px;
-        }
-        
-        /* Status Badge */
         .status-badge {
             display: inline-block;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 9pt;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 8pt;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-left: 10px;
+            margin-left: 8px;
         }
         
         .status-badge.paid {
-            background-color: #d1fae5;
-            color: #065f46;
-            border: 2px solid #10b981;
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #28a745;
         }
         
         .status-badge.partial {
-            background-color: #fef3c7;
-            color: #92400e;
-            border: 2px solid #f59e0b;
-        }
-        
-        /* Print Styles */
-        @media print {
-            body {
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            
-            .receipt {
-                box-shadow: none;
-            }
-        }
-        
-        /* Responsive for viewing on screen */
-        @media screen {
-            body {
-                background-color: #f3f4f6;
-                padding: 20px;
-            }
-            
-            .receipt {
-                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-                padding: 30px;
-                border-radius: 12px;
-            }
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffc107;
         }
     </style>
 </head>
 <body>
-    <!-- Watermark for unpaid balance -->
     {% if payment.outstanding_balance > 0 %}
     <div class="watermark">BALANCE DUE</div>
     {% endif %}
     
     <div class="receipt">
-        <!-- Header -->
         <div class="header">
             <div class="clinic-name">{{ clinic_name }}</div>
             <div class="clinic-info">
@@ -482,12 +373,11 @@
             </div>
         </div>
         
-        <!-- Info Section -->
         <div class="info-section">
             <div class="info-grid">
-                <div>
+                <div class="info-column">
                     <div class="info-item">
-                        <span class="info-label">Patient Name</span>
+                        <span class="info-label">Patient Name (Bill To)</span>
                         <span class="info-value">{{ patient.full_name }}</span>
                     </div>
                     {% if patient.contact_number %}
@@ -503,7 +393,7 @@
                     </div>
                     {% endif %}
                 </div>
-                <div>
+                <div class="info-column">
                     <div class="info-item">
                         <span class="info-label">Appointment Date</span>
                         <span class="info-value">{{ appointment.appointment_date|date:"F d, Y" }}</span>
@@ -522,7 +412,6 @@
             </div>
         </div>
         
-        <!-- Services & Products -->
         <div class="section-title">Services Rendered & Products Used</div>
         
         {% for item in payment_items %}
@@ -535,36 +424,35 @@
                 {% endif %}
                 
                 <div class="service-breakdown">
-                    <!-- Service Base Fee -->
                     <div class="breakdown-row service-fee">
                         <span>Service Base Fee</span>
                         <span>₱{{ item.price|floatformat:2 }}</span>
                     </div>
                     
-                    <!-- Products Used -->
                     {% if item.products.all %}
                     <div class="products-section">
                         <div class="products-title">🔹 Products & Supplies Used</div>
                         {% for product_item in item.products.all %}
                         <div class="product-item">
                             <span class="product-name">• {{ product_item.product.name }}</span>
-                            {% if product_item.quantity > 1 %}
-                            <span class="product-qty">({{ product_item.quantity }} × ₱{{ product_item.unit_price|floatformat:2 }})</span>
-                            {% endif %}
-                            <span class="product-price">₱{{ product_item.subtotal|floatformat:2 }}</span>
+                            <span class="product-price-details">
+                                {% if product_item.quantity > 1 %}
+                                ({{ product_item.quantity }} × ₱{{ product_item.unit_price|floatformat:2 }})
+                                {% endif %}
+                                ₱{{ product_item.subtotal|floatformat:2 }}
+                            </span>
                         </div>
                         {% if product_item.notes %}
                         <div class="product-note">{{ product_item.notes }}</div>
                         {% endif %}
                         {% endfor %}
-                        <div class="breakdown-row" style="margin-top: 10px; padding-top: 10px; border-top: 2px solid #93c5fd; background-color: #dbeafe;">
-                            <span style="font-weight: 700; color: #1e40af;">Products Subtotal</span>
-                            <span style="font-weight: 700; color: #1e40af;">₱{{ item.products_total|floatformat:2 }}</span>
+                        <div class="breakdown-row" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #b8daff; background-color: #e9f7ff;">
+                            <span style="font-weight: 700; color: #007bff;">Products Subtotal</span>
+                            <span style="font-weight: 700; color: #007bff;">₱{{ item.products_total|floatformat:2 }}</span>
                         </div>
                     </div>
                     {% endif %}
                     
-                    <!-- Service Discount -->
                     {% if item.discount %}
                     <div class="breakdown-row discount">
                         <span>💰 Discount ({{ item.discount.name }}) - Applied to service fee only</span>
@@ -572,7 +460,6 @@
                     </div>
                     {% endif %}
                     
-                    <!-- Service Total -->
                     <div class="breakdown-row service-total-row">
                         <span>Service Total</span>
                         <span>₱{{ item.total|floatformat:2 }}</span>
@@ -582,7 +469,6 @@
             {% endif %}
         {% endfor %}
         
-        <!-- Totals Section -->
         <div class="totals-section">
             <div class="total-row">
                 <span>Services Subtotal</span>
@@ -631,7 +517,6 @@
             {% endif %}
         </div>
         
-        <!-- Payment History -->
         {% if previous_transactions %}
         <div class="payment-history">
             <div class="history-title">📋 Previous Payments History</div>
@@ -644,9 +529,8 @@
         </div>
         {% endif %}
         
-        <!-- Footer -->
         <div class="footer">
-            <div class="thank-you">Thank You for Your Payment!</div>
+            <div class="thank-you" style="font-size: 16pt; color: #212529;">Thank You for Your Payment!</div>
             <div class="footer-note">This is an official receipt issued by <strong>{{ clinic_name }}</strong></div>
             <div class="footer-note">Please keep this receipt for your records and future reference</div>
             
@@ -660,12 +544,12 @@
             {% endif %}
             
             {% if transaction.notes %}
-            <div class="footer-note" style="margin-top: 20px; padding: 12px; background-color: #fef3c7; border-radius: 6px; font-style: italic; color: #92400e;">
+            <div class="footer-note" style="margin-top: 20px; padding: 10px; background-color: #fff3cd; border-radius: 4px; font-style: italic; color: #856404;">
                 <strong>Additional Notes:</strong> {{ transaction.notes }}
             </div>
             {% endif %}
             
-            <div class="footer-note" style="margin-top: 25px; font-size: 8pt; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 15px;">
+            <div class="footer-note" style="margin-top: 25px; font-size: 8pt; color: #adb5bd; border-top: 1px solid #dee2e6; padding-top: 10px;">
                 Receipt generated on {{ transaction.payment_datetime|date:"F d, Y" }} at {{ transaction.payment_datetime|time:"g:i A" }}<br>
                 For inquiries or concerns, please contact us at {{ clinic_phone }} or {{ clinic_email }}
             </div>

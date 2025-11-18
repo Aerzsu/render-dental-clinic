@@ -245,7 +245,18 @@
                                     <span class="ml-1 inline-flex h-2 w-2 rounded-full bg-red-500" data-badge="calendar-count"></span>
                                     {% endif %}
                                 </a>
+
+                                {% if user.is_active_dentist %}
                                 <a href="{% url 'appointments:daily_slots_list' %}" class="group flex items-center px-2 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md">Slot List</a>
+                                {% endif %}
+
+                                <!-- My Presets - ONLY FOR ACTIVE DENTISTS -->
+                                {% if user.is_active_dentist %}
+                                <a href="{% url 'services:preset_list' %}" 
+                                class="{% if 'services' in request.resolver_match.namespace and 'preset' in request.resolver_match.url_name %}text-primary-700 bg-primary-50{% else %}text-gray-600{% endif %} group flex items-center px-2 py-2 text-sm hover:text-gray-900 hover:bg-gray-50 rounded-md">
+                                    <span>My Presets</span>
+                                </a>
+                                {% endif %}
                             </div>
                         </div>
                         {% endif %}
@@ -258,7 +269,7 @@
                         </a>
 
                         <!-- Catalog -->
-                        <a href="{% url 'services:service_list' %}" class="{% if 'services' in request.resolver_match.namespace %}bg-primary-50 border-r-2 border-primary-600 text-primary-700{% else %}text-gray-700 hover:bg-gray-50{% endif %} group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150">
+                        <a href="{% url 'core:catalog' %}" class="{% if request.resolver_match.url_name == 'catalog' %}bg-primary-50 border-r-2 border-primary-600 text-primary-700{% else %}text-gray-700 hover:bg-gray-50{% endif %} group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-150">
                             <span class="mr-3 text-lg">📋</span>
                             <span :class="{ 'opacity-100': !collapsed, 'opacity-0 w-0 overflow-hidden': collapsed }" x-show="!collapsed">Catalog</span>
                         </a>
@@ -406,7 +417,7 @@
                 </a>
 
                 <!-- Catalog (NEW) -->
-                <a href="{% url 'services:service_list' %}" class="{% if 'services' in request.resolver_match.namespace %}text-primary-600 bg-primary-50{% else %}text-gray-600{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
+                <a href="{% url 'core:catalog' %}" class="{% if request.resolver_match.url_name == 'catalog' %}text-primary-600 bg-primary-50{% else %}text-gray-600{% endif %} flex-shrink-0 flex flex-col items-center justify-center px-3 py-2 text-xs font-medium min-w-0 w-20">
                     <span class="text-lg mb-1">📋</span>
                     <span class="truncate">Catalog</span>
                 </a>
@@ -500,137 +511,195 @@
                 </div>
             </main>
         </div>
+
+        <!-- Toast Notification System -->
+    <div x-data="toastManager()" 
+        @notify.window="addToast($event.detail)"
+        class="fixed top-4 right-4 z-50 space-y-3"
+        style="max-width: 24rem;">
+        <template x-for="toast in toasts" :key="toast.id">
+            <div x-show="toast.visible"
+                x-transition:enter="transform ease-out duration-300 transition"
+                x-transition:enter-start="translate-x-full opacity-0"
+                x-transition:enter-end="translate-x-0 opacity-100"
+                x-transition:leave="transform ease-in duration-200 transition"
+                x-transition:leave-start="translate-x-0 opacity-100"
+                x-transition:leave-end="translate-x-full opacity-0"
+                @click="removeToast(toast.id)"
+                :class="{
+                    'bg-green-50 border-green-200': toast.type === 'success',
+                    'bg-red-50 border-red-200': toast.type === 'error',
+                    'bg-yellow-50 border-yellow-200': toast.type === 'warning',
+                    'bg-blue-50 border-blue-200': toast.type === 'info'
+                }"
+                class="flex items-start p-4 rounded-lg shadow-lg border-2 cursor-pointer hover:shadow-xl transition-shadow">
+                
+                <div class="flex-shrink-0">
+                    <template x-if="toast.type === 'success'">
+                        <svg class="h-6 w-6 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                    </template>
+                    <template x-if="toast.type === 'error'">
+                        <svg class="h-6 w-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                        </svg>
+                    </template>
+                    <template x-if="toast.type === 'warning'">
+                        <svg class="h-6 w-6 text-yellow-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                    </template>
+                    <template x-if="toast.type === 'info'">
+                        <svg class="h-6 w-6 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                        </svg>
+                    </template>
+                </div>
+                
+                <div class="ml-3 flex-1">
+                    <p :class="{
+                        'text-green-800': toast.type === 'success',
+                        'text-red-800': toast.type === 'error',
+                        'text-yellow-800': toast.type === 'warning',
+                        'text-blue-800': toast.type === 'info'
+                    }"
+                    class="text-sm font-medium" 
+                    x-text="toast.message">
+                    </p>
+                </div>
+                
+                <button @click.stop="removeToast(toast.id)" 
+                        class="ml-3 flex-shrink-0 inline-flex text-gray-400 hover:text-gray-500 focus:outline-none">
+                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                    </svg>
+                </button>
+            </div>
+        </template>
+    </div>
     {% endif %}
 
     <!-- Scripts -->
     {% block scripts %}
     <script>
     (function() {
-    const REFRESH_INTERVAL = 45000; // 45 seconds
-    const MAX_REFRESH_INTERVAL = 300000; // 5 minutes
-    
-    // KEEP ALL THESE VARIABLES
-    let refreshTimeout; // ← This is needed for resetAutoRefreshTimer()
-    let currentInterval = REFRESH_INTERVAL;
-    let consecutiveZeroCount = 0;
-    
-    // Function to fetch and update the pending count
-    async function updatePendingBadge() {
-        try {
-            const response = await fetch('{% url "appointments:pending_count_api" %}', {
-                method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                }
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                const pendingCount = data.pending_count;
-                updateBadges(pendingCount);
-                
-                // Adaptive polling logic
-                if (pendingCount === 0) {
-                    consecutiveZeroCount++;
-                    // After 3 consecutive zeros, slow down
-                    if (consecutiveZeroCount >= 3) {
-                        currentInterval = Math.min(currentInterval * 1.5, MAX_REFRESH_INTERVAL);
+        const REFRESH_INTERVAL = 45000; // 45 seconds
+        const MAX_REFRESH_INTERVAL = 300000; // 5 minutes
+        
+        let refreshTimeout;
+        let currentInterval = REFRESH_INTERVAL;
+        let consecutiveZeroCount = 0;
+        
+        // Function to fetch and update the pending count
+        async function updatePendingBadge() {
+            try {
+                const response = await fetch('{% url "appointments:pending_count_api" %}', {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
                     }
-                } else {
-                    // If appointments found, reset to fast polling
-                    consecutiveZeroCount = 0;
-                    currentInterval = REFRESH_INTERVAL;
-                }
+                });
                 
+                if (response.ok) {
+                    const data = await response.json();
+                    const pendingCount = data.pending_count;
+                    updateBadges(pendingCount);
+                    
+                    // Adaptive polling logic
+                    if (pendingCount === 0) {
+                        consecutiveZeroCount++;
+                        if (consecutiveZeroCount >= 3) {
+                            currentInterval = Math.min(currentInterval * 1.5, MAX_REFRESH_INTERVAL);
+                        }
+                    } else {
+                        consecutiveZeroCount = 0;
+                        currentInterval = REFRESH_INTERVAL;
+                    }
+                    
+                    resetAutoRefreshTimer();
+                }
+            } catch (error) {
+                console.error('Error updating pending appointments badge:', error);
                 resetAutoRefreshTimer();
             }
-        } catch (error) {
-            console.error('Error updating pending appointments badge:', error);
-            resetAutoRefreshTimer(); // Keep trying even on error
-        }
-    }
-    
-    // Function to update all badge elements on the page
-    function updateBadges(count) {
-        // Desktop sidebar - Appointments button badge (red dot)
-        const appointmentsBadge = document.querySelector('[data-badge="appointments-dot"]');
-        if (appointmentsBadge) {
-            appointmentsBadge.style.display = count > 0 ? '' : 'none';
         }
         
-        // Desktop sidebar - Calendar View badge (red dot only)
-        const calendarBadge = document.querySelector('[data-badge="calendar-count"]');
-        if (calendarBadge) {
-            calendarBadge.style.display = count > 0 ? '' : 'none';
+        // Function to update all badge elements on the page
+        function updateBadges(count) {
+            const appointmentsBadge = document.querySelector('[data-badge="appointments-dot"]');
+            if (appointmentsBadge) {
+                appointmentsBadge.style.display = count > 0 ? '' : 'none';
+            }
+            
+            const calendarBadge = document.querySelector('[data-badge="calendar-count"]');
+            if (calendarBadge) {
+                calendarBadge.style.display = count > 0 ? '' : 'none';
+            }
+            
+            const mobileBadge = document.querySelector('[data-badge="appointments-mobile"]');
+            if (mobileBadge) {
+                mobileBadge.style.display = count > 0 ? '' : 'none';
+            }
         }
         
-        // Mobile bottom nav - Appointments badge (red dot)
-        const mobileBadge = document.querySelector('[data-badge="appointments-mobile"]');
-        if (mobileBadge) {
-            mobileBadge.style.display = count > 0 ? '' : 'none';
+        // Function to reset the auto-refresh timer
+        function resetAutoRefreshTimer() {
+            clearTimeout(refreshTimeout);
+            refreshTimeout = setTimeout(updatePendingBadge, currentInterval);
         }
-    }
-    
-    // Function to reset the auto-refresh timer
-    function resetAutoRefreshTimer() {
-        clearTimeout(refreshTimeout); // ← Uses the variable
-        refreshTimeout = setTimeout(updatePendingBadge, currentInterval); // ← And sets it
-    }
-    
-    // Listen for HTMX appointment events (these are triggered by approve/reject actions)
-    document.body.addEventListener('appointmentApproved', () => {
-        currentInterval = REFRESH_INTERVAL; // Reset to fast polling
-        consecutiveZeroCount = 0;
-        updatePendingBadge(); // Immediate update
-    });
-    
-    document.body.addEventListener('appointmentRejected', () => {
-        currentInterval = REFRESH_INTERVAL; // Reset to fast polling
-        consecutiveZeroCount = 0;
-        updatePendingBadge(); // Immediate update
-    });
-    
-    // Also listen for any status changes that might affect pending count
-    document.body.addEventListener('htmx:afterSwap', (event) => {
-        // If the appointment requests list was updated, refresh the badge
-        if (event.detail.target.id === 'request-list-container') {
-            updatePendingBadge();
-        }
-    });
-    
-    // Start auto-refresh on page load
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
+        
+        // Listen for HTMX appointment events
+        document.body.addEventListener('appointmentApproved', () => {
+            currentInterval = REFRESH_INTERVAL;
+            consecutiveZeroCount = 0;
             updatePendingBadge();
         });
-    } else {
-        updatePendingBadge();
-    }
-})();
+        
+        document.body.addEventListener('appointmentRejected', () => {
+            currentInterval = REFRESH_INTERVAL;
+            consecutiveZeroCount = 0;
+            updatePendingBadge();
+        });
+        
+        // Listen for HTMX swaps
+        document.body.addEventListener('htmx:afterSwap', (event) => {
+            if (event.detail.target.id === 'request-list-container') {
+                updatePendingBadge();
+            }
+        });
+        
+        // Start auto-refresh on page load
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                updatePendingBadge();
+            });
+        } else {
+            updatePendingBadge();
+        }
+    })();
 
-// loading bar
-document.addEventListener('DOMContentLoaded', () => {
-    const loadingBar = document.getElementById('loading-bar');
-    
-    // Show on navigation click
-    document.querySelectorAll('a[href]:not([href^="#"])').forEach(link => {
-        link.addEventListener('click', () => {
-            loadingBar.classList.remove('hidden');
-            loadingBar.style.width = '70%';
+    // Loading bar
+    document.addEventListener('DOMContentLoaded', () => {
+        const loadingBar = document.getElementById('loading-bar');
+        
+        document.querySelectorAll('a[href]:not([href^="#"])').forEach(link => {
+            link.addEventListener('click', () => {
+                loadingBar.classList.remove('hidden');
+                loadingBar.style.width = '70%';
+            });
+        });
+        
+        window.addEventListener('load', () => {
+            loadingBar.style.width = '100%';
+            setTimeout(() => {
+                loadingBar.classList.add('hidden');
+                loadingBar.style.width = '0%';
+            }, 300);
         });
     });
-    
-    // Complete on page load
-    window.addEventListener('load', () => {
-        loadingBar.style.width = '100%';
-        setTimeout(() => {
-            loadingBar.classList.add('hidden');
-            loadingBar.style.width = '0%';
-        }, 300);
-    });
-});
 
-    // Check if mobile nav is scrollable and add visual indicator
+    // Check if mobile nav is scrollable
     document.addEventListener('DOMContentLoaded', () => {
         const mobileNav = document.querySelector('.md\\:hidden .overflow-x-auto');
         if (mobileNav && mobileNav.scrollWidth > mobileNav.clientWidth) {
@@ -643,6 +712,96 @@ document.addEventListener('DOMContentLoaded', () => {
     <script>
     document.body.addEventListener('htmx:configRequest', (event) => {
         event.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
+    });
+    </script>
+
+    <!-- ✅ Toast Manager Script -->
+    <script>
+    function toastManager() {
+        return {
+            toasts: [],
+            counter: 0,
+            
+            addToast(data) {
+                const id = this.counter++;
+                const toast = {
+                    id: id,
+                    type: data.type || 'info',
+                    message: data.message,
+                    visible: true
+                };
+                
+                this.toasts.push(toast);
+                
+                setTimeout(() => {
+                    this.removeToast(id);
+                }, 5000);
+            },
+            
+            removeToast(id) {
+                const index = this.toasts.findIndex(t => t.id === id);
+                if (index > -1) {
+                    this.toasts[index].visible = false;
+                    setTimeout(() => {
+                        this.toasts = this.toasts.filter(t => t.id !== id);
+                    }, 300);
+                }
+            }
+        }
+    }
+
+    // ✅ Listen for HTMX triggers and show toasts
+    document.body.addEventListener('htmx:afterSwap', function(event) {
+        const trigger = event.detail.xhr.getResponseHeader('HX-Trigger');
+        
+        if (trigger === 'appointmentApproved') {
+            window.dispatchEvent(new CustomEvent('notify', {
+                detail: { 
+                    type: 'success', 
+                    message: '✓ Appointment approved successfully. Confirmation email sent to patient.' 
+                }
+            }));
+        } else if (trigger === 'appointmentRejected') {
+            window.dispatchEvent(new CustomEvent('notify', {
+                detail: { 
+                    type: 'success', 
+                    message: '✓ Appointment rejected. Notification email sent to patient.' 
+                }
+            }));
+        }
+        
+        // Check for inline error/success messages in swapped content
+        const swappedContent = event.detail.target;
+        if (swappedContent.querySelector('.text-red-600')) {
+            const errorText = swappedContent.querySelector('.text-red-600').textContent.trim();
+            if (errorText) {
+                window.dispatchEvent(new CustomEvent('notify', {
+                    detail: { type: 'error', message: errorText }
+                }));
+            }
+        } else if (swappedContent.querySelector('.text-yellow-600')) {
+            const warningText = swappedContent.querySelector('.text-yellow-600').textContent.trim();
+            if (warningText) {
+                window.dispatchEvent(new CustomEvent('notify', {
+                    detail: { type: 'warning', message: warningText }
+                }));
+            }
+        }
+    });
+
+    // ✅ Handle non-HTMX Django messages on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const messages = document.querySelectorAll('.django-message');
+        messages.forEach(function(messageEl) {
+            const type = messageEl.dataset.type;
+            const message = messageEl.textContent.trim();
+            
+            window.dispatchEvent(new CustomEvent('notify', {
+                detail: { type: type, message: message }
+            }));
+            
+            messageEl.remove();
+        });
     });
     </script>
 </body>

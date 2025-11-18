@@ -280,7 +280,7 @@
                                              style="width: {{ payment.payment_progress_percentage }}%"></div>
                                     </div>
                                     <div class="text-xs text-gray-500 mt-1">
-                                        {{ payment.payment_progress_percentage }}% paid
+                                        {{ payment.payment_progress_percentage|floatformat:0 }}% paid
                                     </div>
                                 {% endif %}
                             </td>

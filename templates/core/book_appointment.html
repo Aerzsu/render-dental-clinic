@@ -234,11 +234,11 @@
     <!-- Booking Form -->
     <form x-show="!submitted" class="max-w-3xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden" @submit.prevent="submitForm">
         
-        <!-- Step 1: Service & Schedule Selection -->
-        {% include 'core/partials/_step1_service_schedule.html' %}
-
         <!-- Step 2: Patient Information -->
         {% include 'core/partials/_step2_patient_info.html' %}
+
+        <!-- Step 1: Service & Schedule Selection -->
+        {% include 'core/partials/_step1_service_schedule.html' %}
 
         <!-- Step 3: Review & Confirm -->
         {% include 'core/partials/_step3_confirm.html' %}

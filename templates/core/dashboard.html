@@ -363,6 +363,119 @@
         {% endif %}
     </div>
 
+    <!-- Today's Auto-Approved Appointments -->
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900">Auto-Approved Appointments Today — {{ today|date:"F j" }}</h3>
+                    <p class="mt-1 text-sm text-gray-500">Appointments automatically approved today by the system</p>
+                </div>
+            </div>
+        </div>
+
+        {% if todays_auto_approved %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Appointment Date & Time</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Auto-Approved At</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Dentist</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for appointment in todays_auto_approved %}
+                    <tr class="hover:bg-gray-50 transition-colors duration-150">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0 h-10 w-10">
+                                    <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                        <span class="text-sm font-medium text-gray-600">
+                                            {{ appointment.patient.first_name|first }}{{ appointment.patient.last_name|first }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="ml-4">
+                                    <div class="text-sm font-medium text-gray-900">{{ appointment.patient_name }}</div>
+                                    <div class="text-xs text-gray-500">
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                            Auto-Approved
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ appointment.service.name }}</div>
+                            <div class="text-xs text-gray-500">{{ appointment.service.duration_display }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ appointment.appointment_date|date:"M d, Y" }}</div>
+                            <div class="text-xs text-gray-500">{{ appointment.time_display }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">{{ appointment.confirmed_at|date:"M d, Y" }}</div>
+                            <div class="text-xs text-gray-500">{{ appointment.confirmed_at|date:"h:i A" }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if appointment.assigned_dentist %}
+                            <div class="text-sm text-gray-900">{{ appointment.assigned_dentist.get_full_name }}</div>
+                            {% else %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                                    {% if appointment.status == 'confirmed' %}bg-green-100 text-green-800
+                                    {% elif appointment.status == 'cancelled' %}bg-red-100 text-red-800
+                                    {% elif appointment.status == 'completed' %}bg-blue-100 text-blue-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ appointment.get_status_display }}
+                                </span>
+                                
+                                {% if appointment.status in 'confirmed,completed' %}
+                                    {% if appointment.treatment_record and appointment.treatment_record.service_records.exists %}
+                                        <span class="inline-flex items-center" title="Treatment documented">
+                                            <svg class="h-4 w-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                                            </svg>
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center" title="Treatment not documented">
+                                            <svg class="h-4 w-4 text-orange-500" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                            </svg>
+                                        </span>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            {% if user|has_permission:'appointments' %}
+                            <a href="{% url 'appointments:appointment_detail' appointment.pk %}" 
+                               class="text-primary-600 hover:text-primary-900 transition-colors duration-150">View</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <div class="text-4xl mb-2">✅</div>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No auto-approved appointments today</h3>
+            <p class="mt-1 text-sm text-gray-500">No appointments were automatically approved by the system today.</p>
+        </div>
+        {% endif %}
+    </div>
+
     <!-- Upcoming Appointments This Week -->
     {% if upcoming_appointments %}
     <div class="bg-white shadow rounded-lg overflow-hidden">

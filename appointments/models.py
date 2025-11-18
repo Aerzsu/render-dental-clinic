@@ -336,6 +336,12 @@ class Appointment(models.Model):
     confirmed_at = models.DateTimeField(null=True, blank=True)
     confirmed_by = models.ForeignKey('users.User', on_delete=models.SET_NULL, null=True, blank=True, 
                                    related_name='confirmed_appointments')
+    
+    # Auto-approval tracking
+    is_auto_approved = models.BooleanField(
+        default=False,
+        help_text="Whether this appointment was automatically approved by the system"
+    )
 
     # Notes
     staff_notes = models.TextField(blank=True)
@@ -645,6 +651,10 @@ class Appointment(models.Model):
                     approved_by_user=system_user, 
                     assigned_dentist=default_dentist  # Can be None
                 )
+                
+                # Mark as auto-approved
+                self.is_auto_approved = True
+                self.save(update_fields=['is_auto_approved', 'updated_at'])
                 
                 if default_dentist:
                     return True, f"Auto-approved and assigned to Dr. {default_dentist.full_name}"

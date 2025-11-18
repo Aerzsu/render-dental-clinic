@@ -14,6 +14,8 @@ urlpatterns = [
     # Authenticated pages
     path('dashboard/', views.DashboardView.as_view(), name='dashboard'),
     
+    path('catalog/', views.CatalogView.as_view(), name='catalog'),
+
     # Maintenance module
     path('maintenance/', views.MaintenanceHubView.as_view(), name='maintenance_hub'),
     

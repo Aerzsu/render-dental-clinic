@@ -68,24 +68,33 @@
         appearance: none;
     }
     
-    /* Price input with currency prefix */
+    /* Price input prefix */
     .input-with-prefix {
         position: relative;
     }
-    
+
     .input-prefix {
         position: absolute;
         left: 0.875rem;
         top: 50%;
         transform: translateY(-50%);
         font-size: 0.875rem;
-        font-weight: 500;
+        font-weight: 600;
         color: #6b7280;
         pointer-events: none;
+        z-index: 10;
+        user-select: none;
     }
     
-    .input-with-prefix input {
-        padding-left: 2rem;
+    .input-with-prefix input[type="number"] {
+        padding-left: 2.5rem;
+        font-weight: 500;
+    }
+
+    /* ADD THIS NEW RULE: */
+    .input-with-prefix input[type="number"]::placeholder {
+        color: #9ca3af;
+        opacity: 1;
     }
     
     /* Required indicator */
@@ -523,6 +532,8 @@
                 break;
             }
         }
+
+        
     })();
 </script>
 {% endblock %}

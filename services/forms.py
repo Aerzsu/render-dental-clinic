@@ -20,14 +20,20 @@ class ServiceForm(forms.ModelForm):
                 'rows': 4
             }),
             'min_price': forms.NumberInput(attrs={
-                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
+                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 pl-10',
                 'step': '1',
-                'min': '1'
+                'min': '1',
+                'placeholder': '0',
+                'inputmode': 'numeric',
+                'pattern': '[0-9]*'
             }),
             'max_price': forms.NumberInput(attrs={
-                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
+                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 pl-10',
                 'step': '1',
-                'min': '1'
+                'min': '1',
+                'placeholder': '0',
+                'inputmode': 'numeric',
+                'pattern': '[0-9]*'
             }),
             'duration_minutes': forms.NumberInput(attrs={
                 'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
@@ -66,6 +72,7 @@ class ServiceForm(forms.ModelForm):
         
         return cleaned_data
 
+
 class DiscountForm(forms.ModelForm):
     """Form for creating and updating discounts"""
     
@@ -73,7 +80,7 @@ class DiscountForm(forms.ModelForm):
     discount_type = forms.ChoiceField(
         choices=[('false', 'Fixed Amount'), ('true', 'Percentage')],
         widget=forms.RadioSelect,
-        required=False,  # We'll handle this in clean()
+        required=False,
         initial='false'
     )
     
@@ -86,11 +93,13 @@ class DiscountForm(forms.ModelForm):
                 'placeholder': 'e.g., Senior Citizen Discount'
             }),
             'amount': forms.NumberInput(attrs={
-                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500', 
+                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 pl-10',
                 'step': '1',
-                'min': '1'
+                'min': '1',
+                'placeholder': '0',
+                'inputmode': 'numeric',
+                'pattern': '[0-9]*'
             }),
-            # Hide the original checkbox since we're using radio buttons
             'is_percentage': forms.HiddenInput(),
         }
     
@@ -101,7 +110,6 @@ class DiscountForm(forms.ModelForm):
         if self.instance and self.instance.pk:
             self.fields['discount_type'].initial = 'true' if self.instance.is_percentage else 'false'
         
-        # Make name field required with better validation
         self.fields['name'].required = True
         self.fields['amount'].required = True
     
@@ -163,7 +171,6 @@ class DiscountForm(forms.ModelForm):
         """Override save to ensure is_percentage is set correctly"""
         instance = super().save(commit=False)
         
-        # Set is_percentage based on discount_type
         discount_type = self.cleaned_data.get('discount_type', 'false')
         instance.is_percentage = (discount_type == 'true')
         
@@ -171,6 +178,72 @@ class DiscountForm(forms.ModelForm):
             instance.save()
         return instance
 
+
+class ProductForm(forms.ModelForm):
+    """Form for creating and updating products"""
+    
+    class Meta:
+        model = Product
+        fields = ['name', 'description', 'category', 'price']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
+                'placeholder': 'e.g., Anesthesia 2mL, Cotton Gauze Pack of 10'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
+                'rows': 3,
+                'placeholder': 'Optional product description or notes'
+            }),
+            'category': forms.Select(attrs={
+                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500'
+            }),
+            'price': forms.NumberInput(attrs={
+                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 pl-10',
+                'step': '1',
+                'min': '1',
+                'placeholder': '0',
+                'inputmode': 'numeric',
+                'pattern': '[0-9]*'
+            }),
+        }
+        help_texts = {
+            'name': 'Include unit details in the name (e.g., size, quantity, volume)',
+            'price': 'Unit price in Philippine Peso (₱)',
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['category'].queryset = ProductCategory.objects.all()
+        self.fields['name'].required = True
+        self.fields['category'].required = True
+        self.fields['price'].required = True
+    
+    def clean_name(self):
+        """Validate product name is unique (case-insensitive)"""
+        name = self.cleaned_data.get('name', '').strip()
+        if not name:
+            raise forms.ValidationError('Product name is required.')
+        
+        existing = Product.objects.filter(name__iexact=name)
+        if self.instance and self.instance.pk:
+            existing = existing.exclude(pk=self.instance.pk)
+        
+        if existing.exists():
+            raise forms.ValidationError(
+                f'A product with the name "{name}" already exists. '
+                'Please use a different name or include unit details '
+                '(e.g., "Alcohol 250mL" vs "Alcohol 500mL").'
+            )
+        
+        return name
+    
+    def clean_price(self):
+        """Validate price is at least ₱1.00"""
+        price = self.cleaned_data.get('price')
+        if price and price < Decimal('1.00'):
+            raise forms.ValidationError('Product price must be at least ₱1.00.')
+        return price
 
 class ProductCategoryForm(forms.ModelForm):
     """Form for creating and updating product categories"""
@@ -215,72 +288,7 @@ class ProductCategoryForm(forms.ModelForm):
         return name
 
 
-class ProductForm(forms.ModelForm):
-    """Form for creating and updating products"""
-    
-    class Meta:
-        model = Product
-        fields = ['name', 'description', 'category', 'price']
-        widgets = {
-            'name': forms.TextInput(attrs={
-                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
-                'placeholder': 'e.g., Anesthesia 2mL, Cotton Gauze Pack of 10'
-            }),
-            'description': forms.Textarea(attrs={
-                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
-                'rows': 3,
-                'placeholder': 'Optional product description or notes'
-            }),
-            'category': forms.Select(attrs={
-                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500'
-            }),
-            'price': forms.NumberInput(attrs={
-                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500',
-                'step': '0.01',
-                'min': '1.00',
-                'placeholder': '0.00'
-            }),
-        }
-        help_texts = {
-            'name': 'Include unit details in the name (e.g., size, quantity, volume)',
-            'price': 'Unit price in Philippine Peso (₱)',
-        }
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Only show active categories
-        self.fields['category'].queryset = ProductCategory.objects.all()
-        self.fields['name'].required = True
-        self.fields['category'].required = True
-        self.fields['price'].required = True
-    
-    def clean_name(self):
-        """Validate product name is unique (case-insensitive)"""
-        name = self.cleaned_data.get('name', '').strip()
-        if not name:
-            raise forms.ValidationError('Product name is required.')
-        
-        # Check for case-insensitive duplicates
-        existing = Product.objects.filter(name__iexact=name)
-        if self.instance and self.instance.pk:
-            existing = existing.exclude(pk=self.instance.pk)
-        
-        if existing.exists():
-            raise forms.ValidationError(
-                f'A product with the name "{name}" already exists. '
-                'Please use a different name or include unit details '
-                '(e.g., "Alcohol 250mL" vs "Alcohol 500mL").'
-            )
-        
-        return name
-    
-    def clean_price(self):
-        """Validate price is at least ₱1.00"""
-        price = self.cleaned_data.get('price')
-        if price and price < Decimal('1.00'):
-            raise forms.ValidationError('Product price must be at least ₱1.00.')
-        return price
-    
+
 
 class ServicePresetForm(forms.ModelForm):
     """Form for creating/editing service presets"""

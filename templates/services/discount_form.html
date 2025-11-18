@@ -5,6 +5,210 @@
 {% endblock %}
 
 {% block content %}
+<style>
+    /* Form Input Styles - Match Service Form */
+    input:not([type="checkbox"]):not([type="radio"]),
+    select,
+    textarea {
+        display: block;
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        color: #1f2937;
+        background-color: #ffffff;
+        border: 1px solid #d1d5db;
+        border-radius: 0.375rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+    
+    input:not([type="checkbox"]):not([type="radio"]):focus,
+    select:focus,
+    textarea:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    input:not([type="checkbox"]):not([type="radio"]):disabled,
+    select:disabled,
+    textarea:disabled {
+        background-color: #f3f4f6;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+    
+    /* Error state */
+    input.error,
+    select.error,
+    textarea.error {
+        border-color: #ef4444;
+    }
+    
+    input.error:focus,
+    select.error:focus,
+    textarea.error:focus {
+        border-color: #dc2626;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+    
+    /* Price input prefix - Match Service Form */
+    .input-with-prefix {
+        position: relative;
+    }
+    
+    .input-prefix {
+        position: absolute;
+        left: 0.875rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #6b7280;
+        pointer-events: none;
+        z-index: 10;
+        user-select: none;
+    }
+    
+    .input-with-prefix input[type="number"] {
+        padding-left: 2.5rem;
+        font-weight: 500;
+    }
+
+    .input-with-prefix input[type="number"]::placeholder {
+        color: #9ca3af;
+        opacity: 1;
+    }
+    
+    /* Required indicator */
+    .required-indicator {
+        color: #dc2626;
+        font-weight: 600;
+        margin-left: 0.125rem;
+    }
+    
+    /* Helper text */
+    .helper-text {
+        display: flex;
+        align-items: start;
+        gap: 0.375rem;
+        margin-top: 0.5rem;
+        font-size: 0.8125rem;
+        color: #6b7280;
+        line-height: 1.4;
+    }
+    
+    .helper-icon {
+        width: 0.875rem;
+        height: 0.875rem;
+        flex-shrink: 0;
+        margin-top: 0.125rem;
+        color: #9ca3af;
+    }
+    
+    /* Button styles */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.625rem 1.25rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        line-height: 1.25rem;
+        border-radius: 0.375rem;
+        transition: all 0.15s ease-in-out;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    
+    .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    .btn-primary {
+        color: #ffffff;
+        background-color: #2563eb;
+        border: 1px solid transparent;
+        box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+        background-color: #1d4ed8;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-primary:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    }
+    
+    .btn-secondary {
+        color: #374151;
+        background-color: #ffffff;
+        border: 1px solid #d1d5db;
+    }
+    
+    .btn-secondary:hover:not(:disabled) {
+        background-color: #f9fafb;
+        border-color: #9ca3af;
+    }
+    
+    .btn-secondary:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.2);
+    }
+    
+    /* Radio button styling */
+    input[type="radio"] {
+        cursor: pointer;
+    }
+    
+    input[type="radio"]:checked {
+        background-color: #2563eb;
+        border-color: #2563eb;
+    }
+    
+    label:has(input[type="radio"]:checked) {
+        border-color: #2563eb;
+        background-color: #eff6ff;
+    }
+    
+    /* Loading animation */
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    .animate-spin {
+        animation: spin 1s linear infinite;
+    }
+    
+    /* Number input - hide spinner */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    
+    input[type="number"] {
+        -moz-appearance: textfield;
+    }
+    
+    /* Smooth transitions */
+    * {
+        transition-property: background-color, border-color, color, fill, stroke;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+    
+    /* Focus visible for accessibility */
+    *:focus-visible {
+        outline: 2px solid #3b82f6;
+        outline-offset: 2px;
+    }
+</style>
+
 <div class="min-h-screen bg-gray-50 py-6">
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Breadcrumb Navigation -->
@@ -101,21 +305,21 @@
 
                                 <!-- Discount Name -->
                                 <div>
-                                    <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                                        Discount Name <span class="text-red-500" aria-label="required">*</span>
+                                    <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-900 mb-1.5">
+                                        Discount Name <span class="required-indicator" aria-label="required">*</span>
                                     </label>
                                     {{ form.name }}
                                     {% if form.name.errors %}
-                                        <p class="mt-2 text-sm text-red-600 flex items-start" role="alert">
-                                            <svg class="w-4 h-4 mt-0.5 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                                            </svg>
-                                            <span>{{ form.name.errors.0 }}</span>
+                                        <p class="mt-2 text-sm text-red-600" role="alert">
+                                            <span class="font-medium">Error:</span> {{ form.name.errors.0 }}
                                         </p>
                                     {% endif %}
-                                    <p class="mt-1.5 text-xs text-gray-500">
-                                        {% if form.name.help_text %}{{ form.name.help_text }}{% else %}Enter a clear, descriptive name (e.g., "Senior Citizen", "PWD", "Holiday Promo"){% endif %}
-                                    </p>
+                                    <div class="helper-text">
+                                        <svg class="helper-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                        </svg>
+                                        <span>Enter a clear, descriptive name (e.g., "Senior Citizen", "PWD", "Holiday Promo")</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -133,8 +337,8 @@
                                 <!-- Discount Type Selection -->
                                 <div class="space-y-4">
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-3">
-                                            Discount Type <span class="text-red-500" aria-label="required">*</span>
+                                        <label class="block text-sm font-medium text-gray-900 mb-3">
+                                            Discount Type <span class="required-indicator" aria-label="required">*</span>
                                         </label>
                                         <div class="space-y-3">
                                             <label class="relative flex items-start p-4 border border-gray-300 rounded-lg cursor-pointer hover:border-primary-500 hover:bg-primary-50 transition-all group">
@@ -184,54 +388,39 @@
                                     </div>
 
                                     <!-- Hidden field for form submission -->
-                                    <div class="hidden">
-                                        {{ form.is_percentage }}
-                                    </div>
+                                    {{ form.is_percentage }}
 
-                                    <!-- Amount Field -->
+                                    <!-- Amount Field - EXACTLY MATCH SERVICE FORM STRUCTURE -->
                                     <div class="pt-2">
-                                        <label for="{{ form.amount.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                                            <span id="amount-label" class="transition-all duration-200">
+                                        <label for="{{ form.amount.id_for_label }}" class="block text-sm font-medium text-gray-900 mb-1.5">
+                                            <span id="amount-label">
                                                 {% if form.is_percentage.value %}Discount Percentage{% else %}Discount Amount{% endif %}
                                             </span>
-                                            <span class="text-red-500" aria-label="required">*</span>
+                                            <span class="required-indicator" aria-label="required">*</span>
                                         </label>
-                                        <div class="relative rounded-lg shadow-sm">
-                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                                <span class="text-gray-500 text-sm font-medium transition-all duration-200" id="currency-symbol">
-                                                    {% if form.is_percentage.value %}%{% else %}₱{% endif %}
-                                                </span>
-                                            </div>
-                                            <input type="number" 
-                                                name="amount" 
-                                                id="{{ form.amount.id_for_label }}"
-                                                value="{{ form.amount.value|default:'' }}"
-                                                {% if form.is_percentage.value %}max="100"{% endif %}
-                                                class="block w-full {% if form.is_percentage.value %}pl-8{% else %}pl-11{% endif %} pr-16 py-2.5 text-sm border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 transition-colors"
-                                                placeholder="0.00"
-                                                required
-                                                aria-describedby="amount-help">
-                                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                                                <span class="text-gray-400 text-xs font-medium" id="amount-unit">
-                                                    {% if form.is_percentage.value %}percent{% else %}pesos{% endif %}
-                                                </span>
-                                            </div>
+                                        <div class="input-with-prefix">
+                                            <span class="input-prefix" id="currency-symbol" aria-hidden="true">
+                                                {% if form.is_percentage.value %}%{% else %}₱{% endif %}
+                                            </span>
+                                            {{ form.amount }}
                                         </div>
                                         {% if form.amount.errors %}
-                                            <p class="mt-2 text-sm text-red-600 flex items-start" role="alert">
-                                                <svg class="w-4 h-4 mt-0.5 mr-1 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                                                </svg>
-                                                <span>{{ form.amount.errors.0 }}</span>
+                                            <p class="mt-2 text-sm text-red-600" role="alert">
+                                                <span class="font-medium">Error:</span> {{ form.amount.errors.0 }}
                                             </p>
                                         {% endif %}
-                                        <p class="mt-2 text-xs text-gray-500 transition-opacity duration-200" id="amount-help">
-                                            {% if form.is_percentage.value %}
-                                                Enter a percentage between 1 and 100 to discount from the total amount
-                                            {% else %}
-                                                Enter the fixed peso amount to subtract from the total
-                                            {% endif %}
-                                        </p>
+                                        <div class="helper-text">
+                                            <svg class="helper-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                            </svg>
+                                            <span id="amount-help">
+                                                {% if form.is_percentage.value %}
+                                                    Enter a percentage between 1 and 100 to discount from the total amount
+                                                {% else %}
+                                                    Enter the fixed peso amount to subtract from the total
+                                                {% endif %}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -239,14 +428,16 @@
 
                         <!-- Form Actions -->
                         <div class="px-6 py-4 bg-gray-50 flex flex-col-reverse sm:flex-row sm:justify-end gap-3">
-                            <a href="{% url 'services:discount_list' %}" 
-                               class="w-full sm:w-auto inline-flex justify-center items-center px-5 py-2.5 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                            <a href="{% url 'services:discount_list' %}" class="btn btn-secondary">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
                                 Cancel
                             </a>
                             <button type="submit" 
                                     id="submitBtn"
-                                    class="w-full sm:w-auto inline-flex justify-center items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
-                                <svg class="w-5 h-5 mr-2 -ml-1 hidden animate-spin" id="loadingIcon" fill="none" viewBox="0 0 24 24">
+                                    class="btn btn-primary">
+                                <svg class="w-4 h-4 hidden animate-spin" id="loadingIcon" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
@@ -256,6 +447,7 @@
                     </form>
                 </div>
             </div>
+
             <!-- Sidebar Column (1/3 width) -->
             <div class="lg:col-span-1">
                 <div class="sticky top-6 space-y-6">
@@ -276,7 +468,7 @@
                                 <div class="bg-gray-50 rounded-lg p-3 space-y-2">
                                     <div class="flex justify-between text-sm">
                                         <span class="text-gray-600">Original Amount:</span>
-                                        <span class="font-medium text-gray-900">₱1,000.00</span>
+                                        <span class="font-medium text-gray-900">₱1,000</span>
                                     </div>
                                     <div class="flex justify-between text-sm">
                                         <span class="text-gray-600">Discount:</span>
@@ -284,7 +476,7 @@
                                     </div>
                                     <div class="pt-2 border-t border-gray-200 flex justify-between">
                                         <span class="text-sm font-medium text-gray-900">Final Amount:</span>
-                                        <span class="text-lg font-bold text-gray-900" id="preview-final">₱1,000.00</span>
+                                        <span class="text-lg font-bold text-gray-900" id="preview-final">₱1,000</span>
                                     </div>
                                 </div>
                             </div>
@@ -347,8 +539,8 @@
                                 <dd class="font-medium text-gray-900">1% - 100%</dd>
                             </div>
                             <div class="flex justify-between py-1">
-                                <dt>Min. fixed amount:</dt>
-                                <dd class="font-medium text-gray-900">₱0.01</dd>
+                                <dt>Min. amount:</dt>
+                                <dd class="font-medium text-gray-900">₱1</dd>
                             </div>
                         </dl>
                     </div>
@@ -360,6 +552,8 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    'use strict';
+    
     const form = document.getElementById('discount-form');
     const fixedRadio = document.getElementById('fixed_amount');
     const percentageRadio = document.getElementById('percentage');
@@ -367,7 +561,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const amountInput = document.getElementById('{{ form.amount.id_for_label }}');
     const amountLabel = document.getElementById('amount-label');
     const currencySymbol = document.getElementById('currency-symbol');
-    const amountUnit = document.getElementById('amount-unit');
     const amountHelp = document.getElementById('amount-help');
     const submitBtn = document.getElementById('submitBtn');
     const submitText = document.getElementById('submitText');
@@ -386,20 +579,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isPercentage) {
             amountLabel.textContent = 'Discount Percentage';
             currencySymbol.textContent = '%';
-            amountUnit.textContent = 'percent';
             amountInput.setAttribute('max', '100');
-            amountInput.setAttribute('min', '0.01');
-            amountInput.classList.remove('pl-11');
-            amountInput.classList.add('pl-8');
+            amountInput.setAttribute('min', '1');
             amountHelp.textContent = 'Enter a percentage between 1 and 100 to discount from the total amount';
         } else {
             amountLabel.textContent = 'Discount Amount';
             currencySymbol.textContent = '₱';
-            amountUnit.textContent = 'pesos';
             amountInput.removeAttribute('max');
-            amountInput.setAttribute('min', '0.01');
-            amountInput.classList.remove('pl-8');
-            amountInput.classList.add('pl-11');
+            amountInput.setAttribute('min', '1');
             amountHelp.textContent = 'Enter the fixed peso amount to subtract from the total';
         }
         
@@ -413,26 +600,26 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function updatePreview() {
-        const amount = parseFloat(amountInput.value) || 0;
+        const amount = parseInt(amountInput.value) || 0;
         const isPercentage = percentageRadio.checked;
         
         if (amount <= 0) {
             previewDiscount.textContent = '-';
-            previewFinal.textContent = '₱1,000.00';
+            previewFinal.textContent = '₱1,000';
             return;
         }
         
         let discountAmount = 0;
         if (isPercentage) {
-            discountAmount = (baseAmount * amount) / 100;
-            previewDiscount.textContent = `-₱${discountAmount.toFixed(2)} (${amount}%)`;
+            discountAmount = Math.floor((baseAmount * amount) / 100);
+            previewDiscount.textContent = `-₱${discountAmount} (${amount}%)`;
         } else {
             discountAmount = amount;
-            previewDiscount.textContent = `-₱${discountAmount.toFixed(2)}`;
+            previewDiscount.textContent = `-₱${discountAmount}`;
         }
         
         const finalAmount = Math.max(0, baseAmount - discountAmount);
-        previewFinal.textContent = `₱${finalAmount.toFixed(2)}`;
+        previewFinal.textContent = `₱${finalAmount}`;
     }
     
     // Initialize UI on page load based on hidden field value
@@ -465,27 +652,85 @@ document.addEventListener('DOMContentLoaded', function() {
             updateUI(true, true);
         }
     });
-    
+
+    // Currency input: Prevent non-numeric input (INTEGER ONLY - MATCH SERVICE FORM)
+    const currencyInputs = document.querySelectorAll('.input-with-prefix input[type="number"]');
+    currencyInputs.forEach(function(input) {
+        // Normalize any existing value on load
+        if (input.value) {
+            input.value = input.value.toString().replace(/\D/g, '');
+        }
+
+        // Prevent typing decimal points and non-numeric on keydown
+        input.addEventListener('keydown', function(e) {
+            // Allow control keys: backspace, delete, tab, escape, enter, arrows, home/end
+            if ([8,46,9,27,13,35,36,37,38,39,40].indexOf(e.keyCode) !== -1 ||
+                // Allow: Ctrl/Cmd combinations
+                e.ctrlKey === true || e.metaKey === true) {
+                return;
+            }
+
+            // Block decimal separators and non-numeric keys
+            const isNumberKey = (e.keyCode >= 48 && e.keyCode <= 57) || (e.keyCode >= 96 && e.keyCode <= 105);
+            if (!isNumberKey) {
+                e.preventDefault();
+            }
+        });
+
+        // Sanitize on input to remove any non-digits (handles mobile and IME)
+        input.addEventListener('input', function() {
+            const digits = this.value.replace(/\D/g, '');
+            if (this.value !== digits) {
+                this.value = digits;
+            }
+            updatePreview();
+        });
+        
+        // Prevent pasting non-numeric values
+        input.addEventListener('paste', function(e) {
+            e.preventDefault();
+            const pastedText = (e.clipboardData || window.clipboardData).getData('text') || '';
+            const numericValue = pastedText.replace(/[^0-9]/g, '');
+            if (numericValue) {
+                this.value = parseInt(numericValue, 10);
+                updatePreview();
+            }
+        });
+        
+        // Strip decimals on blur and ensure integer value
+        input.addEventListener('blur', function() {
+            if (this.value) {
+                const v = parseFloat(this.value);
+                if (!isNaN(v)) {
+                    this.value = Math.floor(v);
+                } else {
+                    this.value = '';
+                }
+                updatePreview();
+            }
+        });
+    });
+
     // Update preview on amount input
     amountInput.addEventListener('input', updatePreview);
     
     // Form validation
     form.addEventListener('submit', function(e) {
-        const amount = parseFloat(amountInput.value);
+        const amount = parseInt(amountInput.value);
         const isPercentage = percentageRadio.checked;
         
         if (!amount || amount <= 0) {
             e.preventDefault();
             alert('Please enter a valid discount amount greater than zero.');
             amountInput.focus();
-            return;
+            return false;
         }
         
         if (isPercentage && amount > 100) {
             e.preventDefault();
             alert('Percentage discount cannot exceed 100%.');
             amountInput.focus();
-            return;
+            return false;
         }
         
         // Show loading state
@@ -494,90 +739,17 @@ document.addEventListener('DOMContentLoaded', function() {
         loadingIcon.classList.remove('hidden');
     });
     
+    // Add error class to inputs with errors
+    const formInputs = document.querySelectorAll('input, select, textarea');
+    formInputs.forEach(function(input) {
+        const errorElement = input.parentElement.querySelector('[role="alert"]');
+        if (errorElement) {
+            input.classList.add('error');
+        }
+    });
+
     // Initialize the UI on page load
     initializeUI();
 });
 </script>
-
-<style>
-/* Enhanced form field styling */
-input[type="text"],
-input[type="number"],
-select,
-textarea {
-    padding: 0.625rem 0.75rem;
-}
-
-select {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 0.5rem center;
-    background-repeat: no-repeat;
-    background-size: 1.5em 1.5em;
-    padding-right: 2.5rem;
-}
-
-/* Smooth transitions */
-input:focus,
-select:focus,
-textarea:focus,
-button:focus {
-    outline: none;
-    transition: all 0.15s ease-in-out;
-}
-
-/* Radio button enhanced styling */
-input[type="radio"] {
-    cursor: pointer;
-}
-
-input[type="radio"]:checked {
-    background-color: rgb(var(--color-primary-600));
-    border-color: rgb(var(--color-primary-600));
-}
-
-/* Loading animation */
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-.animate-spin {
-    animation: spin 1s linear infinite;
-}
-
-/* Smooth fade transitions */
-.transition-opacity {
-    transition-property: opacity;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 200ms;
-}
-
-.transition-all {
-    transition-property: all;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 200ms;
-}
-
-.transition-colors {
-    transition-property: color, background-color, border-color;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 150ms;
-}
-
-/* Enhanced hover effects for radio options */
-label:has(input[type="radio"]:checked) {
-    border-color: rgb(var(--color-primary-500));
-    background-color: rgb(var(--color-primary-50));
-}
-
-/* Number input - hide spinner in some browsers */
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-input[type="number"] {
-    -moz-appearance: textfield;
-}
-</style>
 {% endblock %}

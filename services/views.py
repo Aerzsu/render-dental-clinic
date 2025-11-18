@@ -646,8 +646,8 @@ class ServicePresetListView(LoginRequiredMixin, ListView):
     paginate_by = 15
     
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.has_permission('appointments'):
-            messages.error(request, 'You do not have permission to access this page.')
+        if not request.user.is_active_dentist:
+            messages.error(request, 'Only active dentists can manage service presets.')
             return redirect('core:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
@@ -694,8 +694,8 @@ class ServicePresetCreateView(LoginRequiredMixin, CreateView):
     template_name = 'services/preset_form.html'
     
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.has_permission('appointments'):
-            messages.error(request, 'You do not have permission to access this page.')
+        if not request.user.is_active_dentist:
+            messages.error(request, 'Only active dentists can manage service presets.')
             return redirect('core:dashboard')
         return super().dispatch(request, *args, **kwargs)
     
@@ -758,8 +758,8 @@ class ServicePresetUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'services/preset_form.html'
     
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.has_permission('appointments'):
-            messages.error(request, 'You do not have permission to access this page.')
+        if not request.user.is_active_dentist:
+            messages.error(request, 'Only active dentists can manage service presets.')
             return redirect('core:dashboard')
         
         # Ensure user can only edit their own presets
@@ -812,8 +812,8 @@ class ServicePresetDetailView(LoginRequiredMixin, DetailView):
     context_object_name = 'preset'
     
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.has_permission('appointments'):
-            messages.error(request, 'You do not have permission to access this page.')
+        if not request.user.is_active_dentist:
+            messages.error(request, 'Only active dentists can manage service presets.')
             return redirect('core:dashboard')
         
         # Ensure user can only view their own presets
@@ -834,8 +834,8 @@ class ServicePresetDetailView(LoginRequiredMixin, DetailView):
 @require_POST
 def delete_service_preset(request, pk):
     """Delete service preset"""
-    if not request.user.has_permission('appointments'):
-        messages.error(request, 'You do not have permission to perform this action.')
+    if not request.user.is_active_dentist:
+        messages.error(request, 'Only active dentists can manage service presets.')
         return redirect('core:dashboard')
     
     preset = get_object_or_404(ServicePreset, pk=pk)
@@ -858,8 +858,8 @@ def get_service_presets_api(request, service_id):
     API endpoint to get presets for a specific service
     Used by treatment record form to load presets
     """
-    if not request.user.has_permission('appointments'):
-        return JsonResponse({'error': 'Permission denied'}, status=403)
+    if not request.user.is_active_dentist:
+        return JsonResponse({'error': 'Only dentists can access service presets'}, status=403)
     
     try:
         service = Service.objects.get(pk=service_id)

@@ -454,6 +454,7 @@ class AppointmentListView(LoginRequiredMixin, ListView):
             self.request.GET.get('date_from'),
             self.request.GET.get('date_to'),
             self.request.GET.get('search'),
+            self.request.GET.get('auto_approved'),
         ])
         
         # Apply default filters if no custom filters are set
@@ -470,6 +471,13 @@ class AppointmentListView(LoginRequiredMixin, ListView):
             assigned_dentist = self.request.GET.get('assigned_dentist')
             if assigned_dentist:
                 queryset = queryset.filter(assigned_dentist_id=assigned_dentist)
+            
+            # Auto-approved filtering
+            auto_approved = self.request.GET.get('auto_approved')
+            if auto_approved == 'true':
+                queryset = queryset.filter(is_auto_approved=True)
+            elif auto_approved == 'false':
+                queryset = queryset.filter(is_auto_approved=False)
             
             # Date range filtering
             date_from = self.request.GET.get('date_from')
@@ -499,7 +507,7 @@ class AppointmentListView(LoginRequiredMixin, ListView):
         
         # Ordering: today's appointments with earliest first, then future dates
         return queryset.order_by('appointment_date', 'start_time')
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.update({
@@ -511,6 +519,7 @@ class AppointmentListView(LoginRequiredMixin, ListView):
                 'date_from': self.request.GET.get('date_from', ''),
                 'date_to': self.request.GET.get('date_to', ''),
                 'search': self.request.GET.get('search', ''),
+                'auto_approved': self.request.GET.get('auto_approved', ''),
             }
         })
         return context
@@ -1450,7 +1459,7 @@ class TimeSlotConfigurationListView(LoginRequiredMixin, ListView):
     paginate_by = 30
     
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.has_permission('appointments.view_timeslotconfiguration'):
+        if not request.user.is_active_dentist:
             messages.error(request, 'You do not have permission to access this page.')
             return redirect('core:dashboard')
         return super().dispatch(request, *args, **kwargs)
@@ -1528,7 +1537,7 @@ class TimeSlotConfigurationCreateView(LoginRequiredMixin, CreateView):
     template_name = 'appointments/daily_slots_form.html'
     
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.has_permission('appointments.add_timeslotconfiguration'):
+        if not request.user.is_active_dentist:
             messages.error(request, 'You do not have permission to access this page.')
             return redirect('core:dashboard')
         return super().dispatch(request, *args, **kwargs)
@@ -1568,7 +1577,7 @@ class TimeSlotConfigurationUpdateView(LoginRequiredMixin, UpdateView):
     template_name = 'appointments/daily_slots_form.html'
     
     def dispatch(self, request, *args, **kwargs):
-        if not request.user.has_permission('appointments.change_timeslotconfiguration'):
+        if not request.user.is_active_dentist:
             messages.error(request, 'You do not have permission to access this page.')
             return redirect('core:dashboard')
         return super().dispatch(request, *args, **kwargs)

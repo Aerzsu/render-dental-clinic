@@ -1012,14 +1012,20 @@ def invoice_pdf(request, payment_pk):
         'payment_progress': payment.payment_progress_percentage,
     }
     
+    from core.models import SystemSetting
+    clinic_name = SystemSetting.get_setting('clinic_name', 'KingJoy Dental Clinic')
+    clinic_address = SystemSetting.get_setting('clinic_address', '54 Obanic St.\nQuezon City, Metro Manila')
+    clinic_phone = SystemSetting.get_setting('clinic_phone', '+63 956 631 6581')
+    clinic_email = SystemSetting.get_setting('clinic_email', 'contact@kingjoydental.com')
+
     context = {
         'payment': payment,
         'payment_items': payment_items,
         'payment_summary': payment_summary,
         'transactions': payment.transactions.all().select_related('created_by').order_by('-payment_datetime'),
-        'clinic_name': 'KingJoy Dental Clinic',
-        'clinic_address': 'Your Clinic Address Here',
-        'clinic_contact': 'Your Contact Info Here',
+        'clinic_name': clinic_name,
+        'clinic_address':clinic_address,
+        'clinic_contact': clinic_phone,
     }
     
     # Render HTML template

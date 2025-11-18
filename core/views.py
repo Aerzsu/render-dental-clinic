@@ -20,17 +20,19 @@ from django.contrib import messages
 from django.views.generic import FormView
 from django.db.models import Q, Count
 from django.urls import reverse_lazy
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 import pytz
 
 from .models import AuditLog, SystemSetting
 from appointments.models import Appointment, TimeSlotConfiguration, Payment, PaymentTransaction, PaymentItem
 from patients.models import Patient
 from patient_portal.models import PatientPortalAccess
-from services.models import Service
+from services.models import Service, Discount, Product, ProductCategory
 from users.models import User
 from core.email_service import EmailService
 from core.forms import SystemSettingsForm
 from core.utils import get_manila_today, get_manila_now
+
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +108,14 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             status='pending'
         ).count()
         
+        # Today's auto-approved appointments (confirmed_at is today)
+        todays_auto_approved = Appointment.objects.filter(
+            confirmed_at__date=today,
+            is_auto_approved=True
+        ).select_related('patient', 'assigned_dentist', 'service').order_by('-confirmed_at')
+
+        context['todays_auto_approved'] = todays_auto_approved
+
         # Recent patients (only if user has patient permissions)
         if hasattr(self.request.user, 'has_permission') and self.request.user.has_permission('patients'):
             context['recent_patients'] = Patient.objects.filter(
@@ -525,6 +535,119 @@ class BookAppointmentView(TemplateView):
         messages.info(request, 'Please use the appointment booking form.')
         return redirect('core:book_appointment')
 
+class CatalogView(LoginRequiredMixin, TemplateView):
+    """
+    Unified catalog view with tabbed interface for Services, Discounts, and Products.
+    Read-only quick reference for users with billing permissions.
+    """
+    template_name = 'core/catalog.html'
+    paginate_by = 10  # Items per page
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Require billing permission to access catalog
+        from users.templatetags.user_tags import has_permission
+        if not has_permission(request.user, 'billing'):
+            from django.contrib import messages
+            from django.shortcuts import redirect
+            messages.error(request, 'You do not have permission to access the catalog.')
+            return redirect('core:dashboard')
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Determine active tab from query parameter (default: services)
+        active_tab = self.request.GET.get('tab', 'services')
+        if active_tab not in ['services', 'discounts', 'products']:
+            active_tab = 'services'
+        
+        context['active_tab'] = active_tab
+        
+        # Check if user can modify (has maintenance permission)
+        from users.templatetags.user_tags import has_permission
+        context['can_modify'] = has_permission(self.request.user, 'maintenance')
+        
+        # Common search query
+        search_query = self.request.GET.get('search', '')
+        context['search_query'] = search_query
+        
+        # Get page number from request
+        page_number = self.request.GET.get('page', 1)
+        
+        # Load data based on active tab with pagination
+        if active_tab == 'services':
+            queryset = self._get_services(search_query)
+            paginated_data = self._paginate_queryset(queryset, page_number)
+            context['services'] = paginated_data['objects']
+            context['page_obj'] = paginated_data['page_obj']
+            context['is_paginated'] = paginated_data['is_paginated']
+            context['paginator'] = paginated_data['paginator']
+            
+        elif active_tab == 'discounts':
+            queryset = self._get_discounts(search_query)
+            paginated_data = self._paginate_queryset(queryset, page_number)
+            context['discounts'] = paginated_data['objects']
+            context['page_obj'] = paginated_data['page_obj']
+            context['is_paginated'] = paginated_data['is_paginated']
+            context['paginator'] = paginated_data['paginator']
+            
+        elif active_tab == 'products':
+            queryset = self._get_products(search_query)
+            paginated_data = self._paginate_queryset(queryset, page_number)
+            context['products'] = paginated_data['objects']
+            context['page_obj'] = paginated_data['page_obj']
+            context['is_paginated'] = paginated_data['is_paginated']
+            context['paginator'] = paginated_data['paginator']
+        
+        return context
+    
+    def _paginate_queryset(self, queryset, page_number):
+        """Paginate a queryset and return pagination data"""
+        paginator = Paginator(queryset, self.paginate_by)
+        
+        try:
+            page_obj = paginator.page(page_number)
+        except PageNotAnInteger:
+            # If page is not an integer, deliver first page
+            page_obj = paginator.page(1)
+        except EmptyPage:
+            # If page is out of range, deliver last page
+            page_obj = paginator.page(paginator.num_pages)
+        
+        return {
+            'objects': page_obj.object_list,
+            'page_obj': page_obj,
+            'is_paginated': paginator.num_pages > 1,
+            'paginator': paginator,
+        }
+    
+    def _get_services(self, search_query):
+        """Get active services with optional search"""
+        queryset = Service.objects.filter(is_archived=False)
+        if search_query:
+            queryset = queryset.filter(
+                Q(name__icontains=search_query) |
+                Q(description__icontains=search_query)
+            )
+        return queryset.order_by('name')
+    
+    def _get_discounts(self, search_query):
+        """Get active discounts with optional search"""
+        queryset = Discount.objects.filter(is_active=True)
+        if search_query:
+            queryset = queryset.filter(name__icontains=search_query)
+        return queryset.order_by('name')
+    
+    def _get_products(self, search_query):
+        """Get active products with optional search"""
+        queryset = Product.objects.filter(is_active=True).select_related('category')
+        if search_query:
+            queryset = queryset.filter(
+                Q(name__icontains=search_query) |
+                Q(description__icontains=search_query) |
+                Q(category__name__icontains=search_query)
+            )
+        return queryset.order_by('category__name', 'name')
 
 # =============================================================================
 # API ENDPOINTS FOR BOOKING SYSTEM
