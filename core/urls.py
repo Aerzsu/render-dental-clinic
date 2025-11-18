@@ -31,5 +31,9 @@ urlpatterns = [
     path('api/booking/select-patient/', views.select_booking_patient, name='select_booking_patient'),
     path('api/booking/submit/', views.submit_booking_appointment, name='submit_booking_appointment'),
 
+    # Booking validation endpoints
+    path('api/booking/check-duplicate/', views.check_duplicate_patient, name='check_duplicate_patient'),
+    path('api/booking/check-conflict/', views.check_booking_conflict, name='check_booking_conflict'),
+
     path('health/', health_check, name='health_check'),
 ]

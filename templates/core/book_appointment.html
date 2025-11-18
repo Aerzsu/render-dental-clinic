@@ -16,32 +16,32 @@
     <!-- Progress Steps -->
     <div class="max-w-3xl mx-auto mb-8">
         <div class="flex items-center justify-between">
-            <!-- Step 1: Service & Schedule -->
+            <!-- Step 1: Patient Info -->
             <div class="flex items-center" :class="step >= 1 ? 'text-primary-600' : 'text-gray-400'">
                 <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center" 
-                     :class="step >= 1 ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300'">
+                    :class="step >= 1 ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300'">
                     <span class="text-sm font-medium">1</span>
-                </div>
-                <span class="ml-2 text-sm font-medium hidden sm:inline">Service & Schedule</span>
-                <span class="ml-2 text-sm font-medium sm:hidden">Schedule</span>
-            </div>
-            <div class="flex-1 h-px mx-4" :class="step >= 2 ? 'bg-primary-600' : 'bg-gray-300'"></div>
-            
-            <!-- Step 2: Patient Info -->
-            <div class="flex items-center" :class="step >= 2 ? 'text-primary-600' : 'text-gray-400'">
-                <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center" 
-                     :class="step >= 2 ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300'">
-                    <span class="text-sm font-medium">2</span>
                 </div>
                 <span class="ml-2 text-sm font-medium hidden sm:inline">Patient Info</span>
                 <span class="ml-2 text-sm font-medium sm:hidden">Info</span>
+            </div>
+            <div class="flex-1 h-px mx-4" :class="step >= 2 ? 'bg-primary-600' : 'bg-gray-300'"></div>
+            
+            <!-- Step 2: Service & Schedule -->
+            <div class="flex items-center" :class="step >= 2 ? 'text-primary-600' : 'text-gray-400'">
+                <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center" 
+                    :class="step >= 2 ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300'">
+                    <span class="text-sm font-medium">2</span>
+                </div>
+                <span class="ml-2 text-sm font-medium hidden sm:inline">Service & Schedule</span>
+                <span class="ml-2 text-sm font-medium sm:hidden">Schedule</span>
             </div>
             <div class="flex-1 h-px mx-4" :class="step >= 3 ? 'bg-primary-600' : 'bg-gray-300'"></div>
             
             <!-- Step 3: Confirm -->
             <div class="flex items-center" :class="step >= 3 ? 'text-primary-600' : 'text-gray-400'">
                 <div class="w-8 h-8 rounded-full border-2 flex items-center justify-center" 
-                     :class="step >= 3 ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300'">
+                    :class="step >= 3 ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300'">
                     <span class="text-sm font-medium">3</span>
                 </div>
                 <span class="ml-2 text-sm font-medium hidden sm:inline">Confirm</span>
@@ -234,11 +234,11 @@
     <!-- Booking Form -->
     <form x-show="!submitted" class="max-w-3xl mx-auto bg-white shadow-xl rounded-lg overflow-hidden" @submit.prevent="submitForm">
         
-        <!-- Step 2: Patient Information -->
-        {% include 'core/partials/_step2_patient_info.html' %}
+        <!-- Step 1: Patient Information -->
+        {% include 'core/partials/_step1_patient_info.html' %}
 
-        <!-- Step 1: Service & Schedule Selection -->
-        {% include 'core/partials/_step1_service_schedule.html' %}
+        <!-- Step 2: Service & Schedule Selection -->
+        {% include 'core/partials/_step2_service_schedule.html' %}
 
         <!-- Step 3: Review & Confirm -->
         {% include 'core/partials/_step3_confirm.html' %}

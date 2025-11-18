@@ -769,24 +769,8 @@
                 }
             }));
         }
-        
-        // Check for inline error/success messages in swapped content
-        const swappedContent = event.detail.target;
-        if (swappedContent.querySelector('.text-red-600')) {
-            const errorText = swappedContent.querySelector('.text-red-600').textContent.trim();
-            if (errorText) {
-                window.dispatchEvent(new CustomEvent('notify', {
-                    detail: { type: 'error', message: errorText }
-                }));
-            }
-        } else if (swappedContent.querySelector('.text-yellow-600')) {
-            const warningText = swappedContent.querySelector('.text-yellow-600').textContent.trim();
-            if (warningText) {
-                window.dispatchEvent(new CustomEvent('notify', {
-                    detail: { type: 'warning', message: warningText }
-                }));
-            }
-        }
+    
+        // All toasts should now be triggered via HX-Trigger headers or Django messages
     });
 
     // ✅ Handle non-HTMX Django messages on page load

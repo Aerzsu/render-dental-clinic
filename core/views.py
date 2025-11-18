@@ -932,6 +932,143 @@ def submit_booking_appointment(request):
             'error': 'An error occurred. Please try again.'
         }, status=500)
 
+@require_http_methods(["POST"])
+def check_duplicate_patient(request):
+    """
+    API ENDPOINT: Check if patient with same name+email exists
+    Used during new patient registration in booking flow
+    Returns: existing patient info if found
+    """
+    try:
+        data = json.loads(request.body)
+        first_name = data.get('first_name', '').strip()
+        last_name = data.get('last_name', '').strip()
+        email = data.get('email', '').strip()
+        
+        if not all([first_name, last_name, email]):
+            return JsonResponse({
+                'error': 'Missing required fields'
+            }, status=400)
+        
+        # Case-insensitive search for existing patient
+        existing_patient = Patient.objects.filter(
+            first_name__iexact=first_name,
+            last_name__iexact=last_name,
+            email__iexact=email,
+            is_active=True
+        ).first()
+        
+        if existing_patient:
+            return JsonResponse({
+                'is_duplicate': True,
+                'patient': {
+                    'id': existing_patient.id,
+                    'name': existing_patient.full_name,
+                    'email': existing_patient.email,
+                    'registered': existing_patient.date_of_registration.strftime('%B %d, %Y') if existing_patient.date_of_registration else 'N/A'
+                },
+                'message': f'An account with this name and email already exists. Please select "Existing Patient" instead.'
+            })
+        else:
+            return JsonResponse({
+                'is_duplicate': False,
+                'message': 'No duplicate found'
+            })
+            
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'error': 'Invalid request data'
+        }, status=400)
+    except Exception as e:
+        logger.error(f"Error in check_duplicate_patient: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'error': 'An error occurred'
+        }, status=500)
+
+
+@require_http_methods(["POST"])
+def check_booking_conflict(request):
+    """
+    API ENDPOINT: Check if patient (by name+email) has appointment on date
+    Used for BOTH new and existing patients during booking
+    Returns: conflict status
+    """
+    try:
+        data = json.loads(request.body)
+        first_name = data.get('first_name', '').strip()
+        last_name = data.get('last_name', '').strip()
+        email = data.get('email', '').strip()
+        appointment_date_str = data.get('appointment_date')
+        patient_id = data.get('patient_id')  # For existing patients
+        
+        if not appointment_date_str:
+            return JsonResponse({
+                'error': 'Missing appointment date'
+            }, status=400)
+        
+        # Parse date
+        try:
+            appointment_date = datetime.strptime(appointment_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return JsonResponse({
+                'error': 'Invalid date format'
+            }, status=400)
+        
+        # Check for conflicts
+        conflicting_appointments = Appointment.objects.filter(
+            appointment_date=appointment_date,
+            status__in=Appointment.BLOCKING_STATUSES
+        )
+        
+        # Filter by patient_id (existing) OR name+email (new)
+        if patient_id:
+            conflicting_appointments = conflicting_appointments.filter(patient_id=patient_id)
+        else:
+            if not all([first_name, last_name, email]):
+                return JsonResponse({
+                    'error': 'Missing patient information'
+                }, status=400)
+            
+            # Check both linked patients AND temp data (pending requests)
+            conflicting_appointments = conflicting_appointments.filter(
+                Q(patient__first_name__iexact=first_name,
+                  patient__last_name__iexact=last_name,
+                  patient__email__iexact=email) |
+                Q(temp_first_name__iexact=first_name,
+                  temp_last_name__iexact=last_name,
+                  temp_email__iexact=email)
+            )
+        
+        if conflicting_appointments.exists():
+            existing = conflicting_appointments.first()
+            formatted_date = appointment_date.strftime('%B %d, %Y')
+            
+            return JsonResponse({
+                'has_conflict': True,
+                'message': f'You already have an appointment on {formatted_date} at {existing.start_time.strftime("%I:%M %p")} for {existing.service.name}. Please select a different date.',
+                'existing_appointment': {
+                    'date': existing.appointment_date.isoformat(),
+                    'start_time': existing.start_time.strftime('%I:%M %p'),
+                    'service': existing.service.name,
+                    'status': existing.get_status_display()
+                }
+            })
+        else:
+            return JsonResponse({
+                'has_conflict': False,
+                'message': 'No conflicts found'
+            })
+            
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'error': 'Invalid request data'
+        }, status=400)
+    except Exception as e:
+        logger.error(f"Error in check_booking_conflict: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'error': 'An error occurred'
+        }, status=500)
+
 class AuditLogListView(LoginRequiredMixin, ListView):
     """Enhanced view for audit logs with comprehensive filtering"""
     model = AuditLog
