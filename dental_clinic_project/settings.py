@@ -31,7 +31,7 @@ INSTALLED_APPS = [
     # Third party apps
     'crispy_forms',
     'crispy_tailwind',
-    
+
     # Local apps
     'core.apps.CoreConfig',
     'users',
@@ -41,7 +41,6 @@ INSTALLED_APPS = [
     'patient_portal',
     'reports',
 ]
-
 SITE_ID = 1
 
 MIDDLEWARE = [
@@ -163,6 +162,8 @@ SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_AGE = 8 * 60 * 60  # 8 hours
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_SECURE = not DEBUG  # Use secure cookies in production
+CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read CSRF cookie
+CSRF_COOKIE_SAMESITE = 'Lax'  # Protect against CSRF attacks
 CSRF_COOKIE_SECURE = not DEBUG
 
 # Security settings for production

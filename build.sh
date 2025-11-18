@@ -14,12 +14,15 @@ mkdir -p media/treatment_files
 python manage.py collectstatic --no-input
 
 # Run migrations
+echo "Running migrations..."
 python manage.py migrate
 
 # Initialize system settings
+echo "Initializing system settings..."
 python manage.py initialize_settings
 
 # Create default roles if they don't exist
+echo "Creating default roles..."
 python manage.py shell << EOF
 from users.models import Role
 from django.db import IntegrityError
@@ -42,6 +45,7 @@ for role_name in roles:
 EOF
 
 # Create superuser if it doesn't exist
+echo "Creating superuser..."
 python manage.py shell << EOF
 from django.contrib.auth import get_user_model
 import os
