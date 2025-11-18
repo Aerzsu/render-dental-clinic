@@ -543,25 +543,49 @@ function formatCurrency(value) {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== DOM CONTENT LOADED ===');
+    
     // Load from Django's initial_items_json first
     if (initialItemsFromDjango && initialItemsFromDjango.length > 0) {
-        console.log('Loading from treatment record:', initialItemsFromDjango);
-        serviceItems = initialItemsFromDjango.map(item => ({
-            service_id: item.service_id,
-            service_name: item.service_name,
-            price: item.default_price,  // Start with default price
-            discount_id: '',
-            notes: '',
-            min_price: item.min_price,
-            max_price: item.max_price,
-            products: item.products.map(prod => ({
-                product_id: prod.id,
-                product_name: prod.name,
-                quantity: prod.quantity,
-                unit_price: prod.unit_price,
-                notes: prod.notes || ''
-            }))
-        }));
+        console.log('=== LOADING INITIAL ITEMS ===');
+        console.log('Raw initial items:', JSON.stringify(initialItemsFromDjango, null, 2));
+        
+        serviceItems = initialItemsFromDjango.map((item, idx) => {
+            console.log(`Mapping service ${idx}: ${item.service_name}`);
+            console.log(`  Raw products:`, item.products);
+            
+            // Ensure products array exists and map correctly
+            const mappedProducts = Array.isArray(item.products) 
+                ? item.products.map(prod => {
+                    console.log(`    Mapping product: ${prod.name}`);
+                    return {
+                        product_id: prod.id,  // Django sends 'id'
+                        product_name: prod.name,
+                        quantity: parseInt(prod.quantity) || 1,
+                        unit_price: parseFloat(prod.unit_price) || 0,
+                        notes: (prod.notes || '').toString()
+                    };
+                })
+                : [];
+            
+            const mappedItem = {
+                service_id: parseInt(item.service_id),
+                service_name: item.service_name || '',
+                price: parseFloat(item.default_price) || parseFloat(item.min_price) || 0,
+                discount_id: '',
+                notes: '',
+                min_price: parseFloat(item.min_price) || 0,
+                max_price: parseFloat(item.max_price) || 999999,
+                products: mappedProducts
+            };
+            
+            console.log(`Mapped service ${idx}:`, JSON.stringify(mappedItem, null, 2));
+            return mappedItem;
+        });
+        
+        console.log('=== FINAL serviceItems ARRAY ===');
+        console.log(`Total services: ${serviceItems.length}`);
+        console.log('Full array:', JSON.stringify(serviceItems, null, 2));
     } else {
         // Fallback: Try to load from hidden form field (for form validation errors)
         const initialData = document.getElementById('id_service_items_data').value;
@@ -575,7 +599,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
-    
+
+    if (serviceItems.length > 0) {
+        const initialData = JSON.stringify(serviceItems);
+        document.getElementById('id_service_items_data').value = initialData;
+        console.log('Initial data saved to hidden field:', initialData);
+    }
     // If still no items, add a default empty one
     if (serviceItems.length === 0) {
         console.log('No initial items, adding default');
@@ -587,7 +616,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     setupEventListeners();
     updatePaymentSummary();
-    
+
     // Setup admin password field Enter key handler
     const adminPasswordField = document.getElementById('adminPassword');
     if (adminPasswordField) {
@@ -697,17 +726,28 @@ function handleDiscountApplicationChange() {
 }
 
 function renderServiceItems() {
+    console.log('=== RENDERING SERVICE ITEMS ===');
+    console.log('Items to render:', serviceItems.length);
+    
     const container = document.getElementById('serviceItemsContainer');
     container.innerHTML = '';
     
     serviceItems.forEach((item, index) => {
+        console.log(`Rendering service item ${index}:`, item);
         const itemHtml = createServiceItemHtml(item, index);
         container.insertAdjacentHTML('beforeend', itemHtml);
     });
     
+    // Attach event listeners AFTER rendering
     serviceItems.forEach((item, index) => {
         attachServiceItemListeners(index);
     });
+    
+    // VERIFY: Check the serviceItems array is still intact
+    console.log('After rendering, serviceItems.length:', serviceItems.length);
+    console.log('After rendering, serviceItems:', serviceItems);
+    
+    console.log('Service items rendered successfully');
 }
 
 function createServiceItemHtml(item, index) {
@@ -835,21 +875,27 @@ function createServiceItemHtml(item, index) {
 }
 
 function createProductItemHtml(serviceIndex, productIndex, product) {
-    const categoriesHtml = availableCategories.map(cat => 
-        `<optgroup label="${cat.name}">
-            ${availableProducts.filter(p => p.category_id === cat.id).map(p => 
-                `<option value="${p.id}" ${p.id == product.product_id ? 'selected' : ''}>${p.name} - ${formatCurrency(p.price)}</option>`
-            ).join('')}
-        </optgroup>`
-    ).join('');
+    // Build product options with proper selection
+    let productOptionsHtml = '<option value="">Select product...</option>';
+    
+    availableCategories.forEach(cat => {
+        const categoryProducts = availableProducts.filter(p => p.category_id === cat.id);
+        if (categoryProducts.length > 0) {
+            productOptionsHtml += `<optgroup label="${cat.name}">`;
+            categoryProducts.forEach(p => {
+                const selected = p.id == product.product_id ? 'selected' : '';
+                productOptionsHtml += `<option value="${p.id}" ${selected} data-price="${p.price}">${p.name} - ${formatCurrency(p.price)}</option>`;
+            });
+            productOptionsHtml += '</optgroup>';
+        }
+    });
     
     return `
         <div class="product-item flex items-center gap-3 p-3.5 rounded-lg shadow-sm" data-service-index="${serviceIndex}" data-product-index="${productIndex}">
             <div class="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div class="sm:col-span-2">
                     <select class="product-select block w-full text-sm rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                        <option value="">Select product...</option>
-                        ${categoriesHtml}
+                        ${productOptionsHtml}
                     </select>
                 </div>
                 <div class="relative">
@@ -862,7 +908,7 @@ function createProductItemHtml(serviceIndex, productIndex, product) {
                            value="${product.quantity || 1}" min="1" placeholder="Qty">
                 </div>
             </div>
-            <button type="button" class="remove-product remove-btn flex-shrink-0 text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50 transition-all" data-service-index="${serviceIndex}" data-product-index="${productIndex}" title="Remove product">
+            <button type="button" class="remove-product remove-btn flex-shrink-0 text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50 transition-all" title="Remove product">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -923,33 +969,59 @@ function attachProductListeners(serviceIndex) {
     
     item.products.forEach((product, productIndex) => {
         const productElement = document.querySelector(`[data-service-index="${serviceIndex}"][data-product-index="${productIndex}"]`);
-        if (!productElement) return;
+        if (!productElement) {
+            console.warn(`Product element not found: service ${serviceIndex}, product ${productIndex}`);
+            return;
+        }
         
         // Product selection
         const productSelect = productElement.querySelector('.product-select');
-        productSelect.addEventListener('change', function() {
-            updateProductItem(serviceIndex, productIndex, 'product_id', this.value);
-            updateServiceCalculations(serviceIndex);
-        });
+        if (productSelect) {
+            productSelect.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                const productPrice = selectedOption.getAttribute('data-price');
+                
+                updateProductItem(serviceIndex, productIndex, 'product_id', this.value);
+                
+                // Also update unit_price from the data attribute
+                if (productPrice) {
+                    updateProductItem(serviceIndex, productIndex, 'unit_price', parseFloat(productPrice));
+                }
+                
+                updateServiceCalculations(serviceIndex);
+            });
+        }
         
         // Quantity input
         const quantityInput = productElement.querySelector('.product-quantity');
-        quantityInput.addEventListener('input', function() {
-            updateProductItem(serviceIndex, productIndex, 'quantity', parseInt(this.value) || 1);
-            updateServiceCalculations(serviceIndex);
-        });
+        if (quantityInput) {
+            quantityInput.addEventListener('input', function() {
+                updateProductItem(serviceIndex, productIndex, 'quantity', parseInt(this.value) || 1);
+                updateServiceCalculations(serviceIndex);
+            });
+        }
         
         // Remove product
         const removeBtn = productElement.querySelector('.remove-product');
-        removeBtn.addEventListener('click', function() {
-            removeProductFromService(serviceIndex, productIndex);
-        });
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function() {
+                removeProductFromService(serviceIndex, productIndex);
+            });
+        }
     });
 }
 
 function updateServiceItem(index, field, value) {
-    if (!serviceItems[index]) return;
+    if (!serviceItems[index]) {
+        console.error(`updateServiceItem: serviceItems[${index}] does not exist!`);
+        return;
+    }
+    
+    console.log(`Updating serviceItems[${index}].${field} = ${value}`);
     serviceItems[index][field] = value;
+    
+    console.log(`After update, serviceItems.length: ${serviceItems.length}`);
+    
     document.getElementById('id_service_items_data').value = JSON.stringify(serviceItems);
 }
 
@@ -958,12 +1030,13 @@ function updateProductItem(serviceIndex, productIndex, field, value) {
     
     serviceItems[serviceIndex].products[productIndex][field] = value;
     
-    // Update product name if product_id changed
+    // Update product details if product_id changed
     if (field === 'product_id' && value) {
         const product = availableProducts.find(p => p.id == value);
         if (product) {
             serviceItems[serviceIndex].products[productIndex].product_name = product.name;
             serviceItems[serviceIndex].products[productIndex].unit_price = product.price;
+            console.log(`Updated product ${productIndex} for service ${serviceIndex}:`, serviceItems[serviceIndex].products[productIndex]);
         }
     }
     
@@ -1001,6 +1074,11 @@ function updateServiceCalculations(index) {
     
     if (!item || !itemElement) return;
     
+    console.log(`=== Calculating service ${index} ===`);
+    console.log('Service:', item.service_name);
+    console.log('Base price:', item.price);
+    console.log('Products:', item.products ? item.products.length : 0);
+
     const servicePrice = parseFloat(item.price) || 0;
     
     // Calculate products total
@@ -1014,7 +1092,8 @@ function updateServiceCalculations(index) {
             }
         });
     }
-    
+    console.log('Products total:', formatCurrency(productsTotal));
+
     // Calculate discount (only on service base price)
     let discountAmount = 0;
     const discountApplicationType = document.querySelector('input[name="discount_application"]:checked')?.value;
@@ -1093,13 +1172,15 @@ function addProductToService(serviceIndex) {
         serviceItems[serviceIndex].products = [];
     }
     
-    serviceItems[serviceIndex].products.push({
+    const newProduct = {
         product_id: '',
         product_name: '',
         quantity: 1,
         unit_price: 0,
         notes: ''
-    });
+    };
+    
+    serviceItems[serviceIndex].products.push(newProduct);
     
     const container = document.querySelector(`[data-service-index="${serviceIndex}"].products-container`);
     
@@ -1110,11 +1191,15 @@ function addProductToService(serviceIndex) {
     }
     
     const productIndex = serviceItems[serviceIndex].products.length - 1;
-    const productHtml = createProductItemHtml(serviceIndex, productIndex, serviceItems[serviceIndex].products[productIndex]);
+    const productHtml = createProductItemHtml(serviceIndex, productIndex, newProduct);
     container.insertAdjacentHTML('beforeend', productHtml);
     
+    // Re-attach ALL product listeners for this service (not just the new one)
     attachProductListeners(serviceIndex);
+    
     document.getElementById('id_service_items_data').value = JSON.stringify(serviceItems);
+    
+    console.log(`Added product to service ${serviceIndex}. Total products: ${serviceItems[serviceIndex].products.length}`);
 }
 
 function removeProductFromService(serviceIndex, productIndex) {
@@ -1214,7 +1299,29 @@ function updatePaymentSummary() {
 
 function handleFormSubmission(e) {
     // Update hidden field
-    document.getElementById('id_service_items_data').value = JSON.stringify(serviceItems);
+    const serializedData = JSON.stringify(serviceItems);
+    document.getElementById('id_service_items_data').value = serializedData;
+    
+    // DEBUG: Log what we're submitting
+    console.log('=== FORM SUBMISSION DEBUG ===');
+    console.log('serviceItems array:', serviceItems);
+    console.log('Number of services in memory:', serviceItems.length);
+    console.log('Serialized data:', serializedData);
+    console.log('Hidden field value:', document.getElementById('id_service_items_data').value);
+    
+    // Log each service in detail
+    serviceItems.forEach((item, idx) => {
+        console.log(`Service ${idx}:`);
+        console.log(`  - ID: ${item.service_id}`);
+        console.log(`  - Name: ${item.service_name}`);
+        console.log(`  - Price: ${item.price}`);
+        console.log(`  - Products: ${item.products ? item.products.length : 0}`);
+        if (item.products) {
+            item.products.forEach((prod, prodIdx) => {
+                console.log(`    Product ${prodIdx}: ID=${prod.product_id}, Qty=${prod.quantity}`);
+            });
+        }
+    });
     
     // Validate at least one service
     if (serviceItems.length === 0) {
