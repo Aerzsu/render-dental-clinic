@@ -2,557 +2,349 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Receipt - {{ transaction.receipt_number }}</title>
+    <title>Official Receipt - {{ transaction.receipt_number }}</title>
     <style>
-        /* Define Colors (hardcoded for xhtml2pdf) */
-        /* Primary (Blue): #007bff; Success (Green): #28a745; Danger (Red): #dc3545; Background Light: #f8f9fa; */
+        /* Color Palette (Primary: #667eea, Success: #059669, Warning: #d97706) */
 
         @page {
             size: A4;
-            margin: 15mm;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+            margin: 1.5cm;
         }
         
         body {
-            font-family: 'Segoe UI', 'Helvetica Neue', 'Arial', sans-serif;
+            font-family: Arial, sans-serif;
             font-size: 10pt;
-            line-height: 1.5;
-            color: #212529;
-            background-color: #ffffff;
-        }
-        
-        .receipt {
-            max-width: 800px;
-            margin: 0 auto;
-            background: #ffffff;
-        }
-        
-        /* --- Header --- */
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 5px solid #007bff;
-        }
-        
-        /* Increased size/weight for text-only branding */
-        .clinic-name {
-            font-size: 28pt; 
-            font-weight: 800; /* Extra bold */
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            color: #007bff;
-        }
-        
-        .clinic-info {
-            font-size: 9pt;
-            color: #6c757d;
             line-height: 1.4;
-            margin-top: 5px;
+            color: #111827; 
         }
         
-        .receipt-title {
-            font-size: 18pt; /* Larger title */
-            font-weight: 700;
-            margin-top: 25px;
-            text-transform: uppercase;
-            color: #212529;
-            letter-spacing: 3px;
+        /* --- Header Section (Two-Column Table Layout) --- */
+        .header-top {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
         }
-        
-        .receipt-number {
-            font-size: 11pt;
-            font-weight: 600;
-            color: #6c757d;
-            margin-top: 5px;
-            font-family: 'Courier New', monospace;
+        .logo-section {
+            width: 60%;
+            vertical-align: top;
+            padding: 0;
         }
-        
-        /* --- Info Section (Floating Columns) --- */
-        .info-section {
-            margin: 25px 0;
-            padding: 15px 20px;
-            background: #f8f9fa;
-            border-radius: 6px;
-            border: 1px solid #dee2e6;
-        }
-        
-        .info-grid::after {
-            content: "";
-            display: table;
-            clear: both;
-        }
-
-        .info-column {
-            width: 49%; 
-            float: left;
-            padding-right: 1%;
-        }
-        
-        .info-item {
-            margin-bottom: 12px; /* Increased spacing */
-            overflow: hidden; 
-        }
-        
-        .info-label {
-            font-size: 8pt;
-            color: #6c757d;
-            text-transform: uppercase;
-            font-weight: 600;
-            display: block;
-            margin-bottom: 3px;
-            letter-spacing: 0.5px;
-        }
-        
-        .info-value {
-            font-size: 10pt;
-            color: #212529;
-            font-weight: 600; /* Made value slightly bolder */
-        }
-        
-        /* --- Section Titles --- */
-        .section-title {
-            font-size: 12pt;
-            font-weight: 700;
-            margin: 30px 0 15px 0;
-            padding: 8px 15px;
-            background: #007bff;
-            color: #ffffff;
-            border-radius: 4px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        /* --- Service Block --- */
-        .service-block {
-            margin-bottom: 20px; /* Increased spacing between services */
-            padding: 15px;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            background-color: #ffffff;
-        }
-        
-        .service-header {
-            font-size: 11pt;
-            font-weight: 700;
-            margin-bottom: 10px;
-            color: #007bff;
-            padding-bottom: 5px;
-            border-bottom: 1px solid #dee2e6;
-        }
-        
-        .service-note {
-            font-size: 9pt;
-            color: #6c757d;
-            font-style: italic;
-            margin-bottom: 10px;
-            padding: 6px 10px;
-            background-color: #fff3cd; 
-            border-left: 3px solid #ffc107; 
-            border-radius: 4px;
-        }
-        
-        .breakdown-row {
-            padding: 6px 10px;
-            font-size: 9pt;
-            border-radius: 3px;
-            overflow: hidden; 
-        }
-        
-        .breakdown-row:nth-child(odd) {
-            background-color: #f8f9fa;
-        }
-        
-        .breakdown-row span:first-child {
-            float: left;
-        }
-        .breakdown-row span:last-child {
-            float: right;
-        }
-
-        .breakdown-row.service-total-row {
-            border-top: 2px solid #212529;
-            padding-top: 10px;
-            margin-top: 10px;
-            font-size: 10pt;
-            font-weight: 700;
-            background-color: #f3f4f6;
-            color: #007bff;
-        }
-        
-        .breakdown-row.discount {
-            color: #28a745;
-            font-weight: 600;
-            background-color: #d4edda; 
-        }
-        
-        /* --- Products Section --- */
-        .products-section {
-            margin: 10px 0;
-            padding: 10px;
-            background: #e9f7ff; 
-            border-left: 3px solid #007bff;
-            border-radius: 4px;
-        }
-        
-        .products-title {
-            font-size: 9pt;
-            font-weight: 700;
-            color: #007bff;
-            text-transform: uppercase;
-            margin-bottom: 8px;
-            letter-spacing: 0.5px;
-        }
-        
-        /* Simple structure for single product lines */
-        .product-item {
-            padding: 4px 0;
-            font-size: 9pt;
-            color: #212529;
-            border-bottom: 1px dashed #b8daff;
-            overflow: hidden; 
-        }
-        
-        .product-item:last-of-type {
-            border-bottom: none;
-        }
-        
-        .product-name {
-            font-weight: 400;
-            float: left;
-            max-width: 60%; 
-        }
-        
-        /* Combined price and qty span for better alignment control */
-        .product-price-details {
-            float: right;
+        .meta-section {
+            width: 40%;
+            vertical-align: top;
+            padding: 0;
             text-align: right;
-            font-weight: 600;
-            color: #007bff;
-            min-width: 150px; 
-            font-size: 9pt; 
         }
-        
-        .product-note {
-            font-size: 8pt;
-            color: #6c757d;
-            font-style: italic;
-            margin-left: 10px;
-            margin-top: 2px;
+        .clinic-logo-text {
+            font-size: 20pt;
+            font-weight: 800;
+            color: #111827; 
+            margin: 0;
+            line-height: 1.1;
         }
-        
-        /* --- Totals Section --- */
-        .totals-section {
-            margin-top: 35px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 6px;
-            border: 2px solid #dee2e6; /* Thicker border to stand out */
+        .clinic-tagline {
+            font-size: 9pt;
+            color: #6b7280; 
+            margin: 2px 0 16px 0;
         }
-        
-        .total-row {
-            padding: 8px 12px;
-            font-size: 10pt;
-            border-radius: 3px;
-            overflow: hidden; 
-        }
-
-        .total-row span:first-child {
-            float: left;
-        }
-        .total-row span:last-child {
-            float: right;
-        }
-        
-        .total-row:nth-child(odd) {
-            background-color: #ffffff;
-        }
-        
-        .total-row.subtotal {
-            font-weight: 700;
-            border-top: 1px dashed #dee2e6;
-            padding-top: 12px;
+        .bill-to {
+            border: 1px solid #e5e7eb;
+            padding: 12px;
+            text-align: left;
             margin-top: 8px;
-            color: #212529;
+            display: inline-block;
+            width: 100%;
         }
-        
-        .total-row.discount-total {
-            color: #28a745;
+        .bill-to .label {
+            font-size: 8pt;
+            font-weight: 600;
+            color: #374151;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .receipt-title {
+            font-size: 22pt;
             font-weight: 700;
-            background-color: #d4edda;
+            color: #667eea;
+            margin: 0;
+            padding: 0;
         }
-        
-        .total-row.grand-total {
-            font-size: 16pt; /* Largest font */
-            font-weight: 800;
-            background: #007bff;
-            color: #ffffff;
-            padding: 15px 20px;
-            margin: 15px 0;
-            border-radius: 4px;
+        .receipt-meta-item {
+            font-size: 10pt;
+            margin: 4px 0;
         }
-        
-        .total-row.payment {
-            color: #28a745;
+        .receipt-meta-item strong {
             font-weight: 700;
-            background-color: #d4edda;
-            border: 1px solid #28a745;
+            color: #111827;
+            width: 120px;
+            display: inline-block;
         }
         
-        .total-row.balance {
-            color: #dc3545;
-            font-weight: 800;
-            font-size: 12pt;
-            background-color: #f8d7da; 
-            border: 1px solid #dc3545;
-        }
-        
-        /* --- Footer and Badges --- */
-        .history-item { overflow: hidden; }
-        .history-item span:first-child { float: left; }
-        .history-item span:last-child { float: right; }
-
-        .footer {
-            text-align: center;
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 4px solid #007bff;
-        }
-        
+        /* Status Badges */
         .status-badge {
             display: inline-block;
-            padding: 4px 10px;
-            border-radius: 15px;
-            font-size: 8pt;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 9pt;
+            font-weight: 600;
+            margin-top: 8px;
+        }
+        .status-paid { background: #d1fae5; color: #065f46; }
+        .status-partial { background: #fef3c7; color: #d97706; }
+
+        /* --- Items Table (Unified Style) --- */
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            border: 1px solid #e5e7eb;
+        }
+        .items-table th {
+            background-color: #667eea; /* Primary blue header */
+            color: white;
+            padding: 10px 12px;
+            text-align: left;
+            font-size: 10pt;
+            font-weight: 600;
+            border: none;
+        }
+        .items-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 10pt;
+            vertical-align: top;
+        }
+        .items-table tr:last-child td {
+            border-bottom: none;
+        }
+        .product-list {
+            font-size: 9pt;
+            color: #4b5563;
+            list-style: none;
+            padding-left: 0;
+            margin: 4px 0 0 0;
+        }
+        .product-list li {
+            margin-bottom: 2px;
+            overflow: hidden;
+        }
+        .product-name-col { float: left; }
+        .product-price-col { float: right; font-weight: 600; }
+        
+        /* --- Totals Summary Block --- */
+        .totals-section {
+            width: 350px; 
+            float: right;
+            margin-top: 16px;
+        }
+        .totals-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .totals-table td {
+            padding: 6px 0;
+            border: none;
+            font-size: 10pt;
+        }
+        .totals-table .label {
+            text-align: left;
+        }
+        .totals-table .amount {
+            text-align: right;
+            font-weight: 600;
+        }
+        .total-row-separator td {
+            border-top: 1px dashed #e5e7eb;
+            padding-top: 8px;
+            margin-top: 8px;
+        }
+        .grand-total-row td {
+            border-top: 2px solid #111827;
             font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-left: 8px;
+            font-size: 11pt;
+            padding-top: 8px;
+            color: #667eea;
         }
-        
-        .status-badge.paid {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #28a745;
+        .payment-received-row td {
+            font-size: 12pt;
+            font-weight: 800;
+            background-color: #d1fae5;
+            color: #059669;
+            padding: 10px 15px;
+            margin-top: 10px;
         }
-        
-        .status-badge.partial {
-            background-color: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffc107;
+        .balance-due-row td {
+            font-size: 12pt;
+            font-weight: 800;
+            background-color: #fef3c7;
+            color: #d97706;
+            padding: 10px 15px;
+            margin-top: 10px;
+        }
+
+        /* --- Footer --- */
+        .clearfix { clear: both; }
+        .footer {
+            margin-top: 40px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+            font-size: 9pt;
+            color: #6b7280; 
         }
     </style>
 </head>
 <body>
-    {% if payment.outstanding_balance > 0 %}
-    <div class="watermark">BALANCE DUE</div>
-    {% endif %}
     
-    <div class="receipt">
-        <div class="header">
-            <div class="clinic-name">{{ clinic_name }}</div>
-            <div class="clinic-info">
-                {{ clinic_address|linebreaks }}
-                <strong>Tel:</strong> {{ clinic_phone }} | <strong>Email:</strong> {{ clinic_email }}
-            </div>
-            <div class="receipt-title">Official Receipt</div>
-            <div class="receipt-number">
-                {{ transaction.receipt_number }}
-                {% if payment.outstanding_balance > 0 %}
-                    <span class="status-badge partial">Partial Payment</span>
-                {% else %}
-                    <span class="status-badge paid">Paid in Full</span>
-                {% endif %}
-            </div>
-        </div>
-        
-        <div class="info-section">
-            <div class="info-grid">
-                <div class="info-column">
-                    <div class="info-item">
-                        <span class="info-label">Patient Name (Bill To)</span>
-                        <span class="info-value">{{ patient.full_name }}</span>
-                    </div>
-                    {% if patient.contact_number %}
-                    <div class="info-item">
-                        <span class="info-label">Contact Number</span>
-                        <span class="info-value">{{ patient.contact_number }}</span>
-                    </div>
-                    {% endif %}
-                    {% if patient.email %}
-                    <div class="info-item">
-                        <span class="info-label">Email Address</span>
-                        <span class="info-value">{{ patient.email }}</span>
-                    </div>
+    <table class="header-top">
+        <tr>
+            <td class="logo-section">
+                <div style="width: 50px; height: 50px; background-color: #667eea; border-radius: 4px; float: left; margin-right: 10px;"></div>
+                <div>
+                    <div class="clinic-logo-text">YOUR DENTAL CLINIC</div>
+                    <div class="clinic-tagline">For beautiful smiles</div>
+                </div>
+                
+                <div class="bill-to">
+                    <div class="label">Patient (Bill To):</div>
+                    <div style="font-weight: 600; font-size: 10pt; color: #111827;">{{ patient.full_name }}</div>
+                    <div style="font-size: 9pt; margin-top: 2px;">{{ patient.contact_number|default:'—' }}</div>
+                </div>
+            </td>
+            <td class="meta-section">
+                <div class="receipt-title">RECEIPT</div>
+                
+                <div class="receipt-meta-item">
+                    <strong style="color: #6b7280;">Receipt No.:</strong>
+                    <span>#{{ transaction.receipt_number }}</span>
+                </div>
+                <div class="receipt-meta-item">
+                    <strong style="color: #6b7280;">Invoice Ref:</strong>
+                    <span>#{{ transaction.payment.id|stringformat:"06d" }}</span>
+                </div>
+                <div class="receipt-meta-item">
+                    <strong style="color: #6b7280;">Payment Date:</strong>
+                    <span>{{ transaction.payment_date|date:"F d, Y" }}</span>
+                </div>
+                <div class="receipt-meta-item">
+                    <strong style="color: #6b7280;">Status:</strong>
+                    {% if payment.outstanding_balance > 0 %}
+                        <span class="status-badge status-partial">PARTIAL PAYMENT</span>
+                    {% else %}
+                        <span class="status-badge status-paid">PAID IN FULL</span>
                     {% endif %}
                 </div>
-                <div class="info-column">
-                    <div class="info-item">
-                        <span class="info-label">Appointment Date</span>
-                        <span class="info-value">{{ appointment.appointment_date|date:"F d, Y" }}</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Receipt Date & Time</span>
-                        <span class="info-value">{{ transaction.payment_date|date:"F d, Y" }} at {{ transaction.payment_datetime|time:"g:i A" }}</span>
-                    </div>
-                    {% if appointment.assigned_dentist %}
-                    <div class="info-item">
-                        <span class="info-label">Attending Dentist</span>
-                        <span class="info-value">Dr. {{ appointment.assigned_dentist.get_full_name }}</span>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        
-        <div class="section-title">Services Rendered & Products Used</div>
-        
-        {% for item in payment_items %}
-            {% if item.price >= 0 %}
-            <div class="service-block">
-                <div class="service-header">{{ item.service.name }}</div>
-                
-                {% if item.notes %}
-                <div class="service-note">📝 Note: {{ item.notes }}</div>
-                {% endif %}
-                
-                <div class="service-breakdown">
-                    <div class="breakdown-row service-fee">
-                        <span>Service Base Fee</span>
-                        <span>₱{{ item.price|floatformat:2 }}</span>
-                    </div>
-                    
-                    {% if item.products.all %}
-                    <div class="products-section">
-                        <div class="products-title">🔹 Products & Supplies Used</div>
-                        {% for product_item in item.products.all %}
-                        <div class="product-item">
-                            <span class="product-name">• {{ product_item.product.name }}</span>
-                            <span class="product-price-details">
-                                {% if product_item.quantity > 1 %}
-                                ({{ product_item.quantity }} × ₱{{ product_item.unit_price|floatformat:2 }})
-                                {% endif %}
-                                ₱{{ product_item.subtotal|floatformat:2 }}
-                            </span>
-                        </div>
-                        {% if product_item.notes %}
-                        <div class="product-note">{{ product_item.notes }}</div>
+            </td>
+        </tr>
+    </table>
+
+    <div class="clearfix"></div>
+
+    <table class="items-table">
+        <thead>
+            <tr>
+                <th style="width: 50%;">Service / Treatment Description</th>
+                <th style="width: 25%; text-align: center;">Base Fee (P)</th>
+                <th style="width: 25%; text-align: right;">Item Total (P)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in payment_items %}
+                {% if item.price >= 0 %}
+                <tr>
+                    <td>
+                        <strong style="font-size: 10.5pt; color: #111827;">{{ item.service.name }}</strong>
+                        {% if item.notes %}
+                        <div style="font-style: italic; font-size: 9pt; color: #6b7280; margin-top: 4px;">Note: {{ item.notes }}</div>
                         {% endif %}
-                        {% endfor %}
-                        <div class="breakdown-row" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #b8daff; background-color: #e9f7ff;">
-                            <span style="font-weight: 700; color: #007bff;">Products Subtotal</span>
-                            <span style="font-weight: 700; color: #007bff;">₱{{ item.products_total|floatformat:2 }}</span>
-                        </div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if item.discount %}
-                    <div class="breakdown-row discount">
-                        <span>💰 Discount ({{ item.discount.name }}) - Applied to service fee only</span>
-                        <span>-₱{{ item.discount_amount|floatformat:2 }}</span>
-                    </div>
-                    {% endif %}
-                    
-                    <div class="breakdown-row service-total-row">
-                        <span>Service Total</span>
-                        <span>₱{{ item.total|floatformat:2 }}</span>
-                    </div>
-                </div>
-            </div>
+                        
+                        {% if item.products.all or item.discount %}
+                        <ul class="product-list">
+                            {% if item.products.all %}
+                            <li style="font-weight: 600; margin-top: 4px; color: #667eea;">— Products Used —</li>
+                            {% for product_item in item.products.all %}
+                            <li>
+                                <span class="product-name-col">
+                                    • {{ product_item.product.name }}
+                                    {% if product_item.quantity > 1 %}
+                                    ({{ product_item.quantity }}x @ P{{ product_item.unit_price|floatformat:2 }})
+                                    {% endif %}
+                                </span>
+                                <span class="product-price-col">P{{ product_item.subtotal|floatformat:2 }}</span>
+                            </li>
+                            {% endfor %}
+                            {% endif %}
+                            
+                            {% if item.discount %}
+                            <li style="font-weight: 600; color: #059669;">
+                                <span class="product-name-col">Discount ({{ item.discount.name }})</span>
+                                <span class="product-price-col">-P{{ item.discount_amount|floatformat:2 }}</span>
+                            </li>
+                            {% endif %}
+                        </ul>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center;">
+                        P{{ item.price|floatformat:2 }}
+                    </td>
+                    <td style="text-align: right; font-weight: 600; color: #667eea;">
+                        P{{ item.total|floatformat:2 }}
+                    </td>
+                </tr>
+                {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="clearfix"></div>
+
+    <div class="totals-section">
+        <table class="totals-table">
+            <tr>
+                <td class="label">Total Invoice Amount:</td>
+                <td class="amount">P{{ payment.total_amount|floatformat:2 }}</td>
+            </tr>
+
+            {% if previous_payments_total > 0 and payment.amount_paid > transaction.amount %}
+            <tr class="total-row-separator">
+                <td class="label" style="font-weight: 400; color: #d97706;">Previously Paid:</td>
+                <td class="amount" style="color: #d97706;">P{{ previous_payments_total|floatformat:2 }}</td>
+            </tr>
             {% endif %}
-        {% endfor %}
-        
-        <div class="totals-section">
-            <div class="total-row">
-                <span>Services Subtotal</span>
-                <span>₱{{ payment_summary.services_subtotal|floatformat:2 }}</span>
-            </div>
-            
-            <div class="total-row">
-                <span>Products Subtotal</span>
-                <span>₱{{ payment_summary.products_subtotal|floatformat:2 }}</span>
-            </div>
-            
-            <div class="total-row subtotal">
-                <span>Subtotal (Before Discounts)</span>
-                <span>₱{{ payment_summary.subtotal|floatformat:2 }}</span>
-            </div>
-            
-            {% if total_discount > 0 %}
-            <div class="total-row discount-total">
-                <span>💰 Total Discount Applied</span>
-                <span>-₱{{ total_discount|floatformat:2 }}</span>
-            </div>
-            {% endif %}
-            
-            <div class="total-row grand-total">
-                <span>TOTAL AMOUNT DUE</span>
-                <span>₱{{ payment.total_amount|floatformat:2 }}</span>
-            </div>
-            
-            {% if previous_payments_total > 0 %}
-            <div class="total-row">
-                <span>Previously Paid</span>
-                <span>₱{{ previous_payments_total|floatformat:2 }}</span>
-            </div>
-            {% endif %}
-            
-            <div class="total-row payment">
-                <span>✓ Payment Received ({{ transaction.payment_date|date:"M d, Y" }})</span>
-                <span>₱{{ transaction.amount|floatformat:2 }}</span>
-            </div>
+
+            <tr>
+                <td class="label" style="font-weight: 400;">Current Balance Due:</td>
+                <td class="amount">P{{ payment.total_amount|floatformat:2 }}</td>
+            </tr>
+
+            <tr class="payment-received-row">
+                <td>PAYMENT RECEIVED</td>
+                <td>P{{ transaction.amount|floatformat:2 }}</td>
+            </tr>
             
             {% if payment.outstanding_balance > 0 %}
-            <div class="total-row balance">
-                <span>⚠ OUTSTANDING BALANCE</span>
-                <span>₱{{ payment.outstanding_balance|floatformat:2 }}</span>
-            </div>
+            <tr class="balance-due-row">
+                <td>OUTSTANDING BALANCE REMAINING</td>
+                <td>P{{ payment.outstanding_balance|floatformat:2 }}</td>
+            </tr>
             {% endif %}
-        </div>
+        </table>
+    </div>
+
+    <div class="clearfix"></div>
+    
+    <div class="footer">
+        <div style="font-size: 14pt; font-weight: 700; color: #111827; margin-bottom: 5px;">Thank You for Your Payment!</div>
+        <div style="margin: 3px 0;">This official receipt is for your records. Generated by {{ transaction.created_by.get_full_name|default:transaction.created_by.username }}.</div>
         
-        {% if previous_transactions %}
-        <div class="payment-history">
-            <div class="history-title">📋 Previous Payments History</div>
-            {% for prev_trans in previous_transactions %}
-            <div class="history-item">
-                <span><strong>{{ prev_trans.receipt_number }}</strong> - {{ prev_trans.payment_date|date:"M d, Y" }}</span>
-                <span><strong>₱{{ prev_trans.amount|floatformat:2 }}</strong></span>
-            </div>
-            {% endfor %}
+        {% if transaction.notes %}
+        <div style="margin-top: 15px; padding: 10px; background-color: #fef3c7; border-radius: 4px; font-style: italic; color: #d97706; font-size: 9pt; display: inline-block;">
+            <strong>Transaction Note:</strong> {{ transaction.notes }}
         </div>
         {% endif %}
         
-        <div class="footer">
-            <div class="thank-you" style="font-size: 16pt; color: #212529;">Thank You for Your Payment!</div>
-            <div class="footer-note">This is an official receipt issued by <strong>{{ clinic_name }}</strong></div>
-            <div class="footer-note">Please keep this receipt for your records and future reference</div>
-            
-            {% if payment.outstanding_balance > 0 %}
-            <div class="footer-important">
-                <strong>⚠ Remaining Balance:</strong> ₱{{ payment.outstanding_balance|floatformat:2 }}
-                {% if payment.next_due_date %}
-                <br><strong>Next Payment Due:</strong> {{ payment.next_due_date|date:"F d, Y" }}
-                {% endif %}
-            </div>
-            {% endif %}
-            
-            {% if transaction.notes %}
-            <div class="footer-note" style="margin-top: 20px; padding: 10px; background-color: #fff3cd; border-radius: 4px; font-style: italic; color: #856404;">
-                <strong>Additional Notes:</strong> {{ transaction.notes }}
-            </div>
-            {% endif %}
-            
-            <div class="footer-note" style="margin-top: 25px; font-size: 8pt; color: #adb5bd; border-top: 1px solid #dee2e6; padding-top: 10px;">
-                Receipt generated on {{ transaction.payment_datetime|date:"F d, Y" }} at {{ transaction.payment_datetime|time:"g:i A" }}<br>
-                For inquiries or concerns, please contact us at {{ clinic_phone }} or {{ clinic_email }}
-            </div>
+        <div style="margin-top: 20px; font-size: 8pt; color: #adb5bd; padding-top: 10px; border-top: 1px solid #e5e7eb;">
+            {{ clinic_address }} | Tel: {{ clinic_phone }} | Email: {{ clinic_email }}
         </div>
     </div>
 </body>
