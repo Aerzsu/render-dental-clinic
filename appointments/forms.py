@@ -625,10 +625,14 @@ class PaymentForm(forms.ModelForm):
             
             if not next_due_date:
                 raise forms.ValidationError('First payment due date is required for installment payments.')
+            
+            # Validate due date is in the future for installments
+            if next_due_date < date.today():
+                raise forms.ValidationError('Payment due date must be in the future.')
         
-        # Validate due date is in the future
-        if next_due_date and next_due_date < date.today():
-            raise forms.ValidationError('Payment due date must be in the future.')
+        # For full payment, clear next_due_date (not needed)
+        if payment_type == 'full':
+            cleaned_data['next_due_date'] = None
         
         return cleaned_data
 

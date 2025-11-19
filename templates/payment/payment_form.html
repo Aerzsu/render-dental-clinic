@@ -270,18 +270,19 @@
                                 <fieldset>
                                     <legend class="text-sm font-semibold text-gray-900 mb-4">Payment Type <span class="text-red-500">*</span></legend>
                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        <div class="radio-card relative flex items-start p-4 border-2 border-gray-200 rounded-lg">
+                                        <label for="{{ form.payment_type.0.id_for_label }}" class="radio-card relative flex items-start p-4 border-2 border-gray-200 rounded-lg cursor-pointer">
                                             {{ form.payment_type.0 }}
-                                            <label for="{{ form.payment_type.0.id_for_label }}" class="ml-3 flex-1 cursor-pointer flex flex-col">
-                                            </label> <!-- django already handles the label, no need to put one here-->
-                                            <div class="text-xs text-gray-600 mt-2">Pay the entire amount at once</div>
-                                        </div>
-                                        <div class="radio-card relative flex items-start p-4 border-2 border-gray-200 rounded-lg">
+                                            <div class="ml-3 flex-1">
+                                                <span class="block text-xs text-gray-600 mt-2">Pay the entire amount at once</span>
+                                            </div>
+                                        </label>
+                                        
+                                        <label for="{{ form.payment_type.1.id_for_label }}" class="radio-card relative flex items-start p-4 border-2 border-gray-200 rounded-lg cursor-pointer">
                                             {{ form.payment_type.1 }}
-                                            <label for="{{ form.payment_type.1.id_for_label }}" class="ml-3 flex-1 cursor-pointer flex flex-col">
-                                            </label> <!-- django already handles the label, no need to put one here-->
-                                            <div class="block text-xs text-gray-600 mt-2">Split payment over multiple months</div>
-                                        </div>
+                                            <div class="ml-3 flex-1">
+                                                <span class="block text-xs text-gray-600 mt-2">Split payment over multiple months</span>
+                                            </div>
+                                        </label>
                                     </div>
                                     {% if form.payment_type.errors %}
                                         <div class="mt-3 flex items-center p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -313,7 +314,7 @@
                                 </div>
 
                                 <!-- Next Due Date -->
-                                <div id="nextDueDate">
+                                <div id="nextDueDate" class="hidden">
                                     <label for="{{ form.next_due_date.id_for_label }}" class="block text-sm font-semibold text-gray-900 mb-2">
                                         <span id="dueDateLabel">Payment Due Date</span> <span class="text-red-500">*</span>
                                     </label>
@@ -653,19 +654,34 @@ function setupEventListeners() {
     });
     
     // Add service button
-    document.getElementById('addServiceBtn').addEventListener('click', addServiceItem);
+    const addServiceBtn = document.getElementById('addServiceBtn');
+    if (addServiceBtn) {
+        addServiceBtn.addEventListener('click', addServiceItem);
+    }
     
     // Form submission
-    document.getElementById('paymentForm').addEventListener('submit', handleFormSubmission);
+    const paymentForm = document.getElementById('paymentForm');
+    if (paymentForm) {
+        paymentForm.addEventListener('submit', handleFormSubmission);
+    }
     
     // Admin override modal
-    document.getElementById('cancelOverride').addEventListener('click', closeAdminModal);
-    document.getElementById('confirmOverride').addEventListener('click', confirmAdminOverride);
+    const cancelOverrideBtn = document.getElementById('cancelOverride');
+    const confirmOverrideBtn = document.getElementById('confirmOverride');
+    if (cancelOverrideBtn) {
+        cancelOverrideBtn.addEventListener('click', closeAdminModal);
+    }
+    if (confirmOverrideBtn) {
+        confirmOverrideBtn.addEventListener('click', confirmAdminOverride);
+    }
     
     // Total discount change
-    document.getElementById('id_total_discount').addEventListener('change', updatePaymentSummary);
+    const totalDiscountSelect = document.getElementById('id_total_discount');
+    if (totalDiscountSelect) {
+        totalDiscountSelect.addEventListener('change', updatePaymentSummary);
+    }
     
-    // Installment months change
+    // Installment months change - Use event delegation on the parent container
     const installmentMonthsInput = document.getElementById('id_installment_months');
     if (installmentMonthsInput) {
         installmentMonthsInput.addEventListener('input', updatePaymentSummary);
@@ -685,19 +701,30 @@ function setupEventListeners() {
 
 function handlePaymentTypeChange() {
     const installmentMonths = document.getElementById('installmentMonths');
+    const nextDueDateDiv = document.getElementById('nextDueDate');
     const dueDateLabel = document.getElementById('dueDateLabel');
     const dueDateHelp = document.getElementById('dueDateHelp');
     const installmentInfo = document.getElementById('installmentInfo');
     
     if (this.value === 'installment') {
         installmentMonths.classList.remove('hidden');
+        nextDueDateDiv.classList.remove('hidden');
         dueDateLabel.textContent = 'First Payment Due Date';
         dueDateHelp.textContent = 'When the first installment should be due';
         installmentInfo.classList.remove('hidden');
-    } else {
+        
+        // Attach event listener to installment months input when it becomes visible
+        const installmentMonthsInput = document.getElementById('id_installment_months');
+        if (installmentMonthsInput) {
+            // Remove existing listener to avoid duplicates
+            installmentMonthsInput.removeEventListener('input', updatePaymentSummary);
+            // Add listener
+            installmentMonthsInput.addEventListener('input', updatePaymentSummary);
+        }
+    } else if (this.value === 'full') {
+        // Hide both fields for full payment
         installmentMonths.classList.add('hidden');
-        dueDateLabel.textContent = 'Payment Due Date';
-        dueDateHelp.textContent = 'When the payment should be due';
+        nextDueDateDiv.classList.add('hidden');
         installmentInfo.classList.add('hidden');
     }
     
@@ -1264,7 +1291,7 @@ function updatePaymentSummary() {
     // Apply total discount (only on services)
     if (discountApplicationType === 'total') {
         const totalDiscountSelect = document.getElementById('id_total_discount');
-        const totalDiscountId = totalDiscountSelect.value;
+        const totalDiscountId = totalDiscountSelect?.value;
         
         if (totalDiscountId) {
             const discount = availableDiscounts.find(d => d.id == totalDiscountId);
@@ -1288,12 +1315,39 @@ function updatePaymentSummary() {
     document.getElementById('summaryDiscount').textContent = totalDiscount > 0 ? `-${formatCurrency(totalDiscount)}` : '₱0.00';
     document.getElementById('summaryTotal').textContent = formatCurrency(total);
     
-    // Update installment info
+    // Update installment info - FIXED VERSION
     const paymentType = document.querySelector('input[name="payment_type"]:checked')?.value;
+    const installmentInfo = document.getElementById('installmentInfo');
+    
     if (paymentType === 'installment') {
-        const months = parseInt(document.getElementById('id_installment_months')?.value) || 1;
-        const monthlyAmount = total / months;
-        document.getElementById('monthlyAmount').textContent = formatCurrency(monthlyAmount);
+        const installmentMonthsInput = document.getElementById('id_installment_months');
+        const monthsValue = installmentMonthsInput?.value;
+        const months = parseInt(monthsValue) || 0;
+        
+        const monthlyAmountElement = document.getElementById('monthlyAmount');
+        
+        // ✅ FIX: Only show monthly amount if both total and months are valid
+        if (months > 0 && total > 0) {
+            const monthlyAmount = total / months;
+            if (monthlyAmountElement) {
+                monthlyAmountElement.textContent = formatCurrency(monthlyAmount);
+            }
+            if (installmentInfo) {
+                installmentInfo.classList.remove('hidden');
+            }
+        } else {
+            // Show placeholder if no valid calculation yet
+            if (monthlyAmountElement) {
+                monthlyAmountElement.textContent = '₱0.00';
+            }
+            if (installmentInfo) {
+                installmentInfo.classList.remove('hidden'); // Still show the section
+            }
+        }
+    } else {
+        if (installmentInfo) {
+            installmentInfo.classList.add('hidden');
+        }
     }
 }
 

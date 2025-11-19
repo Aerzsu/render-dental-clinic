@@ -463,12 +463,6 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
             # DEBUG logging
             print("=== FORM_VALID: VALIDATED ITEMS ===")
             print(f"Number of items: {len(validated_items)}")
-            for idx, item in enumerate(validated_items):
-                print(f"Item {idx}: {item['service'].name}")
-                print(f"  - Price: {item['price']}")
-                print(f"  - Products: {len(item.get('products', []))}")
-                for prod_idx, prod in enumerate(item.get('products', [])):
-                    print(f"    Product {prod_idx}: {prod['product'].name} x{prod['quantity']} @ {prod['unit_price']}")
             
             # Check if admin override is required but not confirmed
             requires_override = any(item.get('requires_admin_override', False) for item in validated_items)
@@ -478,7 +472,7 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
                 return self.form_invalid(form)
             
             with transaction.atomic():
-                # Save payment instance first (WITHOUT calling super())
+                # Save payment instance first
                 payment = form.instance
                 payment.save()
                 
@@ -506,19 +500,18 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
                     print(f"  Creating {len(products_list)} product records...")
                     
                     for prod_idx, product_data in enumerate(products_list):
-                        product_record = PaymentItemProduct.objects.create(
+                        PaymentItemProduct.objects.create(
                             payment_item=payment_item,
                             product=product_data['product'],
                             quantity=product_data['quantity'],
                             unit_price=product_data['unit_price'],
                             notes=product_data.get('notes', '')
                         )
-                        print(f"    Product {prod_idx} created: {product_record.product.name} x{product_record.quantity} = {product_record.subtotal}")
                     
                     # Add to total (uses the property that includes products)
                     item_total = payment_item.total
                     total_amount += item_total
-                    print(f"  Item total: {item_total} (service: {payment_item.price}, products: {payment_item.products_total})")
+                    print(f"  Item total: {item_total}")
                 
                 print(f"=== SUBTOTAL BEFORE DISCOUNT: {total_amount} ===")
                 
@@ -527,7 +520,7 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
                 if discount_application == 'total' and form.cleaned_data.get('total_discount'):
                     total_discount = form.cleaned_data['total_discount']
                     
-                    # Calculate discount on service base prices only (not products)
+                    # Calculate discount on service base prices only
                     service_base_total = sum(item.price for item in payment.items.all())
                     
                     if total_discount.is_percentage:
@@ -537,10 +530,9 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
                     
                     if discount_amount > 0:
                         print(f"=== APPLYING TOTAL DISCOUNT: {discount_amount} ===")
-                        # Create a negative adjustment item for the discount
                         PaymentItem.objects.create(
                             payment=payment,
-                            service=item_data['service'],  # Use last service as reference
+                            service=item_data['service'],
                             price=-discount_amount,
                             notes=f'Total discount: {total_discount.name}'
                         )
@@ -548,27 +540,69 @@ class PaymentCreateView(LoginRequiredMixin, CreateView):
                 
                 # Update payment total amount
                 payment.total_amount = max(total_amount, Decimal('0'))
+                
+                # ✅ CALCULATE AND SET MONTHLY AMOUNT FOR INSTALLMENTS
+                if payment.payment_type == 'installment' and payment.installment_months:
+                    payment.monthly_amount = payment.total_amount / payment.installment_months
+                    print(f"=== INSTALLMENT: {payment.installment_months} months, Monthly: {payment.monthly_amount} ===")
+                
                 payment.save()
                 
                 print(f"=== FINAL PAYMENT TOTAL: {payment.total_amount} ===")
-                print(f"=== PAYMENT ITEMS COUNT: {payment.items.count()} ===")
                 
-                # Verify what was saved
-                for item in payment.items.all():
-                    print(f"Saved item: {item.service.name} - Price: {item.price}")
-                    print(f"  Products: {item.products.count()}")
-                    for prod in item.products.all():
-                        print(f"    - {prod.product.name} x{prod.quantity}")
+                # 🆕 AUTO-PAYMENT FOR FULL PAYMENT TYPE
+                if payment.payment_type == 'full' and payment.total_amount > 0:
+                    print("=== AUTO-CREATING FULL PAYMENT TRANSACTION ===")
+                    
+                    # Create automatic payment transaction with invoice creation datetime
+                    transaction_record = PaymentTransaction.objects.create(
+                        payment=payment,
+                        amount=payment.total_amount,
+                        payment_date=payment.created_at.date(),  # Use invoice creation date
+                        notes='Full payment received at time of invoice creation',
+                        created_by=self.request.user
+                    )
+                    
+                    # Update payment as fully paid
+                    payment.amount_paid = payment.total_amount
+                    payment.status = 'completed'
+                    payment.save(update_fields=['amount_paid', 'status'])
+                    
+                    # Lock the invoice immediately since it's fully paid
+                    payment.lock_invoice(
+                        user=self.request.user,
+                        reason='full_payment_completed',
+                        request=self.request
+                    )
+                    
+                    print(f"  Auto-payment created: Receipt {transaction_record.receipt_number}")
+                    print(f"  Payment marked as completed and locked")
+                    
+                    # Try to send invoice email
+                    try:
+                        from core.email_service import EmailService
+                        email_service = EmailService()
+                        email_service.send_invoice_email(payment, transaction_record)
+                    except Exception as email_error:
+                        print(f"Failed to send invoice email: {email_error}")
                 
-                messages.success(
-                    self.request, 
-                    f'Invoice created successfully for {self.appointment.patient.full_name}.'
-                )
+                # Success message
+                if payment.payment_type == 'full':
+                    messages.success(
+                        self.request,
+                        f'Invoice created and marked as fully paid (₱{payment.total_amount:,.2f}). '
+                        f'Receipt: {transaction_record.receipt_number if "transaction_record" in locals() else "N/A"}'
+                    )
+                else:
+                    messages.success(
+                        self.request, 
+                        f'Invoice created successfully for {self.appointment.patient.full_name}.'
+                    )
                 
                 # Set success URL and return redirect
                 self.object = payment
                 return redirect(self.get_success_url())
-                    
+                
         except Exception as e:
             print(f"=== ERROR IN FORM_VALID ===")
             print(f"Error: {str(e)}")

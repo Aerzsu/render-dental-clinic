@@ -471,6 +471,38 @@
                 </div>
             </div>
 
+            <!-- Installment Plan Details (ADD THIS NEW SECTION) -->
+            {% if payment.payment_type == 'installment' and payment.installment_months %}
+            <div class="bg-white shadow rounded-lg">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900">Installment Plan</h3>
+                </div>
+                <div class="px-6 py-4">
+                    <dl class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <dt class="text-sm font-medium text-gray-500">Payment Terms:</dt>
+                            <dd class="text-sm font-semibold text-gray-900">
+                                {{ payment.installment_months }} Month{{ payment.installment_months|pluralize }}
+                            </dd>
+                        </div>
+                        <div class="flex items-center justify-between pt-2 border-t border-gray-200">
+                            <dt class="text-sm font-medium text-gray-500">Monthly Payment:</dt>
+                            <dd class="text-lg font-bold text-primary-600">
+                                {{ payment.monthly_amount|format_currency }}
+                            </dd>
+                        </div>
+                        {% if payment.outstanding_balance > 0 %}
+                        <div class="mt-3 p-3 bg-blue-50 rounded-lg">
+                            <p class="text-xs text-blue-800">
+                                <span class="font-medium">Remaining Balance:</span> {{ payment.outstanding_balance|format_currency }}
+                            </p>
+                        </div>
+                        {% endif %}
+                    </dl>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Next Due Date -->
             {% if payment.next_due_date and payment.outstanding_balance > 0 %}
             <div class="bg-white shadow rounded-lg">

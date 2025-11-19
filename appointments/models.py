@@ -866,7 +866,11 @@ class Payment(models.Model):
                                                    help_text="Number of months for installment")
     monthly_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0,
                                        help_text="Monthly installment amount")
-    next_due_date = models.DateField(null=True, blank=True)
+    next_due_date = models.DateField(
+        null=True, 
+        blank=True,
+        help_text="Due date for next payment"
+    )
     
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
