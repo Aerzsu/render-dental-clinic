@@ -1,7 +1,7 @@
 # Dental Clinic Appointment System
 
 ## 🌟 About the project
-The **Appointment System** is a full-stack web application developed to modernize the workflow of dental practitioners. It replaces manual scheduling with an automated, conflict-free booking engine and provides a centralized portal for patient records.
+This appointment system is a full-stack web application developed to modernize the workflow of dental practitioners. It replaces manual scheduling with an automated, conflict-free booking engine and provides a centralized portal for patient records.
 
 ---
 
@@ -28,7 +28,10 @@ The system is divided into high-cohesion apps to ensure maintainability:
 └── render.yaml         # Infrastructure as Code for Render deployment
 ```
 
-🚀 Key Features
+---
+
+## 🚀 Key Features
+
 **Intelligent Scheduling:** Prevents double-booking and manages clinic hours effectively.
 
 **Patient Self-Service:** Patients can request appointments and view treatment history via the portal.
