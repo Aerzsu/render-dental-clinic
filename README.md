@@ -1,7 +1,7 @@
 # Dental Clinic Appointment System
 
 ## 🌟 About the project
-The **Appointmenet System** is a full-stack web application developed to modernize the workflow of dental practitioners. It replaces manual scheduling with an automated, conflict-free booking engine and provides a centralized portal for patient records.
+The **Appointment System** is a full-stack web application developed to modernize the workflow of dental practitioners. It replaces manual scheduling with an automated, conflict-free booking engine and provides a centralized portal for patient records.
 
 ---
 
